@@ -24,8 +24,13 @@ int main(int argc, char** argv)
 
     int igmax = ncouls;
 
+    //    The below 3 params have to be changed for the final version. Currently using small numbers hence setting them to smaller ones...memory constraints on the local machine.
+//    int npes = 8; //Represents the number of ranks per node
+//    int ngpown = ncouls / (nodes_per_group * npes); //Number of gvectors per mpi task
+//    int ngpown = ncouls / (nodes_per_group * npes); //Number of gvectors per mpi task
+
     int npes = 8; //Represents the number of ranks per node
-    int ngpown = ncouls / (nodes_per_group * npes); //Number of gvectors per mpi task
+    int ngpown = ncouls / npes; //Number of gvectors per mpi task
 
     double e_lk = 10;
     double dw = 1;
@@ -63,8 +68,12 @@ int main(int argc, char** argv)
     std::complex<double> expr = 0.5 + 0.5i;
     std::complex<double> aqsmtemp[ncouls][number_bands];
     std::complex<double> aqsntemp[ncouls][number_bands];
+    std::complex<double> I_eps_array[ncouls][ngpown];
+    std::complex<double> wx_array[3];
 
-   std::complex<double> I_eps_array[ncouls][ngpown];
+    double vcoul[ncouls];
+
+
 
    for(int i=0; i<ncouls; i++)
    {
@@ -76,58 +85,93 @@ int main(int argc, char** argv)
 
        for(int j=0; j<ngpown; j++)
            I_eps_array[i][j] = expr;
+
+       vcoul[i] = 1.0;
    }
 
-    cout << "Size of I_eps_array array = " << (ngpown) << " bytes" << endl;
+    cout << "Size of I_eps_array array = " << (ncouls*ngpown*2.0*8) << " bytes" << endl;
 
 //    cout << "aqsmtemp[0][0].real = " << aqsmtemp[2][1].real() << "\t aqsmtemp[0][0].imag = " << aqsmtemp[2][2].imag() << endl;
 
     //For MPI Work distribution
-//    for(int ig=0; ig < ngpown; ++ig)
-//        inv_igp_index[ig] = ig * ncouls / ngpown;
-//
-//    //Do not know yet what this array represents
-//    for(int ig=0; ig<ncouls; ++ig)
-//        indinv[ig] =ig;
+    for(int ig=0; ig < ngpown; ++ig)
+        inv_igp_index[ig] = ig * ncouls / ngpown;
+
+    //Do not know yet what this array represents
+    for(int ig=0; ig<ncouls; ++ig)
+        indinv[ig] =ig;
 
 
-//    for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
-//    {
-//        double flag_occ, occ=1.0;
-//        if(n1 < nvband)
-//            flag_occ = limittwo;
-//
-//        for(int my_igp = 0; my_igp< ngpown; ++my_igp)
-//        {
-//            int indigp = inv_igp_index[my_igp];
-//            int igp = indinv[indigp];
-//
-//            if(igp > ncouls || igp < 0)
-//                break;
-//
-//            if(gppsum == 1)
-//                igmax = igp;
-//            else
-//                igmax = ncouls;
-//
-//
-//            std::complex<double> mygpvar1 = std::conj(aqsmtemp[igp][n1]);
-//            std::complex<double> mygpvar2 = aqsntemp[igp][n1];
-//            double schstemp = 0.00;
-//
-//            if(gppsum == 1)
-//            {
-//                for(int ig=0; ig<igmax-1; ++ig)
-//                {
-//
-//                }
-//            }
-//
-//
-//        }
-//    }
+    for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
+    {
+        double flag_occ, occ=1.0;
+        if(n1 < nvband)
+            flag_occ = limittwo;
+
+        std::complex<double> achstemp = std::complex<double>(0.0, 0.0);
+
+        for(int my_igp = 0; my_igp< ngpown; ++my_igp)
+        {
+            int indigp = inv_igp_index[my_igp];
+            int igp = indinv[indigp];
+
+            if(igp > ncouls || igp < 0)
+                break;
+
+            if(gppsum == 1)
+                igmax = igp;
+            else
+                igmax = ncouls;
+
+
+            std::complex<double> mygpvar1 = std::conj(aqsmtemp[igp][n1]);
+            std::complex<double> mygpvar2 = aqsntemp[igp][n1];
+            std::complex<double> schstemp = std::complex<double>(0.0, 0.0);
+            std::complex<double> schs = std::complex<double>(0.0, 0.0);
+            std::complex<double> matngmatmgp = std::complex<double>(0.0, 0.0);
+            std::complex<double> matngpmatmg = std::complex<double>(0.0, 0.0);
+
+            if(gppsum == 1)
+            {
+
+                //Aggregating results in schstemp
+                for(int ig=0; ig<igmax-1; ++ig)
+                {
+                    //std::complex<double> schs = I_eps_array[ig][my_igp];
+                    schs = I_eps_array[ig][my_igp];
+                    matngmatmgp = aqsntemp[ig][n1] * mygpvar1;
+                    matngpmatmg = std::conj(aqsmtemp[ig][n1]) * mygpvar2;
+                    schstemp = schstemp + matngmatmgp*schs + matngpmatmg*(std::conj(schs));
+
+                }
+                //ig = igp ;
+                schs = I_eps_array[igp][my_igp];
+                matngmatmgp = aqsntemp[igp][n1] * mygpvar1;
+
+                if(abs(schs) > to1)
+                    schstemp = schstemp + matngmatmgp * schs;
+            }
+            else
+            {
+                for(int ig=1; ig<igmax; ++ig)
+                    schstemp = schstemp - aqsntemp[ig][n1] * I_eps_array[ig][my_igp] * mygpvar1;
+            }
+
+            achstemp = achstemp + schstemp*vcoul[igp]*0.5;
+        }
+
+        for(int iw=nstart; iw<nend; ++iw)
+        {
+            wx_array[iw] = e_lk - e_n1kq + dw*(iw-2);
+            if(abs(wx_array[iw]) < to1) wx_array[iw] = to1;
+
+        }
+    }
 
 
     cout << "EXIT EXIT EXIT" << endl;
     return 0;
 }
+
+
+//This code is till 250 lines of the original fortran code.
