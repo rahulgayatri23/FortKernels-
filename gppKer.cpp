@@ -4,8 +4,6 @@
 #include <cmath>
 #include <complex>
 
-//template <class T>
-//class complex;
 using namespace std;
 
 int main(int argc, char** argv)
@@ -69,14 +67,32 @@ int main(int argc, char** argv)
     std::complex<double> aqsmtemp[ncouls][number_bands];
     std::complex<double> aqsntemp[ncouls][number_bands];
     std::complex<double> I_eps_array[ncouls][ngpown];
-    std::complex<double> wtilde_array[ncouls][ngpown];
-    std::complex<double> wx_array[3];
     std::complex<double> achtemp[nend-nstart+1];
     std::complex<double> asxtemp[nend-nstart+1];
     std::complex<double> acht_n1_loc[number_bands];
 
     double vcoul[ncouls];
+    double wtilde_array[ncouls][ngpown];
+    double wx_array[3];
 
+    std::complex<double> schstemp = std::complex<double>(0.0, 0.0);
+    std::complex<double> schs = std::complex<double>(0.0, 0.0);
+    std::complex<double> matngmatmgp = std::complex<double>(0.0, 0.0);
+    std::complex<double> matngpmatmg = std::complex<double>(0.0, 0.0);
+
+    std::complex<double> achstemp = std::complex<double>(0.0, 0.0);
+    std::complex<double> wtilde2, Omega2;
+    std::complex<double> halfinvwtilde, delw, ssx, sch, wdiff, cden , eden, mygpvar1, mygpvar2;
+    double ssxcutoff;
+    std::complex<double> ssx_array[3], \
+        sch_array[3], \
+        ssxa[ncouls], \
+        scha[ncouls], \
+        scht, ssxt;
+
+    double wxt, wtilde, delw2, delwr, wdiffr, scha_mult, rden;
+    double occ=1.0;
+    bool flag_occ;
 
 
    for(int i=0; i<ncouls; i++)
@@ -85,7 +101,7 @@ int main(int argc, char** argv)
        {
            aqsmtemp[i][j] = expr;
            aqsntemp[i][j] = expr;
-           wtilde_array[i][j] = expr;
+           wtilde_array[i][j] = 0.00;
        }
 
        for(int j=0; j<ngpown; j++)
@@ -109,24 +125,8 @@ int main(int argc, char** argv)
 
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
-        double flag_occ, occ=1.0;
-        if(n1 < nvband)
-            flag_occ = limittwo;
+        flag_occ = n1 < nvband;
 
-        std::complex<double> schstemp = std::complex<double>(0.0, 0.0);
-        std::complex<double> schs = std::complex<double>(0.0, 0.0);
-        std::complex<double> matngmatmgp = std::complex<double>(0.0, 0.0);
-        std::complex<double> matngpmatmg = std::complex<double>(0.0, 0.0);
-
-        std::complex<double> achstemp = std::complex<double>(0.0, 0.0);
-        std::complex<double> wtilde, wtilde2, Omega2;
-        std::complex<double> scha_mult, halfinvwtilde, delw, delw2, delwr, ssx, sch, wdiff, cden, rden, eden, wdiffr, mygpvar1, mygpvar2;
-        double ssxcutoff;
-        std::complex<double> ssx_array[3], \
-            sch_array[3], \
-            ssxa[ncouls], \
-            scha[ncouls], \
-            scht, ssxt, wxt;
 
         for(int my_igp = 0; my_igp< ngpown; ++my_igp)
         {
@@ -234,7 +234,7 @@ int main(int argc, char** argv)
                                 delw2 = std::pow(abs(delw),2);
 
                                 //if((abs(wxt - wtilde) < gamma) || (delw2 < to1)) //ask jack about delw2<to1 , since dlw2 is a complex number and to1 is a real double. SO should the comparison be with abs(complex) or real(complex)
-                                if((abs(wxt - wtilde) < gamma) || (abs(delw2) < to1))
+                                if((wxt - wtilde < gamma) || (delw2 < to1))
                                 {
                                     sch = 0.0 + 0.0i;
                                     if(abs(wtilde) > to1)
@@ -284,25 +284,25 @@ int main(int argc, char** argv)
                                 wdiff = wxt - wtilde;
 
                                 cden = wdiff;
-                                rden = cden * conj(cden);
+                                rden = real(cden * conj(cden));
                                 eden = 1.00 / rden;
                                 delw = wtilde * conj(cden) * rden;
                                 delwr - delw * conj(delw);
-                                wdiffr = wdiff*conj(wdiff);
+                                wdiffr = real(wdiff * conj(wdiff));
 
-                                if((abs(wdiff) > limittwo) && (abs(delwr) < limitone)) //Ask jack, using abs again for comparing
+                                if((wdiffr > limittwo) && (delwr < limitone))
                                 {
                                     sch = delw * I_eps_array[ig][my_igp];
                                     cden = pow(wxt,2);
-                                    rden = cden*conj(cden);
+                                    rden = real(cden * conj(cden));
                                     rden = 1.00 / rden;
                                     ssx = Omega2 * conj(cden) * rden;
                                 }
-                                else if (abs(delwr) > to1) //jack , again using abs for comparison
+                                else if (delwr > to1)
                                 {
                                     sch = 0.00;
                                     cden = 4.00 * wtilde2 * (delw + 0.50);
-                                    rden = cden*conj(cden);
+                                    rden = real(cden * conj(cden));
                                     rden = 1.00/rden;
                                     ssx = -Omega2 * conj(cden) * rden * delw;
                                 }
@@ -348,9 +348,9 @@ int main(int argc, char** argv)
                                 matngmatmgp = aqsntemp[ig][n1] * mygpvar1;
                                 wdiff = wxt - wtilde;
                                 delw = wtilde / wdiff;
-                                delw2 = delw * conj(delw);
-                                wdiffr = wdiff * conj(wdiff);
-                                if((abs(wdiffr) < limittwo) || (abs(delw2) > limitone))
+                                delw2 = real(delw * conj(delw));
+                                wdiffr = real(wdiff * conj(wdiff));
+                                if((abs(wdiffr) < limittwo) || (delw2 > limitone))
                                     scha_mult = 1.0;
                                 else scha_mult = 0.0;
 
@@ -365,9 +365,9 @@ int main(int argc, char** argv)
                                 matngmatmgp = aqsntemp[ig][n1] * mygpvar1;
                                 wdiff = wxt - wtilde;
                                 delw = wtilde / wdiff;
-                                delw2 = delw * conj(delw);
-                                wdiffr = wdiff * conj(wdiff);
-                                if((abs(wdiffr) < limittwo) || (abs(delw2) > limitone))
+                                delw2 = real(delw * conj(delw));
+                                wdiffr = real(wdiff * conj(wdiff));
+                                if((abs(wdiffr) < limittwo) || (delw2 > limitone))
                                     scha_mult = 1.0;
                                 else scha_mult = 0.0;
 
@@ -381,11 +381,11 @@ int main(int argc, char** argv)
                             {
                                 wdiff = wxt - wtilde_array[ig][my_igp];
                                 cden = wdiff;
-                                rden = cden * conj(cden);
+                                rden = real(cden * conj(cden));
                                 rden = 1.00/rden;
                                 delw = wtilde_array[ig][my_igp] * conj(cden) * rden;
-                                delwr = delw * conj(delw);
-                                wdiffr = wdiff * conj(wdiff);
+                                delwr = real(delw * conj(delw));
+                                wdiffr = real(wdiff * conj(wdiff));
 
                                 scha[ig] = mygpvar1 * aqsntemp[ig][n1] * delw * I_eps_array[ig][my_igp];
 
