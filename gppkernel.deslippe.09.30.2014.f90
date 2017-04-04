@@ -51,11 +51,11 @@ program gppkernel
       integer npes,mype,ierr
       include 'mpif.h'
 
-      call mpi_init(ierr)
+!      call mpi_init(ierr)
 
       ! Initialize MPI on the node. npes is number of ranks per node
-      call mpi_comm_size(mpi_comm_world,npes,ierr)
-      call mpi_comm_rank(mpi_comm_world,mype,ierr)
+!      call mpi_comm_size(mpi_comm_world,npes,ierr)
+!      call mpi_comm_rank(mpi_comm_world,mype,ierr)
 
       time_stat = 0D0
       time_dyn = 0D0
@@ -72,7 +72,7 @@ program gppkernel
 ! We start off in the body of loop over the various tasks. Each MPI task has communicated data it owns to everyone
 
 ! These should be read in
-      if(mype == 0)then
+!      if(mype == 0)then
         CALL getarg(1, arg)
         READ(arg,*) number_bands
         CALL getarg(2, arg)
@@ -83,31 +83,32 @@ program gppkernel
         READ(arg,*) nodes_per_group
         CALL getarg(5, arg)
         READ(arg,*) ggpsum
-      endif
+!      endif
 
-      call mpi_bcast(number_bands,1,mpi_integer,0,mpi_comm_world,ierr)
-      call mpi_bcast(nvband,      1,mpi_integer,0,mpi_comm_world,ierr)
-      call mpi_bcast(ncouls,      1,mpi_integer,0,mpi_comm_world,ierr)
-      call mpi_bcast(ngpown,      1,mpi_integer,0,mpi_comm_world,ierr)
-      call mpi_bcast(nodes_per_group,      1,mpi_integer,0,mpi_comm_world,ierr)
-      call mpi_bcast(ggpsum,      1,mpi_integer,0,mpi_comm_world,ierr)
+!      call mpi_bcast(number_bands,1,mpi_integer,0,mpi_comm_world,ierr)
+!      call mpi_bcast(nvband,      1,mpi_integer,0,mpi_comm_world,ierr)
+!      call mpi_bcast(ncouls,      1,mpi_integer,0,mpi_comm_world,ierr)
+!      call mpi_bcast(ngpown,      1,mpi_integer,0,mpi_comm_world,ierr)
+!      call mpi_bcast(nodes_per_group,      1,mpi_integer,0,mpi_comm_world,ierr)
+!      call mpi_bcast(ggpsum,      1,mpi_integer,0,mpi_comm_world,ierr)
 
       ! ngpown is number of gvectors per mpi task
-      ngpown = ncouls / ( nodes_per_group * npes )
+      ngpown = ncouls / ( nodes_per_group * 1 )
+      !ngpown = ncouls / ( nodes_per_group * npes )
 
       e_lk = 10D0
       dw = 1D0
       nstart = 1
       nend = 3
 
-      if(mype==1)then
+!      if(mype==1)then
         write(6,*) "number_bands = ",number_bands
         write(6,*) "nvband = ",nvband
         write(6,*) "ncouls = igmax = ",ncouls
         write(6,*) "ngpown = ",ngpown
         write(6,*) "nend-nstart = ",nend-nstart
         write(6,*) "ggpsum = ",ggpsum
-      endif
+!      endif
 
       ALLOCATE(vcoul(ncouls))
       vcoul = 1D0
@@ -123,16 +124,19 @@ program gppkernel
 
       ALLOCATE(wtilde_array(ncouls,ngpown))
       wtilde_array = (0.5d0,0.5d0)
-      if(mype==0)write(6,*)"Size of wtilde_array = ",(ncouls*ngpown*2.0*8)/(1024**2)," Mbytes"
+      write(6,*)"Size of wtilde_array = ",(ncouls*ngpown*2.0*8)/(1024**2)," Mbytes"
+      !if(mype==0)write(6,*)"Size of wtilde_array = ",(ncouls*ngpown*2.0*8)/(1024**2)," Mbytes"
 
       ALLOCATE(aqsntemp(ncouls,number_bands))
-      if(mype==0)write(6,*)"Size of aqsntemp = ",(ncouls*number_bands*2.0*8)/1024**2," Mbytes"
+      write(6,*)"Size of aqsntemp = ",(ncouls*number_bands*2.0*8)/1024**2," Mbytes"
+!      if(mype==0)write(6,*)"Size of aqsntemp = ",(ncouls*number_bands*2.0*8)/1024**2," Mbytes"
       ALLOCATE(aqsmtemp(ncouls,number_bands))
       aqsmtemp = (0.5D0,0.5D0)
       aqsntemp = (0.5D0,0.5D0)
 
       ALLOCATE(I_eps_array(ncouls,ngpown))
-      if(mype==0)write(6,*)"Size of I_eps_array = ",(ncouls*ngpown*2.0*8)/1024**2," Mbytes"
+      write(6,*)"Size of I_eps_array = ",(ncouls*ngpown*2.0*8)/1024**2," Mbytes"
+!      if(mype==0)write(6,*)"Size of I_eps_array = ",(ncouls*ngpown*2.0*8)/1024**2," Mbytes"
       I_eps_array = (0.5D0,0.5D0)
 
       ALLOCATE(inv_igp_index(ngpown))
@@ -159,11 +163,7 @@ program gppkernel
       limitone=1D0/(tol*4D0)
       limittwo=0.5d0**2
 
-      if(mype==0)then
-        write(6,*) "Starting loop"
-      endif
-
-      call mpi_barrier(mpi_comm_world,ierr)
+!      call mpi_barrier(mpi_comm_world,ierr)
       call timget(starttime)
 
       do n1=1,number_bands
@@ -348,6 +348,7 @@ program gppkernel
 
               else
 
+!                 write(6,*) "igmax : ", igmax
                 do ig = 1, igmax
 
                   wtilde = wtilde_array(ig,my_igp)
@@ -368,10 +369,15 @@ program gppkernel
                   delwr = delw*CONJG(delw)
                   wdiffr = wdiff*CONJG(wdiff)
 
+!                  write(6,*) "cden ",cden
+!                  write(6,*) "conjg(cden) ",CONJG(cden)
+!                  write(6,*) "rden2 ",rden
+
 ! This Practice is bad for vectorization and understanding of the output.
 ! JRD: Complex division is hard to vectorize. So, we help the compiler.
                   if (wdiffr.gt.limittwo .and. delwr.lt.limitone) then
                     sch = delw * I_eps_array(ig,my_igp)
+!                  write(6,*) " delw : ",delw
                     cden = wxt**2 - wtilde2
                     rden = cden*CONJG(cden)
                     rden = 1D0 / rden
@@ -395,6 +401,9 @@ program gppkernel
                   ssxa(ig) = matngmatmgp*ssx
                   scha(ig) = matngmatmgp*sch
 
+ !                 write(6,*) "matngmatmgp : ",matngmatmgp
+ !                 write(6,*) " sch : ",sch
+
                   ssxt = ssxt + ssxa(ig)
                   scht = scht + scha(ig)
 
@@ -404,6 +413,7 @@ program gppkernel
 
               ssx_array(iw) = ssx_array(iw) + ssxt
               sch_array(iw) = sch_array(iw) + 0.5D0*scht
+!              write(6,*) "sch_array : [",iw,"] = ",sch_array(iw)," scht = ",scht
 
             enddo
 
@@ -486,6 +496,8 @@ program gppkernel
               endif
 
               sch_array(iw) = sch_array(iw) + 0.5D0*scht
+!                write(6,*) "sch_array[",iw,"] = ",sch_array(iw)
+
 
 !-----------------------
 ! JRD: Compute GPP Error...
@@ -511,6 +523,10 @@ program gppkernel
 ! Logging CH convergence.
 
           acht_n1_loc(n1) = acht_n1_loc(n1) + sch_array(2) * vcoul(igp)
+!Rahul debugging 
+          do iw=nstart,nend
+            write(6,*) "achtemp[",iw,"] = ",achtemp(iw)
+          enddo
 
         enddo ! igp
 !$OMP END DO
@@ -526,7 +542,7 @@ program gppkernel
         time_dyn = time_dyn + endtime_dyn - starttime_dyn
 
       enddo ! over ipe bands (n1)
-      call mpi_barrier(mpi_comm_world,ierr)
+!      call mpi_barrier(mpi_comm_world,ierr)
 
       call timget(endtime)
 
@@ -540,16 +556,16 @@ program gppkernel
       DEALLOCATE(wtilde_array)
       DEALLOCATE(ekq)
 
-      if(mype==0)then
+!      if(mype==0)then
         write(6,*) "Runtime:", endtime-starttime
         write(6,*) "Runtime Stat:", time_stat
         write(6,*) "Runtime Dyn:", time_dyn
         write(6,*) "Answer:",achtemp(2)
-      endif
+!      endif
 
       DEALLOCATE(achtemp)
       DEALLOCATE(asxtemp)
-      call mpi_finalize(ierr)
+!      call mpi_finalize(ierr)
 
 end program
 
