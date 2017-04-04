@@ -120,8 +120,6 @@ int main(int argc, char** argv)
     cout << "Size of aqsntemp = " << (ncouls*number_bands*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of I_eps_array array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
 
-//    cout << "aqsmtemp[0][0].real = " << aqsmtemp[2][1].real() << "\t aqsmtemp[0][0].imag = " << aqsmtemp[2][2].imag() << endl;
-
     //For MPI Work distribution
     for(int ig=0; ig < ngpown; ++ig)
         inv_igp_index[ig] = ig * ncouls / ngpown;
@@ -186,12 +184,8 @@ int main(int argc, char** argv)
         {
             wx_array[iw] = e_lk - e_n1kq + dw*((iw+1)-2);
             if(abs(wx_array[iw]) < to1) wx_array[iw] = to1;
-//            cout << "wx_array[" << iw << "] = " << wx_array[iw] << endl;
-
         }
 
-
- //       cout << "DEBUG " << debug++ << "\t ngpown = " << ngpown << endl;
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
 
@@ -215,8 +209,6 @@ int main(int argc, char** argv)
 
             mygpvar1 = std::conj(aqsmtemp[igp][n1]);
             mygpvar2 = aqsmtemp[igp][n1];
-
-//            cout << "flag_occ = " << flag_occ << endl;
 
             if(flag_occ)
             {
@@ -273,17 +265,11 @@ int main(int argc, char** argv)
 
                                 ssxt = ssxt + ssxa[ig];
                                 scht = scht + scha[ig];
-
-//                                cout << "if gppsum DEBUG " << debug++ << "\t scht = " << scht << "\t scha[" << ig << "] = " << scha[ig] << endl;
-//                                cout << "Omega2 = " << Omega2 << "\t -Omega2 = " << -Omega2 << endl;
-//                                cout << "delw = " << delw << "\tdelw2 = " << delw2 << endl;
-
                             }
                         }
                         else
                         {
                             //344-394
-//                           cout << "iw = " << iw << "\t igmax = " << igmax << endl ;
                             for(int ig=0; ig<igmax; ++ig)
                             {
                                 wtilde = wtilde_array[ig][my_igp];
@@ -300,12 +286,9 @@ int main(int argc, char** argv)
                                 delwr - delw * conj(delw);
                                 wdiffr = real(wdiff * conj(wdiff));
 
-//                                cout << "rden = " << rden << "\t cden = " << cden << "\t conj(cden) " << conj(cden) << endl;
-
                                 if((wdiffr > limittwo) && (delwr < limitone))
                                 {
                                     sch = delw * I_eps_array[ig][my_igp];
-//                                    cout << "delw = " << delw << endl;
                                     cden = pow(wxt,2);
                                     rden = real(cden * conj(cden));
                                     rden = 1.00 / rden;
@@ -331,20 +314,12 @@ int main(int argc, char** argv)
                                 ssxa[ig] = matngmatmgp*ssx;
                                 scha[ig] = matngmatmgp*sch;
 
-//                                cout << "matngmatmgp = " << matngmatmgp \
-                                    << "\t sch = " << sch \
-                                    << "\t scha[" << ig << "] = " << scha[ig] << endl;
-
                                 ssxt = ssxt + ssxa[ig];
                                 scht = scht + scha[ig];
-//                                cout << "else gppsum DEBUG " << debug++ << "\t scht = " << scht << "\t scha[" << ig << "] = " << scha[ig] << "\t matngmatmgp = " << matngmatmgp << "\t aqsntemp [" << ig << "][" << n1 << "] = " << aqsntemp[ig][n1] << "mygpvar1 =" <<  mygpvar1 << endl;
-
                             }
-
                         }
                         ssx_array[iw] = ssx_array[iw] + ssxt;
                         sch_array[iw] = sch_array[iw] + 0.5*scht;
- //                       cout << "else gppsum DEBUG " << debug++ << "\t sch_array[ " << iw << " ] = " << sch_array[iw] << "\t scht = " << scht << endl;
                     }
                 }
                 else
@@ -414,7 +389,6 @@ int main(int argc, char** argv)
                             }
 
                             sch_array[iw] = sch_array[iw] + 0.5*scht;
-    //                        cout << "DEBUG " << debug++ << "\t sch_array[ " << iw << " ] = " << sch_array[iw] << endl;
                         }
                     }
                 }
@@ -427,29 +401,17 @@ int main(int argc, char** argv)
             if(flag_occ)
             {
                 for(int iw=nstart; iw<nend; ++iw)
-                {
                     asxtemp[iw] += asxtemp[iw] + ssx_array[iw] * occ * vcoul[igp]; //occ does not change and is 1.00 so why not remove it.
-                cout << "DEBUG " << debug++ << "\t asxtemp[ " << iw << " ] = " << asxtemp[iw] << endl;
-                }
             }
 
             for(int iw=nstart; iw<nend; ++iw)
-            {
                 achtemp[iw] += achtemp[iw] + sch_array[2] * vcoul[igp];
-//                cout << "DEBUG " << debug++ << "\t achtemp[ " << iw << " ] = " << achtemp[iw] << endl;
-            }
 
             acht_n1_loc[n1] += acht_n1_loc[n1] + sch_array[2] * vcoul[igp];
         }
     }
 
-//    for(int iw=nstart; iw<nend; ++iw)
-    {
-        cout << "achtemp[ " << 2 << " ] = " << achtemp[2] << endl;
-    }
-
-
-    cout << "EXIT EXIT EXIT" << endl;
+    cout << "Answer = " << achtemp[2] << endl;
     return 0;
 }
 

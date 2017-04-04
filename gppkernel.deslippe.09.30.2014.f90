@@ -401,9 +401,6 @@ program gppkernel
                   ssxa(ig) = matngmatmgp*ssx
                   scha(ig) = matngmatmgp*sch
 
- !                 write(6,*) "matngmatmgp : ",matngmatmgp
- !                 write(6,*) " sch : ",sch
-
                   ssxt = ssxt + ssxa(ig)
                   scht = scht + scha(ig)
 
@@ -413,7 +410,6 @@ program gppkernel
 
               ssx_array(iw) = ssx_array(iw) + ssxt
               sch_array(iw) = sch_array(iw) + 0.5D0*scht
-!              write(6,*) "sch_array : [",iw,"] = ",sch_array(iw)," scht = ",scht
 
             enddo
 
@@ -496,7 +492,6 @@ program gppkernel
               endif
 
               sch_array(iw) = sch_array(iw) + 0.5D0*scht
-!                write(6,*) "sch_array[",iw,"] = ",sch_array(iw)
 
 
 !-----------------------
@@ -523,10 +518,6 @@ program gppkernel
 ! Logging CH convergence.
 
           acht_n1_loc(n1) = acht_n1_loc(n1) + sch_array(2) * vcoul(igp)
-!Rahul debugging 
-          do iw=nstart,nend
-            write(6,*) "achtemp[",iw,"] = ",achtemp(iw)
-          enddo
 
         enddo ! igp
 !$OMP END DO
