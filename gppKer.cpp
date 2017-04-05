@@ -27,12 +27,6 @@ int main(int argc, char** argv)
 
     int tid, NTHREADS; // OpenMP related threading variables.
 
-    tid = omp_get_thread_num();
-    if(tid == 0)
-    {
-        NTHREADS = omp_get_num_threads();
-    }
-    cout << "My thread id = " << tid <<" out of " << NTHREADS << " number of threads."<< endl;
 
     //    The below 3 params have to be changed for the final version. Currently using small numbers hence setting them to smaller ones...memory constraints on the local machine.
 //    int npes = 8; //Represents the number of ranks per node
@@ -142,14 +136,26 @@ int main(int argc, char** argv)
 
     double start_time = omp_get_wtime(); //Start timing here.
 
+#pragma omp parallel private(tid)
+    {
+        tid = omp_get_thread_num();
+        if(tid==0)
+        {
+            NTHREADS = omp_get_num_threads();
+            cout << "My thread id = " << tid <<" out of " << NTHREADS << " number of threads."<< endl;
+        }
+    }
+
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
+
         flag_occ = n1 < nvband;
 
 
-#pragma omp for private(igmax, mygpvar1, mygpvar2, ig, schs, matngpmatmg, matngmatmgp)
+#pragma omp parallel for private(i, igmax, mygpvar1, mygpvar2, ig, schs, matngpmatmg, matngmatmgp)
         for(int my_igp = 0; my_igp< ngpown; ++my_igp)
         {
+            cout << "My tid = " << omp_get_thread_num() << endl;
             int indigp = inv_igp_index[my_igp];
             int igp = indinv[indigp];
 
