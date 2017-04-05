@@ -15,6 +15,7 @@ int main(int argc, char** argv)
     {
         std::cout << "The correct form of input is : " << endl;
         std::cout << " ./a.out <number_bands> <number_valence_bands> <number_plane_waves> <nodes_per_mpi_group> <gppsum> " << endl;
+        exit (0);
     }
     int number_bands = atoi(argv[1]);
     int nvband = atoi(argv[2]);
@@ -23,6 +24,15 @@ int main(int argc, char** argv)
     int gppsum = atoi(argv[5]);
 
     int igmax = ncouls;
+
+    int tid, NTHREADS; // OpenMP related threading variables.
+
+    tid = omp_get_thread_num();
+    if(tid == 0)
+    {
+        NTHREADS = omp_get_num_threads();
+    }
+    cout << "My thread id = " << tid <<" out of " << NTHREADS << " number of threads."<< endl;
 
     //    The below 3 params have to be changed for the final version. Currently using small numbers hence setting them to smaller ones...memory constraints on the local machine.
 //    int npes = 8; //Represents the number of ranks per node
@@ -130,19 +140,20 @@ int main(int argc, char** argv)
         indinv[ig] =ig;
 
 
-    double start_time = omp_get_wtime();
+    double start_time = omp_get_wtime(); //Start timing here.
+
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
         flag_occ = n1 < nvband;
 
 
+#pragma omp for private(igmax, mygpvar1, mygpvar2, ig, schs, matngpmatmg, matngmatmgp)
         for(int my_igp = 0; my_igp< ngpown; ++my_igp)
         {
             int indigp = inv_igp_index[my_igp];
             int igp = indinv[indigp];
 
-            if(igp > ncouls || igp < 0)
-                break;
+            if(!(igp > ncouls || igp < 0)){
 
             if(gppsum == 1)
                 igmax = igp;
@@ -179,7 +190,9 @@ int main(int argc, char** argv)
                     schstemp = schstemp - aqsntemp[ig][n1] * I_eps_array[ig][my_igp] * mygpvar1;
             }
 
+#pragma omp critical
             achstemp = achstemp + schstemp*vcoul[igp]*0.5;
+            }
         }
 
         for(int iw=nstart; iw<nend; ++iw)
@@ -188,7 +201,8 @@ int main(int argc, char** argv)
             if(abs(wx_array[iw]) < to1) wx_array[iw] = to1;
         }
 
-#pragma omp for
+#pragma omp for private(igmax, mygpvar1, mygpvar2, ssx_array, sch_array, ig, wtilde, wtilde2, halfinvwtilde, ssxcutoff, matngmatmgp, matngpmatmg, sch, ssx, iw, delw, \
+        delw2, Omega2, scht, ssxt, wxt, eden, cden, ssxa, scha, delwr, wdiffr) schedule(dynamic)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
 
@@ -419,11 +433,12 @@ int main(int argc, char** argv)
         }
     }
 
-    double end_time = omp_get_wtime();
-    cout << "Time Taken = " << end_time - start_time << " secs" << endl;
+    double end_time = omp_get_wtime(); //End timing here
 
     for(int iw=nstart; iw<nend; ++iw)
         cout << "achtemp[" << iw << "] = " << achtemp[iw] << endl;
+
+    cout << "********** Time Taken **********= " << end_time - start_time << " secs" << endl;
 
 //    cout << "Answer = " << achtemp[2] << endl;
     return 0;
