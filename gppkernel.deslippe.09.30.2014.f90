@@ -223,7 +223,6 @@ program gppkernel
                 schs=-I_eps_array(ig,my_igp)
 ! JRD: Cycle bad for vectorization.
 ! I_eps_array is already set to zero above for these ig,igp
-!                if (abs(schs).lt.tol) cycle
                 matngmatmgp = aqsntemp(ig,n1) * mygpvar1
                 matngpmatmg = CONJG(aqsmtemp(ig,n1)) * mygpvar2
                 schstemp = schstemp + matngmatmgp*schs + matngpmatmg*CONJG(schs)
@@ -234,13 +233,7 @@ program gppkernel
               if (abs(schs).gt.tol) schstemp = schstemp + matngmatmgp*schs
             else
               do ig = 1, igmax
-                !schs=-I_eps_array(ig,my_igp)
-! JRD: Cycle bad for vectorization.
-! I_eps_array is already set to zero above for these ig,igp
-!             if (abs(schs).lt.tol) cycle
-                !matngmatmgp = aqsntemp(ig,n1) * mygpvar1
                 schstemp = schstemp - aqsntemp(ig,n1) * I_eps_array(ig,my_igp) * mygpvar1
-                !schstemp = schstemp + matngmatmgp * schs
               enddo
             endif
 
