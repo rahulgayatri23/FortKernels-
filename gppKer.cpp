@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <cmath>
 #include <complex>
+#include <omp.h>
 
 using namespace std;
 int debug = 0;
@@ -129,6 +130,7 @@ int main(int argc, char** argv)
         indinv[ig] =ig;
 
 
+    double start_time = omp_get_wtime();
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
         flag_occ = n1 < nvband;
@@ -186,6 +188,7 @@ int main(int argc, char** argv)
             if(abs(wx_array[iw]) < to1) wx_array[iw] = to1;
         }
 
+#pragma omp for
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
 
@@ -194,7 +197,7 @@ int main(int argc, char** argv)
             int indigp = inv_igp_index[my_igp];
             int igp = indinv[indigp];
 
-            if(igp > ncouls || igp < 0) break;
+            if(!(igp > ncouls || igp < 0)) {
 
             if(gppsum == 1)
                 igmax = igp;
@@ -393,25 +396,36 @@ int main(int argc, char** argv)
                     }
                 }
 
-            for(int i=0; i<nend-nstart+1; ++i)
-            {
-                asxtemp[i] = 0.0 + 0.0i;
-                achtemp[i] = 0.0 + 0.0i;
-            }
             if(flag_occ)
             {
+#pragma omp critical
+                {
                 for(int iw=nstart; iw<nend; ++iw)
                     asxtemp[iw] += asxtemp[iw] + ssx_array[iw] * occ * vcoul[igp]; //occ does not change and is 1.00 so why not remove it.
+                }
             }
 
+#pragma omp critical
+    {
             for(int iw=nstart; iw<nend; ++iw)
-                achtemp[iw] += achtemp[iw] + sch_array[2] * vcoul[igp];
+                achtemp[iw] = achtemp[iw] + sch_array[iw] * vcoul[igp];
+
 
             acht_n1_loc[n1] += acht_n1_loc[n1] + sch_array[2] * vcoul[igp];
+    }
+
+
+            } //for the if-loop to avoid break inside an openmp pragma statment
         }
     }
 
-    cout << "Answer = " << achtemp[2] << endl;
+    double end_time = omp_get_wtime();
+    cout << "Time Taken = " << end_time - start_time << " secs" << endl;
+
+    for(int iw=nstart; iw<nend; ++iw)
+        cout << "achtemp[" << iw << "] = " << achtemp[iw] << endl;
+
+//    cout << "Answer = " << achtemp[2] << endl;
     return 0;
 }
 

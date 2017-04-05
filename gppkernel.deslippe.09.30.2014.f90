@@ -516,7 +516,6 @@ program gppkernel
 !$OMP END DO
 
 !$OMP END PARALLEL
-
         DEALLOCATE(ssx_array)
         DEALLOCATE(sch_array)
         DEALLOCATE(ssxa)
@@ -527,6 +526,10 @@ program gppkernel
 
       enddo ! over ipe bands (n1)
 !      call mpi_barrier(mpi_comm_world,ierr)
+        do iw=nstart,nend
+            write(6,*) "achtemp(:",iw,") = ",achtemp(iw)
+        enddo
+
 
       call timget(endtime)
 
