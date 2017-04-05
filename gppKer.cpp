@@ -152,10 +152,9 @@ int main(int argc, char** argv)
         flag_occ = n1 < nvband;
 
 
-#pragma omp parallel for private(i, igmax, mygpvar1, mygpvar2, ig, schs, matngpmatmg, matngmatmgp)
+#pragma omp parallel for //private(i, igmax, mygpvar1, mygpvar2, ig, schs, matngpmatmg, matngmatmgp) schedule(static)
         for(int my_igp = 0; my_igp< ngpown; ++my_igp)
         {
-            cout << "My tid = " << omp_get_thread_num() << endl;
             int indigp = inv_igp_index[my_igp];
             int igp = indinv[indigp];
 
@@ -196,8 +195,8 @@ int main(int argc, char** argv)
                     schstemp = schstemp - aqsntemp[ig][n1] * I_eps_array[ig][my_igp] * mygpvar1;
             }
 
-#pragma omp critical
-            achstemp = achstemp + schstemp*vcoul[igp]*0.5;
+//#pragma omp critical
+//            achstemp = achstemp + schstemp*vcoul[igp]*0.5;
             }
         }
 
