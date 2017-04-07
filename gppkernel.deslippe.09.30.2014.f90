@@ -93,8 +93,9 @@ program gppkernel
 !      call mpi_bcast(ggpsum,      1,mpi_integer,0,mpi_comm_world,ierr)
 
       ! ngpown is number of gvectors per mpi task
-      ngpown = ncouls / ( nodes_per_group * 1 )
-      !ngpown = ncouls / ( nodes_per_group * npes )
+      npes=1 !Rahul - 8 ranks per node
+      ngpown = ncouls / ( nodes_per_group * npes )
+
 
       e_lk = 10D0
       dw = 1D0
@@ -124,19 +125,16 @@ program gppkernel
 
       ALLOCATE(wtilde_array(ncouls,ngpown))
       wtilde_array = (0.5d0,0.5d0)
-      write(6,*)"Size of wtilde_array = ",(ncouls*ngpown*2.0*8)/(1024**2)," Mbytes"
-      !if(mype==0)write(6,*)"Size of wtilde_array = ",(ncouls*ngpown*2.0*8)/(1024**2)," Mbytes"
+      if(mype==0)write(6,*)"Size of wtilde_array = ",(ncouls*ngpown*2.0*8)/(1024**2)," Mbytes"
 
       ALLOCATE(aqsntemp(ncouls,number_bands))
-      write(6,*)"Size of aqsntemp = ",(ncouls*number_bands*2.0*8)/1024**2," Mbytes"
-!      if(mype==0)write(6,*)"Size of aqsntemp = ",(ncouls*number_bands*2.0*8)/1024**2," Mbytes"
+      if(mype==0)write(6,*)"Size of aqsntemp = ",(ncouls*number_bands*2.0*8)/1024**2," Mbytes"
       ALLOCATE(aqsmtemp(ncouls,number_bands))
       aqsmtemp = (0.5D0,0.5D0)
       aqsntemp = (0.5D0,0.5D0)
 
       ALLOCATE(I_eps_array(ncouls,ngpown))
-      write(6,*)"Size of I_eps_array = ",(ncouls*ngpown*2.0*8)/1024**2," Mbytes"
-!      if(mype==0)write(6,*)"Size of I_eps_array = ",(ncouls*ngpown*2.0*8)/1024**2," Mbytes"
+      if(mype==0)write(6,*)"Size of I_eps_array = ",(ncouls*ngpown*2.0*8)/1024**2," Mbytes"
       I_eps_array = (0.5D0,0.5D0)
 
       ALLOCATE(inv_igp_index(ngpown))
@@ -162,6 +160,7 @@ program gppkernel
       sexcut=4.0d0
       limitone=1D0/(tol*4D0)
       limittwo=0.5d0**2
+
 
 !      call mpi_barrier(mpi_comm_world,ierr)
       call timget(starttime)
@@ -209,6 +208,7 @@ program gppkernel
             else
               igmax=ncouls
             endif
+          
 
             mygpvar1 = CONJG(aqsmtemp(igp,n1))
             mygpvar2 = aqsntemp(igp,n1)
@@ -223,6 +223,7 @@ program gppkernel
                 schs=-I_eps_array(ig,my_igp)
 ! JRD: Cycle bad for vectorization.
 ! I_eps_array is already set to zero above for these ig,igp
+!                if (abs(schs).lt.tol) cycle
                 matngmatmgp = aqsntemp(ig,n1) * mygpvar1
                 matngpmatmg = CONJG(aqsmtemp(ig,n1)) * mygpvar2
                 schstemp = schstemp + matngmatmgp*schs + matngpmatmg*CONJG(schs)
@@ -233,7 +234,13 @@ program gppkernel
               if (abs(schs).gt.tol) schstemp = schstemp + matngmatmgp*schs
             else
               do ig = 1, igmax
+                !schs=-I_eps_array(ig,my_igp)
+! JRD: Cycle bad for vectorization.
+! I_eps_array is already set to zero above for these ig,igp
+!             if (abs(schs).lt.tol) cycle
+                !matngmatmgp = aqsntemp(ig,n1) * mygpvar1
                 schstemp = schstemp - aqsntemp(ig,n1) * I_eps_array(ig,my_igp) * mygpvar1
+                !schstemp = schstemp + matngmatmgp * schs
               enddo
             endif
 
@@ -341,7 +348,6 @@ program gppkernel
 
               else
 
-!                 write(6,*) "igmax : ", igmax
                 do ig = 1, igmax
 
                   wtilde = wtilde_array(ig,my_igp)
@@ -362,15 +368,10 @@ program gppkernel
                   delwr = delw*CONJG(delw)
                   wdiffr = wdiff*CONJG(wdiff)
 
-!                  write(6,*) "cden ",cden
-!                  write(6,*) "conjg(cden) ",CONJG(cden)
-!                  write(6,*) "rden2 ",rden
-
 ! This Practice is bad for vectorization and understanding of the output.
 ! JRD: Complex division is hard to vectorize. So, we help the compiler.
                   if (wdiffr.gt.limittwo .and. delwr.lt.limitone) then
                     sch = delw * I_eps_array(ig,my_igp)
-!                  write(6,*) " delw : ",delw
                     cden = wxt**2 - wtilde2
                     rden = cden*CONJG(cden)
                     rden = 1D0 / rden
@@ -415,6 +416,7 @@ program gppkernel
               ssxt=0D0
               wxt = wx_array(iw)
 
+
               if (ggpsum.eq.1) then
 
                 do ig = igbeg, min(igend,igmax -1)
@@ -454,6 +456,7 @@ program gppkernel
                   scht = scht + scha(ig)
                 endif
 
+
               else
 ! !dir$ no unroll
                 do ig = igbeg, min(igend,igmax)
@@ -486,7 +489,6 @@ program gppkernel
 
               sch_array(iw) = sch_array(iw) + 0.5D0*scht
 
-
 !-----------------------
 ! JRD: Compute GPP Error...
 ! GPP Model Error Estimate
@@ -505,6 +507,7 @@ program gppkernel
           endif
 
           do iw=nstart,nend
+
             achtemp(iw) = achtemp(iw) + sch_array(iw) * vcoul(igp)
           enddo
 
@@ -516,6 +519,7 @@ program gppkernel
 !$OMP END DO
 
 !$OMP END PARALLEL
+
         DEALLOCATE(ssx_array)
         DEALLOCATE(sch_array)
         DEALLOCATE(ssxa)
@@ -526,10 +530,6 @@ program gppkernel
 
       enddo ! over ipe bands (n1)
 !      call mpi_barrier(mpi_comm_world,ierr)
-        do iw=nstart,nend
-            write(6,*) "achtemp(:",iw,") = ",achtemp(iw)
-        enddo
-
 
       call timget(endtime)
 

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdlib>
+
 #include <iomanip>
 #include <cmath>
 #include <complex>
@@ -151,19 +152,19 @@ int main(int argc, char** argv)
 
         flag_occ = n1 < nvband;
 
-
-#pragma omp parallel for //private(i, igmax, mygpvar1, mygpvar2, ig, schs, matngpmatmg, matngmatmgp) schedule(static)
-        for(int my_igp = 0; my_igp< ngpown; ++my_igp)
+//#pragma omp parallel for //private(i, igmax, mygpvar1, mygpvar2, ig, schs, matngpmatmg, matngmatmgp) schedule(static)
+        for(int my_igp = 0; my_igp< ngpown; my_igp++)
         {
             int indigp = inv_igp_index[my_igp];
             int igp = indinv[indigp];
 
             if(!(igp > ncouls || igp < 0)){
 
-            if(gppsum == 1)
-                igmax = igp;
-            else
-                igmax = ncouls;
+//            if(gppsum == 1)
+//                igmax = igp;
+//            else
+//                igmax = ncouls;
+
 
 
             mygpvar1 = std::conj(aqsmtemp[igp][n1]);
@@ -195,9 +196,8 @@ int main(int argc, char** argv)
                     schstemp = schstemp - aqsntemp[ig][n1] * I_eps_array[ig][my_igp] * mygpvar1;
             }
 
-//#pragma omp critical
-//            achstemp = achstemp + schstemp*vcoul[igp]*0.5;
             }
+            achstemp = achstemp + schstemp * vcoul[igp] * 0.5;
         }
 
         for(int iw=nstart; iw<nend; ++iw)
@@ -206,7 +206,7 @@ int main(int argc, char** argv)
             if(abs(wx_array[iw]) < to1) wx_array[iw] = to1;
         }
 
-#pragma omp for private(igmax, mygpvar1, mygpvar2, ssx_array, sch_array, ig, wtilde, wtilde2, halfinvwtilde, ssxcutoff, matngmatmgp, matngpmatmg, sch, ssx, iw, delw, \
+//#pragma omp for //private(igmax, mygpvar1, mygpvar2, ssx_array, sch_array, ig, wtilde, wtilde2, halfinvwtilde, ssxcutoff, matngmatmgp, matngpmatmg, sch, ssx, iw, delw, \
         delw2, Omega2, scht, ssxt, wxt, eden, cden, ssxa, scha, delwr, wdiffr) schedule(dynamic)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
@@ -217,20 +217,22 @@ int main(int argc, char** argv)
             int igp = indinv[indigp];
 
             if(!(igp > ncouls || igp < 0)) {
+//Rahul - check how the igmax = ncouls even if gppsum = 1 in the fortran code. For now leaving it commented, check later.
+//            if(gppsum == 1)
+//                igmax = igp;
+//            else
+//                igmax = ncouls;
 
-            if(gppsum == 1)
-                igmax = igp;
-            else
-                igmax = ncouls;
 
             for(int i=0; i<3; i++)
             {
                 ssx_array[i] = expr;
-                sch_array[i] = expr;
+                sch_array[i] = 0.00;
             }
 
             mygpvar1 = std::conj(aqsmtemp[igp][n1]);
             mygpvar2 = aqsmtemp[igp][n1];
+
 
             if(flag_occ)
             {
@@ -242,13 +244,13 @@ int main(int argc, char** argv)
 
                         if(gppsum == 1)
                         {
-                            for(int ig=1; ig<=igmax; ++ig)
+                            for(int ig=0; ig<igmax; ++ig)
                             {
                                 wtilde = wtilde_array[ig][igp];
                                 wtilde2 = std::pow(wtilde,2);
                                 Omega2 = wtilde2*I_eps_array[ig][my_igp];
 
-                                if(std::abs(Omega2) < to1) break;
+                                if(std::abs(Omega2) < to1) break; //ask jack about omega2 comparison with to1
 
                                 matngmatmgp = aqsntemp[ig][n1] * mygpvar1;
                                 if(ig != igp) matngpmatmg = std::conj(aqsmtemp[ig][n1]) * mygpvar2;
@@ -267,7 +269,7 @@ int main(int argc, char** argv)
                                 }
                                 else
                                 {
-                                    sch = wtilde * I_eps_array[ig][my_igp];
+                                    sch = wtilde * I_eps_array[ig][my_igp] / (wxt - wtilde);
                                     ssx = Omega2 / (pow(wxt,2) - wtilde2);
                                 }
 
@@ -287,6 +289,8 @@ int main(int argc, char** argv)
 
                                 ssxt = ssxt + ssxa[ig];
                                 scht = scht + scha[ig];
+
+
                             }
                         }
                         else
@@ -348,7 +352,7 @@ int main(int argc, char** argv)
                 {
                     int igblk = 512;
                     //403 - 479
-                    for(int igbeg=1; igbeg<igmax; igbeg+=igblk)
+                    for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
                     {
                         int igend = min(igbeg+igblk-1, igmax);
                         for(int iw=nstart; iw<nend; ++iw)
@@ -405,11 +409,10 @@ int main(int argc, char** argv)
 
                                     scha[ig] = mygpvar1 * aqsntemp[ig][n1] * delw * I_eps_array[ig][my_igp];
 
-                                    if((abs(wdiffr) > limittwo) && (abs(delwr) < limitone)) scht = scht + scha[ig];
+                                    if((wdiffr > limittwo) && (delwr < limitone)) scht = scht + scha[ig];
 
                                 }
                             }
-
                             sch_array[iw] = sch_array[iw] + 0.5*scht;
                         }
                     }
@@ -417,18 +420,17 @@ int main(int argc, char** argv)
 
             if(flag_occ)
             {
-#pragma omp critical
+//#pragma omp critical
                 {
                 for(int iw=nstart; iw<nend; ++iw)
                     asxtemp[iw] += asxtemp[iw] + ssx_array[iw] * occ * vcoul[igp]; //occ does not change and is 1.00 so why not remove it.
                 }
             }
 
-#pragma omp critical
+//#pragma omp critical
     {
             for(int iw=nstart; iw<nend; ++iw)
                 achtemp[iw] = achtemp[iw] + sch_array[iw] * vcoul[igp];
-
 
             acht_n1_loc[n1] += acht_n1_loc[n1] + sch_array[2] * vcoul[igp];
     }
@@ -445,7 +447,6 @@ int main(int argc, char** argv)
 
     cout << "********** Time Taken **********= " << end_time - start_time << " secs" << endl;
 
-//    cout << "Answer = " << achtemp[2] << endl;
     return 0;
 }
 
