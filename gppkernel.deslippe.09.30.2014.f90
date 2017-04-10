@@ -421,7 +421,6 @@ program gppkernel
 
                 do ig = igbeg, min(igend,igmax -1)
                   wtilde = wtilde_array(ig,my_igp)
-                  !if (abs((wtilde**2) * I_eps_array(ig,my_igp)) .lt. tol) cycle
                   matngmatmgp = aqsntemp(ig,n1) * mygpvar1
                   wdiff = wxt - wtilde
                   delw = wtilde / wdiff
@@ -429,16 +428,7 @@ program gppkernel
                   wdiffr = wdiff*CONJG(wdiff)
                   scha_mult = merge(1.0,0.0,wdiffr.lt.limittwo .or. delw2.gt.limitone)
                   sch = delw * I_eps_array(ig,my_igp) * scha_mult
-!                   if (wdiffr.lt.limittwo .or. delw2.gt.limitone) then
-!                     sch = 0.0d0
-!                   else
-!                     sch = delw * I_eps_array(ig,my_igp)
-!                   endif
-!                   if (ig .ne. igp) then  ! ig.ne.igp only at ig=igmax.  We pealed that iteration and eliminated the if.
-                    scha(ig) = matngmatmgp*sch + CONJG(aqsmtemp(ig,n1)) * mygpvar2*CONJG(sch)
-!                   else
-!                     scha(ig) = matngmatmgp*sch
-!                   endif
+                  scha(ig) = matngmatmgp*sch + CONJG(aqsmtemp(ig,n1)) * mygpvar2*CONJG(sch)
                   scht = scht + scha(ig)
                 enddo ! loop over g
                 if(igend==igmax-1)then
@@ -547,7 +537,9 @@ program gppkernel
         write(6,*) "Runtime:", endtime-starttime
         write(6,*) "Runtime Stat:", time_stat
         write(6,*) "Runtime Dyn:", time_dyn
-        write(6,*) "Answer:",achtemp(2)
+        write(6,*) "Answer[1]:",achtemp(1)
+        write(6,*) "Answer[2]:",achtemp(2)
+        write(6,*) "Answer[3]:",achtemp(3)
 !      endif
 
       DEALLOCATE(achtemp)

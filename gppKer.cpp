@@ -206,8 +206,9 @@ int main(int argc, char** argv)
             if(abs(wx_array[iw]) < to1) wx_array[iw] = to1;
         }
 
-//#pragma omp for //private(igmax, mygpvar1, mygpvar2, ssx_array, sch_array, ig, wtilde, wtilde2, halfinvwtilde, ssxcutoff, matngmatmgp, matngpmatmg, sch, ssx, iw, delw, \
-        delw2, Omega2, scht, ssxt, wxt, eden, cden, ssxa, scha, delwr, wdiffr) schedule(dynamic)
+#pragma omp parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(igmax, ssx_array, sch_array, halfinvwtilde, ssxcutoff, sch, ssx, \
+        Omega2, scht, ssxt, wxt, eden, cden) schedule(dynamic) \
+        private(scha_mult, mygpvar1, mygpvar2, wtilde, matngmatmgp, matngpmatmg, wtilde2, wdiff, delw, delw2, delwr, wdiffr)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
 
@@ -221,7 +222,7 @@ int main(int argc, char** argv)
 //            if(gppsum == 1)
 //                igmax = igp;
 //            else
-//                igmax = ncouls;
+                igmax = ncouls;
 
 
             for(int i=0; i<3; i++)
@@ -360,6 +361,8 @@ int main(int argc, char** argv)
                             scht = ssxt = 0.00;
                             wxt = wx_array[iw];
 
+                            int tmpVal = 0;
+
                             if(gppsum == 1)
                             {
                                 for(int ig= igbeg; ig<min(igend,igmax-1); ++ig)
@@ -372,7 +375,8 @@ int main(int argc, char** argv)
                                     wdiffr = real(wdiff * conj(wdiff));
                                     if((abs(wdiffr) < limittwo) || (delw2 > limitone))
                                         scha_mult = 1.0;
-                                    else scha_mult = 0.0;
+                                    else 
+                                        scha_mult = 0.0;
 
                                     sch = delw * I_eps_array[ig][my_igp] * scha_mult;
                                     scha[ig] = matngmatmgp*sch + conj(aqsmtemp[ig][n1]) * mygpvar2 * conj(sch);
@@ -393,6 +397,7 @@ int main(int argc, char** argv)
 
                                     sch = delw * I_eps_array[ig][my_igp] * scha_mult;
                                     scha[ig] = matngmatmgp * sch;
+                                    scht = scht + scha[ig];
                                 }
                             }
                             else
@@ -420,14 +425,14 @@ int main(int argc, char** argv)
 
             if(flag_occ)
             {
-//#pragma omp critical
-                {
                 for(int iw=nstart; iw<nend; ++iw)
-                    asxtemp[iw] += asxtemp[iw] + ssx_array[iw] * occ * vcoul[igp]; //occ does not change and is 1.00 so why not remove it.
+                {
+#pragma omp critical
+                    asxtemp[iw] += ssx_array[iw] * occ * vcoul[igp]; //occ does not change and is 1.00 so why not remove it.
                 }
             }
 
-//#pragma omp critical
+#pragma omp critical
     {
             for(int iw=nstart; iw<nend; ++iw)
                 achtemp[iw] = achtemp[iw] + sch_array[iw] * vcoul[igp];
