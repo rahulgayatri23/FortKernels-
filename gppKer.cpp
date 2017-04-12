@@ -152,7 +152,7 @@ int main(int argc, char** argv)
 
         flag_occ = n1 < nvband;
 
-//#pragma omp parallel for //private(i, igmax, mygpvar1, mygpvar2, ig, schs, matngpmatmg, matngmatmgp) schedule(static)
+#pragma omp parallel for private(igmax, mygpvar1, mygpvar2, schs, matngpmatmg, matngmatmgp) schedule(static)
         for(int my_igp = 0; my_igp< ngpown; my_igp++)
         {
             int indigp = inv_igp_index[my_igp];
@@ -163,7 +163,7 @@ int main(int argc, char** argv)
 //            if(gppsum == 1)
 //                igmax = igp;
 //            else
-//                igmax = ncouls;
+                igmax = ncouls;
 
 
 
