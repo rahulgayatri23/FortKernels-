@@ -152,7 +152,10 @@ int main(int argc, char** argv)
 
         flag_occ = n1 < nvband;
 
-#pragma omp parallel for private(igmax, mygpvar1, mygpvar2, schs, matngpmatmg, matngmatmgp) schedule(static)
+//#pragma omp parallel for private(igmax, mygpvar1, mygpvar2, schs, matngpmatmg, matngmatmgp) schedule(static)
+#pragma omp target
+#pragma omp teams
+#pragma omp distribute parallel for private(igmax, mygpvar1, mygpvar2, schs, matngpmatmg, matngmatmgp) schedule(dynamic)
         for(int my_igp = 0; my_igp< ngpown; my_igp++)
         {
             int indigp = inv_igp_index[my_igp];
@@ -206,7 +209,9 @@ int main(int argc, char** argv)
             if(abs(wx_array[iw]) < to1) wx_array[iw] = to1;
         }
 
-#pragma omp parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(igmax, ssx_array, sch_array, halfinvwtilde, ssxcutoff, sch, ssx, \
+#pragma omp target
+#pragma omp teams
+#pragma omp distribute parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(igmax, ssx_array, sch_array, halfinvwtilde, ssxcutoff, sch, ssx, \
         Omega2, scht, ssxt, wxt, eden, cden) schedule(dynamic) \
         private(scha_mult, mygpvar1, mygpvar2, wtilde, matngmatmgp, matngpmatmg, wtilde2, wdiff, delw, delw2, delwr, wdiffr)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
@@ -375,7 +380,7 @@ int main(int argc, char** argv)
                                     wdiffr = real(wdiff * conj(wdiff));
                                     if((abs(wdiffr) < limittwo) || (delw2 > limitone))
                                         scha_mult = 1.0;
-                                    else 
+                                    else
                                         scha_mult = 0.0;
 
                                     sch = delw * I_eps_array[ig][my_igp] * scha_mult;
