@@ -73,8 +73,7 @@ int main(int argc, char** argv)
 
     //ALLOCATE statements from fortran gppkernel.
 
-    std::complex<double> expr(0.5 , 0.5);
-    std::complex<double> expr0(0.0 , 0.0);
+    std::complex<double> expr = 0.5 + 0.5i;
     std::complex<double> aqsmtemp[ncouls][number_bands];
     std::complex<double> aqsntemp[ncouls][number_bands];
     std::complex<double> I_eps_array[ncouls][ngpown];
@@ -116,8 +115,8 @@ int main(int argc, char** argv)
 
        for(int j=0; j<ngpown; j++)
        {
-           I_eps_array[i][j] = expr;
-           wtilde_array[i][j] = expr0;
+           I_eps_array[i][j] = 0.5 + 0.5i;
+           wtilde_array[i][j] = 0.50 + 0.5i;
        }
 
        vcoul[i] = 1.0;
@@ -218,7 +217,7 @@ int main(int argc, char** argv)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
 
-//            std::complex<double> expr = 0.0 + 0.0i;
+            std::complex<double> expr = 0.0 + 0.0i;
 
             int indigp = inv_igp_index[my_igp];
             int igp = indinv[indigp];
@@ -268,7 +267,7 @@ int main(int argc, char** argv)
 
                                 if((abs(wxt - wtilde) < gamma) || (delw2 < to1))
                                 {
-                                    sch = expr;
+                                    sch = 0.0 + 0.0i;
                                     if(abs(wtilde) > to1)
                                         ssx = -Omega2 / (4.0 * wtilde2 * (1.0 + delw));
                                     else
@@ -281,7 +280,7 @@ int main(int argc, char** argv)
                                 }
 
                                 ssxcutoff = sexcut*abs(I_eps_array[ig][my_igp]);
-                                if((abs(ssx) > ssxcutoff) &&(abs(wxt) < 0.0)) ssx = expr0;
+                                if((abs(ssx) > ssxcutoff) &&(abs(wxt) < 0.0)) ssx = 0.0 + 0.0i;
 
                                 if(ig != igp)
                                 {
