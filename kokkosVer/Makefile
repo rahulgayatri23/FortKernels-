@@ -1,9 +1,11 @@
 KOKKOS_PATH = ${HOME}/Kokkos/kokkos
 KOKKOS_DEVICES = "OpenMP"
-EXE_NAME = "gppKerKokkos"
+#EXE_NAME = "gppKerKokkos"
+EXE_NAME = "kokkosArrayReduce"
 
 #SRC = $(wildcard *.cpp)
 SRC = gppKerKokkos.cpp
+#SRC = kokkosArrayReduce.cpp
 
 default: build
 	echo "Start Build"
@@ -20,7 +22,7 @@ EXE = ${EXE_NAME}.host
 KOKKOS_ARCH = "SNB"
 endif
 
-CXXFLAGS = -O3
+CXXFLAGS = -O3 
 LINK = ${CXX}
 LINKFLAGS =
 

@@ -29,11 +29,6 @@ int main(int argc, char** argv)
     int tid, NTHREADS; // OpenMP related threading variables.
 
 
-    //    The below 3 params have to be changed for the final version. Currently using small numbers hence setting them to smaller ones...memory constraints on the local machine.
-//    int npes = 8; //Represents the number of ranks per node
-//    int ngpown = ncouls / (nodes_per_group * npes); //Number of gvectors per mpi task
-//    int ngpown = ncouls / (nodes_per_group * npes); //Number of gvectors per mpi task
-
     int npes = 1; //Represents the number of ranks per node
     int ngpown = ncouls / (nodes_per_group * npes); //Number of gvectors per mpi task
 
@@ -46,7 +41,6 @@ int main(int argc, char** argv)
 
 
     double to1 = 1e-6;
-//    std::cout << setprecision(16) << "to1 = " << to1 << endl;
 
     double gamma = 0.5;
     double sexcut = 4.0;
@@ -194,7 +188,7 @@ int main(int argc, char** argv)
             if(abs(wx_array[iw]) < to1) wx_array[iw] = to1;
         }
 
-//#pragma omp parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(igmax, ssx_array, sch_array, halfinvwtilde, ssxcutoff, sch, ssx, \
+#pragma omp parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(igmax, ssx_array, sch_array, halfinvwtilde, ssxcutoff, sch, ssx, \
         Omega2, scht, ssxt, wxt, eden, cden) schedule(dynamic) \
         private(scha_mult, mygpvar1, mygpvar2, wtilde, matngmatmgp, matngpmatmg, wtilde2, wdiff, delw, delw2, delwr, wdiffr)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
@@ -206,7 +200,6 @@ int main(int argc, char** argv)
             int igp = indinv[indigp];
 
             if(!(igp > ncouls || igp < 0)) {
-//Rahul - check how the igmax = ncouls even if gppsum = 1 in the fortran code. For now leaving it commented, check later.
             if(gppsum == 1)
                 igmax = igp;
             else
@@ -276,8 +269,6 @@ int main(int argc, char** argv)
 
                                 ssxt = ssxt + ssxa[ig];
                                 scht = scht + scha[ig];
-
-
                             }
                         }
                         else
@@ -334,8 +325,6 @@ int main(int argc, char** argv)
                         ssx_array[iw] = ssx_array[iw] + ssxt;
                         sch_array[iw] = sch_array[iw] + 0.5*scht;
                     }
-//                for(int iw=nstart; iw<nend; ++iw)
-//                    std::cout <<"sch_array[" << iw << "] = " << sch_array[iw] << "\t ssx_array[" << iw << "] = " << ssx_array[iw] << std::endl;
                 }
                 else
                 {
