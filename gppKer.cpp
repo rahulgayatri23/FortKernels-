@@ -29,11 +29,6 @@ int main(int argc, char** argv)
     int tid, NTHREADS; // OpenMP related threading variables.
 
 
-    //    The below 3 params have to be changed for the final version. Currently using small numbers hence setting them to smaller ones...memory constraints on the local machine.
-//    int npes = 8; //Represents the number of ranks per node
-//    int ngpown = ncouls / (nodes_per_group * npes); //Number of gvectors per mpi task
-//    int ngpown = ncouls / (nodes_per_group * npes); //Number of gvectors per mpi task
-
     int npes = 1; //Represents the number of ranks per node
     int ngpown = ncouls / (nodes_per_group * npes); //Number of gvectors per mpi task
 
@@ -46,7 +41,6 @@ int main(int argc, char** argv)
 
 
     double to1 = 1e-6;
-//    std::cout << setprecision(16) << "to1 = " << to1 << endl;
 
     double gamma = 0.5;
     double sexcut = 4.0;
@@ -73,8 +67,7 @@ int main(int argc, char** argv)
 
     //ALLOCATE statements from fortran gppkernel.
 
-    std::complex<double> expr(0.5 , 0.5);
-    std::complex<double> expr0(0.0 , 0.0);
+    std::complex<double> expr = 0.5 + 0.5i;
     std::complex<double> aqsmtemp[ncouls][number_bands];
     std::complex<double> aqsntemp[ncouls][number_bands];
     std::complex<double> I_eps_array[ncouls][ngpown];
@@ -116,8 +109,8 @@ int main(int argc, char** argv)
 
        for(int j=0; j<ngpown; j++)
        {
-           I_eps_array[i][j] = expr;
-           wtilde_array[i][j] = expr0;
+           I_eps_array[i][j] = 0.5 + 0.5i;
+           wtilde_array[i][j] = 0.50 + 0.5i;
        }
 
        vcoul[i] = 1.0;
@@ -138,25 +131,11 @@ int main(int argc, char** argv)
 
     double start_time = omp_get_wtime(); //Start timing here.
 
-//#pragma omp parallel private(tid)
-    {
-        tid = omp_get_thread_num();
-        if(tid==0)
-        {
-            NTHREADS = omp_get_num_threads();
-            cout << "My thread id = " << tid <<" out of " << NTHREADS << " number of threads."<< endl;
-        }
-    }
-
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
-
         flag_occ = n1 < nvband;
 
-//#pragma omp parallel for private(igmax, mygpvar1, mygpvar2, schs, matngpmatmg, matngmatmgp) schedule(static)
-//#pragma omp target
-//#pragma omp teams
-//#pragma omp distribute parallel for private(igmax, mygpvar1, mygpvar2, schs, matngpmatmg, matngmatmgp) schedule(dynamic)
+#pragma omp parallel for private(igmax, mygpvar1, mygpvar2, schs, matngpmatmg, matngmatmgp) shared(achstemp) schedule(static) 
         for(int my_igp = 0; my_igp< ngpown; my_igp++)
         {
             int indigp = inv_igp_index[my_igp];
@@ -167,9 +146,7 @@ int main(int argc, char** argv)
             if(gppsum == 1)
                 igmax = igp;
             else
-              igmax = ncouls;
-
-
+                igmax = ncouls;
 
             mygpvar1 = std::conj(aqsmtemp[igp][n1]);
             mygpvar2 = aqsntemp[igp][n1];
@@ -201,7 +178,8 @@ int main(int argc, char** argv)
             }
 
             }
-            achstemp = achstemp + schstemp * vcoul[igp] * 0.5;
+#pragma omp critical
+            achstemp += schstemp * vcoul[igp] * 0.5;
         }
 
         for(int iw=nstart; iw<nend; ++iw)
@@ -210,18 +188,18 @@ int main(int argc, char** argv)
             if(abs(wx_array[iw]) < to1) wx_array[iw] = to1;
         }
 
-//#pragma omp target
-//#pragma omp teams
-//#pragma omp distribute parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(igmax, ssx_array, sch_array, halfinvwtilde, ssxcutoff, sch, ssx, \
+#pragma omp parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(igmax, ssx_array, sch_array, halfinvwtilde, ssxcutoff, sch, ssx, \
         Omega2, scht, ssxt, wxt, eden, cden) schedule(dynamic) \
         private(scha_mult, mygpvar1, mygpvar2, wtilde, matngmatmgp, matngpmatmg, wtilde2, wdiff, delw, delw2, delwr, wdiffr)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
+
+            std::complex<double> expr = 0.0 + 0.0i;
+
             int indigp = inv_igp_index[my_igp];
             int igp = indinv[indigp];
 
             if(!(igp > ncouls || igp < 0)) {
-//Rahul - check how the igmax = ncouls even if gppsum = 1 in the fortran code. For now leaving it commented, check later.
             if(gppsum == 1)
                 igmax = igp;
             else
@@ -231,19 +209,17 @@ int main(int argc, char** argv)
             for(int i=0; i<3; i++)
             {
                 ssx_array[i] = expr;
-                sch_array[i] = expr0;
+                sch_array[i] = 0.00;
             }
 
             mygpvar1 = std::conj(aqsmtemp[igp][n1]);
             mygpvar2 = aqsmtemp[igp][n1];
 
-
             if(flag_occ)
             {
-
                 for(int iw=nstart; iw<nend; ++iw)
                 {
-                        scht = ssxt = expr0;
+                        scht = ssxt = expr;
                         wxt = wx_array[iw];
 
                         if(gppsum == 1)
@@ -265,7 +241,7 @@ int main(int argc, char** argv)
 
                                 if((abs(wxt - wtilde) < gamma) || (delw2 < to1))
                                 {
-                                    sch = expr0;
+                                    sch = 0.0 + 0.0i;
                                     if(abs(wtilde) > to1)
                                         ssx = -Omega2 / (4.0 * wtilde2 * (1.0 + delw));
                                     else
@@ -273,13 +249,12 @@ int main(int argc, char** argv)
                                 }
                                 else
                                 {
-                                        std::cout << "sch = " << sch << std::endl;
                                     sch = wtilde * I_eps_array[ig][my_igp] / (wxt - wtilde);
                                     ssx = Omega2 / (pow(wxt,2) - wtilde2);
                                 }
 
                                 ssxcutoff = sexcut*abs(I_eps_array[ig][my_igp]);
-                                if((abs(ssx) > ssxcutoff) &&(abs(wxt) < 0.0)) ssx = expr0;
+                                if((abs(ssx) > ssxcutoff) &&(abs(wxt) < 0.0)) ssx = 0.0 + 0.0i;
 
                                 if(ig != igp)
                                 {
@@ -292,8 +267,8 @@ int main(int argc, char** argv)
                                     scha[ig] = matngmatmgp*sch;
                                 }
 
-                                ssxt = ssxt + ssxa[ig];
-                                scht = scht + scha[ig];
+                                ssxt += ssxa[ig];
+                                scht += scha[ig];
                             }
                         }
                         else
@@ -343,12 +318,12 @@ int main(int argc, char** argv)
                                 ssxa[ig] = matngmatmgp*ssx;
                                 scha[ig] = matngmatmgp*sch;
 
-                                ssxt = ssxt + ssxa[ig];
-                                scht = scht + scha[ig];
+                                ssxt += ssxa[ig];
+                                scht += scha[ig];
                             }
                         }
-                        ssx_array[iw] = ssx_array[iw] + ssxt;
-                        sch_array[iw] = sch_array[iw] + 0.5*scht;
+                        ssx_array[iw] += ssxt;
+                        sch_array[iw] += 0.5*scht;
                     }
                 }
                 else
@@ -377,10 +352,9 @@ int main(int argc, char** argv)
                                     wdiffr = real(wdiff * conj(wdiff));
                                     if((abs(wdiffr) < limittwo) || (delw2 > limitone))
                                         scha_mult = 1.0;
-                                    else
+                                    else 
                                         scha_mult = 0.0;
 
-//                                    std::cout << "I_eps_array[ig] 
                                     sch = delw * I_eps_array[ig][my_igp] * scha_mult;
                                     scha[ig] = matngmatmgp*sch + conj(aqsmtemp[ig][n1]) * mygpvar2 * conj(sch);
                                     scht += scha[ig];
@@ -400,9 +374,8 @@ int main(int argc, char** argv)
 
                                     sch = delw * I_eps_array[ig][my_igp] * scha_mult;
                                     scha[ig] = matngmatmgp * sch;
-                                    scht += scha[ig];
+                                    scht = scht + scha[ig];
                                 }
-//                                std::cout << "scht = " << scht << std::endl;
                             }
                             else
                             {
@@ -418,8 +391,8 @@ int main(int argc, char** argv)
 
                                     scha[ig] = mygpvar1 * aqsntemp[ig][n1] * delw * I_eps_array[ig][my_igp];
 
-                                    if((wdiffr > limittwo) && (delwr < limitone)) scht += scha[ig];
-
+                                    if((wdiffr > limittwo) && (delwr < limitone)) 
+                                        scht += scha[ig];
                                 }
                             }
                             sch_array[iw] += 0.5*scht;
@@ -441,7 +414,7 @@ int main(int argc, char** argv)
             for(int iw=nstart; iw<nend; ++iw)
                 achtemp[iw] += sch_array[iw] * vcoul[igp];
 
-            acht_n1_loc[n1] += acht_n1_loc[n1] + sch_array[2] * vcoul[igp];
+            acht_n1_loc[n1] += sch_array[2] * vcoul[igp];
     }
 
 

@@ -267,8 +267,8 @@ int main(int argc, char** argv)
                                     scha[ig] = matngmatmgp*sch;
                                 }
 
-                                ssxt = ssxt + ssxa[ig];
-                                scht = scht + scha[ig];
+                                ssxt += ssxa[ig];
+                                scht += scha[ig];
                             }
                         }
                         else
@@ -318,12 +318,12 @@ int main(int argc, char** argv)
                                 ssxa[ig] = matngmatmgp*ssx;
                                 scha[ig] = matngmatmgp*sch;
 
-                                ssxt = ssxt + ssxa[ig];
-                                scht = scht + scha[ig];
+                                ssxt += ssxa[ig];
+                                scht += scha[ig];
                             }
                         }
-                        ssx_array[iw] = ssx_array[iw] + ssxt;
-                        sch_array[iw] = sch_array[iw] + 0.5*scht;
+                        ssx_array[iw] += ssxt;
+                        sch_array[iw] += 0.5*scht;
                     }
                 }
                 else
@@ -357,7 +357,7 @@ int main(int argc, char** argv)
 
                                     sch = delw * I_eps_array[ig][my_igp] * scha_mult;
                                     scha[ig] = matngmatmgp*sch + conj(aqsmtemp[ig][n1]) * mygpvar2 * conj(sch);
-                                    scht = scht + scha[ig];
+                                    scht += scha[ig];
                                 }
                                 if(igend == (igmax-1))
                                 {
@@ -391,11 +391,11 @@ int main(int argc, char** argv)
 
                                     scha[ig] = mygpvar1 * aqsntemp[ig][n1] * delw * I_eps_array[ig][my_igp];
 
-                                    if((wdiffr > limittwo) && (delwr < limitone)) scht = scht + scha[ig];
-
+                                    if((wdiffr > limittwo) && (delwr < limitone)) 
+                                        scht += scha[ig];
                                 }
                             }
-                            sch_array[iw] = sch_array[iw] + 0.5*scht;
+                            sch_array[iw] += 0.5*scht;
                         }
                     }
                 }
@@ -414,7 +414,7 @@ int main(int argc, char** argv)
             for(int iw=nstart; iw<nend; ++iw)
                 achtemp[iw] += sch_array[iw] * vcoul[igp];
 
-            acht_n1_loc[n1] += acht_n1_loc[n1] + sch_array[2] * vcoul[igp];
+            acht_n1_loc[n1] += sch_array[2] * vcoul[igp];
     }
 
 
