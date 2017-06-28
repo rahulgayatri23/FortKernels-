@@ -143,9 +143,9 @@ int main(int argc, char** argv)
 
             if(!(igp > ncouls || igp < 0)){
 
-            if(gppsum == 1)
-                igmax = igp;
-            else
+//            if(gppsum == 1)
+//                igmax = igp;
+//            else
                 igmax = ncouls;
 
             mygpvar1 = std::conj(aqsmtemp[igp][n1]);
@@ -158,14 +158,14 @@ int main(int argc, char** argv)
                 for(int ig=0; ig<igmax-1; ++ig)
                 {
                     //std::complex<double> schs = I_eps_array[ig][my_igp];
-                    schs = I_eps_array[ig][my_igp];
+                    schs = -I_eps_array[ig][my_igp];
                     matngmatmgp = aqsntemp[ig][n1] * mygpvar1;
                     matngpmatmg = std::conj(aqsmtemp[ig][n1]) * mygpvar2;
                     schstemp = schstemp + matngmatmgp*schs + matngpmatmg*(std::conj(schs));
 
                 }
                 //ig = igp ;
-                schs = I_eps_array[igp][my_igp];
+                schs = -I_eps_array[igp][my_igp];
                 matngmatmgp = aqsntemp[igp][n1] * mygpvar1;
 
                 if(abs(schs) > to1)
@@ -200,9 +200,9 @@ int main(int argc, char** argv)
             int igp = indinv[indigp];
 
             if(!(igp > ncouls || igp < 0)) {
-            if(gppsum == 1)
-                igmax = igp;
-            else
+//            if(gppsum == 1)
+//                igmax = igp;
+//            else
                 igmax = ncouls;
 
 
