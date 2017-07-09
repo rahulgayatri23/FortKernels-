@@ -12,6 +12,7 @@ int debug = 0;
 
 void reduce_achstemp(int n1, int* inv_igp_index, int ncouls, std::complex<double> **aqsmtemp, std::complex<double> **aqsntemp, std::complex<double> **I_eps_array, std::complex<double>& achstemp,  int* indinv, int ngpown, int gppsum, double* vcoul)
 {
+    std::complex<double> expr0(0.0, 0.0);
     std::complex<double> schstemp(0.0, 0.0);
     std::complex<double> schs(0.0, 0.0);
     std::complex<double> matngmatmgp(0.0, 0.0);
@@ -21,7 +22,7 @@ void reduce_achstemp(int n1, int* inv_igp_index, int ncouls, std::complex<double
     int igmax;
     for(int my_igp = 0; my_igp< ngpown; my_igp++)
     {
-        schstemp = 0+0i;;
+        schstemp = expr0;;
         int igmax;
         int indigp = inv_igp_index[my_igp];
         int igp = indinv[indigp];
