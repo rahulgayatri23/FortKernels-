@@ -358,22 +358,14 @@ int main(int argc, char** argv)
     double vcoul[ncouls];
     double wx_array[3];
 
-    std::complex<double> schstemp = std::complex<double>(0.0, 0.0);
-    std::complex<double> schs = std::complex<double>(0.0, 0.0);
-    std::complex<double> matngmatmgp = std::complex<double>(0.0, 0.0);
-    std::complex<double> matngpmatmg = std::complex<double>(0.0, 0.0);
-
     std::complex<double> achstemp = std::complex<double>(0.0, 0.0);
-    std::complex<double> wtilde2, Omega2;
-    std::complex<double> halfinvwtilde, delw, ssx, sch, wdiff, cden , eden, mygpvar1, mygpvar2;
-    double ssxcutoff;
     std::complex<double> ssx_array[3], \
         sch_array[3], \
         ssxa[ncouls], \
         scha[ncouls], \
         scht, ssxt, wtilde;
 
-    double wxt, delw2, delwr, wdiffr, scha_mult, rden;
+    double wxt;
     double occ=1.0;
     bool flag_occ;
 
@@ -446,9 +438,6 @@ int main(int argc, char** argv)
                 ssx_array[i] = expr0;
                 sch_array[i] = expr0;
             }
-
-            mygpvar1 = std::conj(aqsmtemp[igp][n1]);
-            mygpvar2 = aqsmtemp[igp][n1];
 
             if(flag_occ)
             {
