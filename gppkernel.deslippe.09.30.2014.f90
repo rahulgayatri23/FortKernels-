@@ -26,7 +26,6 @@ program gppkernel
       integer :: my_igp, indigp, ig, igp, igmax,igbeg,igend
       integer,parameter:: igblk=512
       !integer,parameter:: igblk=512000
-      integer :: ggpsum
       integer, allocatable :: indinv(:), inv_igp_index(:)
       complex(kind((1.0d0,1.0d0))) :: achstemp,achxtemp,matngmatmgp,matngpmatmg,wdiff,mygpvar1,mygpvar2,schstemp,schs,wx_array(3),sch,ssx,ssxt,scht
       complex(kind((1.0d0,1.0d0))) :: wtilde,halfinvwtilde,wtilde2,Omega2
@@ -82,7 +81,6 @@ program gppkernel
         CALL getarg(4, arg)
         READ(arg,*) nodes_per_group
         CALL getarg(5, arg)
-        READ(arg,*) ggpsum
 !      endif
 
 !      call mpi_bcast(number_bands,1,mpi_integer,0,mpi_comm_world,ierr)
@@ -90,7 +88,6 @@ program gppkernel
 !      call mpi_bcast(ncouls,      1,mpi_integer,0,mpi_comm_world,ierr)
 !      call mpi_bcast(ngpown,      1,mpi_integer,0,mpi_comm_world,ierr)
 !      call mpi_bcast(nodes_per_group,      1,mpi_integer,0,mpi_comm_world,ierr)
-!      call mpi_bcast(ggpsum,      1,mpi_integer,0,mpi_comm_world,ierr)
 
       ! ngpown is number of gvectors per mpi task
       npes=1 !Rahul - 8 ranks per node
@@ -108,7 +105,6 @@ program gppkernel
         write(6,*) "ncouls = igmax = ",ncouls
         write(6,*) "ngpown = ",ngpown
         write(6,*) "nend-nstart = ",nend-nstart
-        write(6,*) "ggpsum = ",ggpsum
 !      endif
 
       ALLOCATE(vcoul(ncouls))
@@ -203,11 +199,7 @@ program gppkernel
 
             if (igp .gt. ncouls .or. igp .le. 0) cycle
 
-            if (ggpsum.eq.1) then
-              igmax=igp
-            else
               igmax=ncouls
-            endif
           
 
             mygpvar1 = CONJG(aqsmtemp(igp,n1))
@@ -218,21 +210,6 @@ program gppkernel
 ! We do two loops here for performance. Don`t want to evaluate if statements inside loop
 ! at every iteration
 
-            if (ggpsum.eq.1) then
-              do ig = 1, igmax - 1
-                schs=-I_eps_array(ig,my_igp)
-! JRD: Cycle bad for vectorization.
-! I_eps_array is already set to zero above for these ig,igp
-!                if (abs(schs).lt.tol) cycle
-                matngmatmgp = aqsntemp(ig,n1) * mygpvar1
-                matngpmatmg = CONJG(aqsmtemp(ig,n1)) * mygpvar2
-                schstemp = schstemp + matngmatmgp*schs + matngpmatmg*CONJG(schs)
-              enddo
-              ig = igp
-              schs=-I_eps_array(ig,my_igp)
-              matngmatmgp = aqsntemp(ig,n1) * mygpvar1
-              if (abs(schs).gt.tol) schstemp = schstemp + matngmatmgp*schs
-            else
               do ig = 1, igmax
                 !schs=-I_eps_array(ig,my_igp)
 ! JRD: Cycle bad for vectorization.
@@ -242,7 +219,6 @@ program gppkernel
                 schstemp = schstemp - aqsntemp(ig,n1) * I_eps_array(ig,my_igp) * mygpvar1
                 !schstemp = schstemp + matngmatmgp * schs
               enddo
-            endif
 
             achstemp = achstemp + schstemp*vcoul(igp)*0.5d0
           enddo
@@ -280,12 +256,7 @@ program gppkernel
 
           if (igp .gt. ncouls .or. igp .le. 0) cycle
 
-          if (ggpsum.eq.1) then
-            igmax=igp
-          else
-            igmax=ncouls
-          endif
-
+        igmax=ncouls
           ssx_array = 0D0
           sch_array = 0D0
 
@@ -299,54 +270,6 @@ program gppkernel
               scht=0D0
               ssxt=0D0
               wxt = wx_array(iw)
-
-              if (ggpsum.eq.1) then
-
-                do ig = 1, igmax
-                  wtilde = wtilde_array(ig,my_igp)
-                  wtilde2 = wtilde**2
-                  Omega2 = wtilde2 * I_eps_array(ig,my_igp)
-
-! Cycle bad for vectorization. ggpsum=1 slow anyway
-                  if (abs(Omega2) .lt. tol) cycle
-
-                  matngmatmgp = aqsntemp(ig,n1) * mygpvar1
-! JRD: This breaks vectorization but ggpsum=1 is slow for other reasons already
-                  if (ig .ne. igp) matngpmatmg = CONJG(aqsmtemp(ig,n1)) * mygpvar2
-
-                  halfinvwtilde = 0.5d0/wtilde
-                  delw = (wxt - wtilde) * halfinvwtilde
-                  delw2 = abs(delw)**2
-                  if (abs(wxt-wtilde).lt.gamma .or. delw2.lt.tol) then
-                    sch = 0.0d0
-                    if (abs(wtilde) .gt. tol) then
-                      ssx = -Omega2 / (4.0d0 * wtilde2 * (1.0d0 + delw))
-                    else
-                      ssx = 0D0
-                    endif
-                  else
-                    sch = wtilde * I_eps_array(ig,my_igp) / (wxt - wtilde)
-                    ssx = Omega2 / (wxt**2 - wtilde2)
-                  endif
-
-! JRD: Bad for vectorization
-                  ssxcutoff = sexcut*abs(I_eps_array(ig,my_igp))
-                  if (abs(ssx) .gt. ssxcutoff .and. wxt .lt. 0.0d0) ssx=0.0d0
-
-                  if (ig .ne. igp) then
-                    ssxa(ig) = matngmatmgp*ssx + matngpmatmg*CONJG(ssx)
-                    scha(ig) = matngmatmgp*sch + matngpmatmg*CONJG(sch)
-                  else
-                    ssxa(ig) = matngmatmgp*ssx
-                    scha(ig) = matngmatmgp*sch
-                  endif
-
-                  ssxt = ssxt + ssxa(ig)
-                  scht = scht + scha(ig)
-
-                enddo ! loop over g
-
-              else
 
                 do ig = 1, igmax
 
@@ -400,8 +323,6 @@ program gppkernel
 
                 enddo ! loop over g
 
-              endif
-
               ssx_array(iw) = ssx_array(iw) + ssxt
               sch_array(iw) = sch_array(iw) + 0.5D0*scht
 
@@ -417,37 +338,6 @@ program gppkernel
               wxt = wx_array(iw)
 
 
-              if (ggpsum.eq.1) then
-
-                do ig = igbeg, min(igend,igmax -1)
-                  wtilde = wtilde_array(ig,my_igp)
-                  matngmatmgp = aqsntemp(ig,n1) * mygpvar1
-                  wdiff = wxt - wtilde
-                  delw = wtilde / wdiff
-                  delw2 = delw*CONJG(delw)
-                  wdiffr = wdiff*CONJG(wdiff)
-                  scha_mult = merge(1.0,0.0,wdiffr.lt.limittwo .or. delw2.gt.limitone)
-                  sch = delw * I_eps_array(ig,my_igp) * scha_mult
-                  scha(ig) = matngmatmgp*sch + CONJG(aqsmtemp(ig,n1)) * mygpvar2*CONJG(sch)
-                  scht = scht + scha(ig)
-                enddo ! loop over g
-                if(igend==igmax-1)then
-                  ig = igmax  ! this is the last iteration pealed
-                  wtilde = wtilde_array(ig,my_igp)
-                  !if (abs((wtilde**2) * I_eps_array(ig,my_igp)) .lt. tol) cycle
-                  matngmatmgp = aqsntemp(ig,n1) * mygpvar1
-                  wdiff = wxt - wtilde
-                  delw = wtilde / wdiff
-                  delw2 = delw*CONJG(delw)
-                  wdiffr = wdiff*CONJG(wdiff)
-                  scha_mult = merge(1.0,0.0,wdiffr.lt.limittwo .or. delw2.gt.limitone)
-                  sch = delw * I_eps_array(ig,my_igp) * scha_mult
-                  scha(ig) = matngmatmgp*sch
-                  scht = scht + scha(ig)
-                endif
-
-
-              else
 ! !dir$ no unroll
                 do ig = igbeg, min(igend,igmax)
 !                 do ig = 1, igmax
@@ -474,8 +364,6 @@ program gppkernel
 !                  scht = scht + scha(ig)*scha_mult
 
                 enddo ! loop over g
-
-              endif
 
               sch_array(iw) = sch_array(iw) + 0.5D0*scht
 
