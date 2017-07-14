@@ -10,6 +10,10 @@
 using namespace std;
 int debug = 0;
 
+
+#define CACHE_LINE 32
+#define CACHE_ALIGN __declspec(align(CACHE_LINE)) 
+
 void ssxt_scht_solver(double wxt, int igp, int my_igp, int ig, std::complex<double> wtilde, std::complex<double> wtilde2, std::complex<double> Omega2, std::complex<double> matngmatmgp, std::complex<double> matngpmatmg, std::complex<double> mygpvar1, std::complex<double> mygpvar2, std::complex<double>& ssxa, std::complex<double>& scha, std::complex<double> I_eps_array_igp_myIgp)
 {
     std::complex<double> expr0( 0.0 , 0.0);
@@ -79,12 +83,12 @@ void reduce_achstemp(int n1, int* inv_igp_index, int ncouls, std::complex<double
 
         igmax = ncouls;
 
-        std::complex<double> mygpvar1 = std::conj(aqsmtemp[igp][n1]);
-        std::complex<double> mygpvar2 = aqsntemp[igp][n1];
+        std::complex<double> mygpvar1 = std::conj(aqsmtemp[n1][igp]);
+        std::complex<double> mygpvar2 = aqsntemp[n1][igp];
 
 //            //ig = igp ;
-            schs = -I_eps_array[igp][my_igp];
-            matngmatmgp = aqsntemp[igp][n1] * mygpvar1;
+            schs = -I_eps_array[my_igp][igp];
+            matngmatmgp = aqsntemp[n1][igp] * mygpvar1;
 
             if(abs(schs) > to1)
                 schstemp = schstemp + matngmatmgp * schs;
@@ -92,7 +96,7 @@ void reduce_achstemp(int n1, int* inv_igp_index, int ncouls, std::complex<double
         else
         {
             for(int ig=1; ig<igmax; ++ig)
-                schstemp = schstemp - aqsntemp[ig][n1] * I_eps_array[ig][my_igp] * mygpvar1;
+                schstemp = schstemp - aqsntemp[n1][igp] * I_eps_array[my_igp][ig] * mygpvar1;
         }
         achstemp += schstemp * vcoul[igp] *(double) 0.5;
     }
@@ -105,19 +109,17 @@ void flagOCC_solver(double wxt, std::complex<double> **wtilde_array, int my_igp,
     std::complex<double> matngmatmgp = std::complex<double>(0.0, 0.0);
     std::complex<double> matngpmatmg = std::complex<double>(0.0, 0.0);
     std::complex<double> ssxa[ncouls], scha[ncouls];
-    std::complex<double> mygpvar1 = std::conj(aqsmtemp[igp][n1]);
-    std::complex<double> mygpvar2 = aqsmtemp[igp][n1];
     for(int ig=0; ig<igmax; ++ig)
     {
-        std::complex<double> wtilde = wtilde_array[ig][my_igp];
+        std::complex<double> wtilde = wtilde_array[my_igp][ig];
         std::complex<double> wtilde2 = std::pow(wtilde,2);
-        std::complex<double> Omega2 = wtilde2*I_eps_array[ig][my_igp];
-        std::complex<double> matngmatmgp = aqsntemp[ig][n1] * mygpvar1;
-        if(ig != igp) matngpmatmg = std::conj(aqsmtemp[ig][n1]) * mygpvar2;
-        std::complex<double> mygpvar1 = std::conj(aqsmtemp[igp][n1]);
-        std::complex<double> mygpvar2 = aqsmtemp[igp][n1];
+        std::complex<double> Omega2 = wtilde2*I_eps_array[my_igp][ig];
+        std::complex<double> mygpvar1 = std::conj(aqsmtemp[n1][igp]);
+        std::complex<double> mygpvar2 = aqsmtemp[n1][igp];
+        std::complex<double> matngmatmgp = aqsntemp[n1][ig] * mygpvar1;
+        if(ig != igp) matngpmatmg = std::conj(aqsmtemp[n1][ig]) * mygpvar2;
 
-        ssxt_scht_solver(wxt, igp, my_igp, ig, wtilde, wtilde2, Omega2, matngmatmgp, matngpmatmg, mygpvar1, mygpvar2, ssxa[ig], scha[ig], I_eps_array[ig][my_igp]); 
+        ssxt_scht_solver(wxt, igp, my_igp, ig, wtilde, wtilde2, Omega2, matngmatmgp, matngpmatmg, mygpvar1, mygpvar2, ssxa[ig], scha[ig], I_eps_array[my_igp][ig]); 
         ssxt += ssxa[ig];
         scht += scha[ig];
     }
@@ -126,30 +128,39 @@ void flagOCC_solver(double wxt, std::complex<double> **wtilde_array, int my_igp,
 void noflagOCC_solver(int igbeg, int igend, int igblk, double wxt, std::complex<double> **wtilde_array, int my_igp, int n1, std::complex<double> **aqsmtemp, std::complex<double> **aqsntemp, std::complex<double> **I_eps_array, std::complex<double> &ssxt, std::complex<double> &scht, int igmax, int ncouls, int igp)
 {
     std::complex<double> scha[ncouls]/*, sch, delw, wdiff, cden*/;
-    double scha_mult;
     double to1 = 1e-6;
     double sexcut = 4.0;
     double gamma = 0.5;
     double limitone = 1.0/(to1*4.0);
     double limittwo = pow(0.5,2);
-    std::complex<double> mygpvar1 = std::conj(aqsmtemp[igp][n1]);
-    std::complex<double> mygpvar2 = aqsmtemp[igp][n1];
+    std::complex<double> mygpvar1 = std::conj(aqsmtemp[n1][igp]);
+    std::complex<double> rden_compl, cden, wdiff, delw, scht_local(0.0,0.0), delw_conj; 
+    double delwr, wdiffr, rden, rden_arr[ncouls];
+    bool test[ncouls]; 
+    
 
-//#pragma simd - Rahul cant vectorize this due to the if-condition
+//#pragma omp simd private(wdiff, cden, rden, delw, delwr, wdiffr) lastprivate(scht_local)
+//#pragma ivdep
     for(int ig = igbeg; ig<min(igend,igmax); ++ig)
     {
-        std::complex<double> wdiff = wxt - wtilde_array[ig][my_igp];
-        std::complex<double> cden = wdiff;
-        double rden = 1/(real(cden * conj(cden)));
-        std::complex<double> delw = wtilde_array[ig][my_igp] * conj(cden) * rden;
-        double delwr = real(delw * conj(delw));
-        double wdiffr = real(wdiff * conj(wdiff));
+        wdiff = wxt - wtilde_array[my_igp][ig];
+        wdiffr = real(wdiff * conj(wdiff));
+        rden = 1/wdiffr;
 
-        scha[ig] = mygpvar1 * aqsntemp[ig][n1] * delw * I_eps_array[ig][my_igp];
+        delw = wtilde_array[my_igp][ig] * conj(wdiff) *rden; //*rden
+        delwr = real(delw * conj(delw));
 
-        if((wdiffr > limittwo) && (delwr < limitone)) 
+
+        if((wdiffr > limittwo) && (delwr < limitone))
+            scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig] ;
+
+    }
+    for(int ig = igbeg; ig<min(igend,igmax); ++ig)
+    {
+        if(test[ig])
             scht += scha[ig];
     }
+
 }
 
 int main(int argc, char** argv)
@@ -213,37 +224,32 @@ int main(int argc, char** argv)
     std::complex<double> asxtemp[nend-nstart];
     std::complex<double> acht_n1_loc[number_bands];
 
-//    std::complex<double> aqsmtemp[ncouls][number_bands];
     std::complex<double> **aqsmtemp;
     {
-        aqsmtemp = new std::complex<double> *[ncouls];
-        for(int i=0; i<ncouls; i++)
-            aqsmtemp[i] = new std::complex<double>[number_bands] ;
-//            aqsmtemp[i] = new std::complex<double>[number_bands] __attribute__ ((aligned (64)))  ;
+        aqsmtemp = new std::complex<double> *[number_bands];
+        for(int i=0; i<number_bands; i++)
+            aqsmtemp[i] = new std::complex<double>[ncouls] ;
     }
 
-////    std::complex<double> aqsntemp[ncouls][number_bands];
     std::complex<double> **aqsntemp;
     {
-        aqsntemp = new std::complex<double> *[ncouls];
-        for(int i=0; i<ncouls; i++)
-            aqsntemp[i] = new std::complex<double>[number_bands];
+        aqsntemp = new std::complex<double> *[number_bands];
+        for(int i=0; i<number_bands; i++)
+            aqsntemp[i] = new std::complex<double>[ncouls];
     }
 
-//    std::complex<double> I_eps_array[ncouls][ngpown];
     std::complex<double> **I_eps_array;
     {
-        I_eps_array = new std::complex<double> *[ncouls];
-        for(int i=0; i<ncouls; i++)
-            I_eps_array[i] = new std::complex<double>[ngpown];
+        I_eps_array = new CACHE_ALIGN std::complex<double> *[ngpown];
+        for(int i=0; i<ngpown; i++)
+            I_eps_array[i] = new CACHE_ALIGN std::complex<double>[ncouls];
     }
 
-//    std::complex<double> wtilde_array[ncouls][ngpown];
     std::complex<double> **wtilde_array;
     {
-        wtilde_array = new std::complex<double> *[ncouls];
-        for(int i=0; i<ncouls; i++)
-            wtilde_array[i] = new std::complex<double>[ngpown];
+        wtilde_array = new CACHE_ALIGN std::complex<double> *[ngpown];
+        for(int i=0; i<ngpown; i++)
+            wtilde_array[i] = new CACHE_ALIGN std::complex<double>[ncouls];
     }
 
     double vcoul[ncouls];
@@ -260,30 +266,46 @@ int main(int argc, char** argv)
     double occ=1.0;
     bool flag_occ;
 
-
-   for(int i=0; i<ncouls; i++)
-   {
-       for(int j=0; j<number_bands; j++)
-       {
-           aqsmtemp[i][j] = expr;
-           aqsntemp[i][j] = expr;
-       }
-
-       for(int j=0; j<ngpown; j++)
-       {
-           I_eps_array[i][j] = expr;
-           wtilde_array[i][j] = expr;
-       }
-
-       vcoul[i] = 1.0;
-   }
+    double noflagOCC_startTimer = 0.00; 
+    double noflagOCC_endTimer = 0.00; 
+    double noflagOCC_totalTime = 0.00; 
+    double start_time = omp_get_wtime(); //Start timing here.
 
     cout << "Size of wtilde_array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of aqsntemp = " << (ncouls*number_bands*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of I_eps_array array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
 
-    //For MPI Work distribution
-    int tmp;
+    noflagOCC_startTimer = omp_get_wtime(); //End timing here
+
+   for(int i=0; i<number_bands; i++)
+       for(int j=0; j<ncouls; j++)
+       {
+           aqsntemp[i][j] = expr;
+           aqsmtemp[i][j] = expr;
+       }
+
+
+   for(int i=0; i<ngpown; i++)
+       for(int j=0; j<ncouls; j++)
+       {
+           I_eps_array[i][j] = expr;
+           wtilde_array[i][j] = expr;
+       }
+
+   for(int i=0; i<ncouls; i++)
+       vcoul[i] = 1.0;
+
+
+    noflagOCC_totalTime += omp_get_wtime() - noflagOCC_startTimer;
+    cout << "********** Timer1  =  **********= " << noflagOCC_totalTime << " secs" << endl;
+
+
+    noflagOCC_startTimer = 0.00; 
+    noflagOCC_endTimer = 0.00; 
+    noflagOCC_totalTime = 0.00; 
+
+    noflagOCC_startTimer = omp_get_wtime(); //End timing here
+
     for(int ig=0, tmp=1; ig < ngpown; ++ig,tmp++)
         inv_igp_index[ig] = (ig+1) * ncouls / ngpown;
 
@@ -291,8 +313,13 @@ int main(int argc, char** argv)
     for(int ig=0, tmp=1; ig<ncouls; ++ig,tmp++)
         indinv[ig] = ig;
 
+    noflagOCC_totalTime += omp_get_wtime() - noflagOCC_startTimer;
+    cout << "********** Timer2  =  **********= " << noflagOCC_totalTime << " secs" << endl;
 
-    double start_time = omp_get_wtime(); //Start timing here.
+
+    noflagOCC_startTimer = 0.00; 
+    noflagOCC_endTimer = 0.00; 
+    noflagOCC_totalTime = 0.00; 
 
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
@@ -343,6 +370,8 @@ int main(int argc, char** argv)
             {
                 int igblk = 512;
                 //403 - 479
+                noflagOCC_startTimer = omp_get_wtime(); //End timing here
+
                 for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
                 {
                     int igend = min(igbeg+igblk-1, igmax);
@@ -355,6 +384,8 @@ int main(int argc, char** argv)
                         sch_array[iw] +=(double) 0.5*scht;
                     }
                 }
+
+                noflagOCC_totalTime += omp_get_wtime() - noflagOCC_startTimer;
             }
 
             if(flag_occ)
@@ -385,6 +416,7 @@ int main(int argc, char** argv)
         cout << "achtemp[" << iw << "] = " << std::setprecision(15) << achtemp[iw] << endl;
 
     cout << "********** Time Taken **********= " << end_time - start_time << " secs" << endl;
+    cout << "********** noflagOCC_timing =  **********= " << noflagOCC_totalTime << " secs" << endl;
 
     return 0;
 }
