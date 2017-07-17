@@ -134,33 +134,44 @@ void noflagOCC_solver(int igbeg, int igend, int igblk, double wxt, std::complex<
     double limitone = 1.0/(to1*4.0);
     double limittwo = pow(0.5,2);
     std::complex<double> mygpvar1 = std::conj(aqsmtemp[n1][igp]);
-    std::complex<double> rden_compl, cden, wdiff, delw, scht_local(0.0,0.0), delw_conj; 
-    double delwr, wdiffr, rden, rden_arr[ncouls];
+    std::complex<double> rden, cden, wdiff, delw; 
+    double delwr, wdiffr; //rden
     bool test[ncouls]; 
     
-
-//#pragma omp simd private(wdiff, cden, rden, delw, delwr, wdiffr) lastprivate(scht_local)
-//#pragma ivdep
     for(int ig = igbeg; ig<min(igend,igmax); ++ig)
     {
         wdiff = wxt - wtilde_array[my_igp][ig];
-        wdiffr = real(wdiff * conj(wdiff));
-        rden = 1/wdiffr;
+        rden = 1/(wdiff * conj(wdiff));
+        delw = wtilde_array[my_igp][ig] * conj(wdiff) * rden ; //*rden
+        scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig];
 
-        delw = wtilde_array[my_igp][ig] * conj(wdiff) *rden; //*rden
-        delwr = real(delw * conj(delw));
+//        delwr = real(delw * conj(delw));
+//        wdiffr = real(wdiff * conj(wdiff));
+//        test[ig] = ((delwr < limitone) && (wdiffr > limittwo));
 
-
-        if((wdiffr > limittwo) && (delwr < limitone))
-            scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig] ;
-
+//        if((wdiffr > limittwo) && (delwr < limitone)) 
+//            scht +=  mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig];
     }
     for(int ig = igbeg; ig<min(igend,igmax); ++ig)
+        scht += scha[ig];
+
+/*************************************************************
+    for(int ig = igbeg; ig<min(igend,igmax); ++ig)
     {
-        if(test[ig])
+        wdiff = wxt - wtilde_array[my_igp][ig];
+        cden = wdiff;
+        rden = real(cden * conj(cden));
+        rden = 1.00/rden;
+        delw = wtilde_array[my_igp][ig] * conj(cden) * rden;
+        delwr = real(delw * conj(delw));
+        wdiffr = real(wdiff * conj(wdiff));
+
+        scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig];
+
+        if((wdiffr > limittwo) && (delwr < limitone)) 
             scht += scha[ig];
     }
-
+*************************************************************/
 }
 
 int main(int argc, char** argv)
@@ -370,6 +381,15 @@ int main(int argc, char** argv)
             {
                 int igblk = 512;
                 //403 - 479
+                std::complex<double> scha[ncouls]/*, sch, delw, wdiff, cden*/;
+                double to1 = 1e-6;
+                double sexcut = 4.0;
+                double gamma = 0.5;
+                double limitone = 1.0/(to1*4.0);
+                double limittwo = pow(0.5,2);
+                std::complex<double> mygpvar1 = std::conj(aqsmtemp[n1][igp]);
+                std::complex<double> rden, cden, wdiff, delw; 
+                double delwr, wdiffr; //rden
                 noflagOCC_startTimer = omp_get_wtime(); //End timing here
 
                 for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
@@ -380,8 +400,32 @@ int main(int argc, char** argv)
                         scht = ssxt = expr0;
                         wxt = wx_array[iw];
 
-                        noflagOCC_solver(igbeg, igend, igblk, wxt, wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, igmax, ncouls, igp);
+                        for(int ig = igbeg; ig<min(igend,igmax); ++ig)
+                        {
+                            wdiff = wxt - wtilde_array[my_igp][ig];
+                            rden = 1/(wdiff * conj(wdiff));
+                            delw = wtilde_array[my_igp][ig] * conj(wdiff) * rden ; //*rden
+                            scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig];
+
+//                            wdiff = wxt - wtilde_array[my_igp][ig];
+//                            cden = wdiff;
+//                            rden = real(cden * conj(cden));
+//                            rden = 1.00/rden;
+//                            delw = wtilde_array[my_igp][ig] * conj(cden) * rden;
+//                            delwr = real(delw * conj(delw));
+//                            wdiffr = real(wdiff * conj(wdiff));
+//
+//                            scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig];
+//
+//                            if((wdiffr > limittwo) && (delwr < limitone)) 
+//                                scht += scha[ig];
+                        }
+                        for(int ig = igbeg; ig<min(igend,igmax); ++ig)
+                            scht += scha[ig];
+
                         sch_array[iw] +=(double) 0.5*scht;
+
+//                        noflagOCC_solver(igbeg, igend, igblk, wxt, wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, igmax, ncouls, igp);
                     }
                 }
 
@@ -415,8 +459,8 @@ int main(int argc, char** argv)
     for(int iw=nstart; iw<nend; ++iw)
         cout << "achtemp[" << iw << "] = " << std::setprecision(15) << achtemp[iw] << endl;
 
-    cout << "********** Time Taken **********= " << end_time - start_time << " secs" << endl;
     cout << "********** noflagOCC_timing =  **********= " << noflagOCC_totalTime << " secs" << endl;
+    cout << "********** Time Taken **********= " << end_time - start_time << " secs" << endl;
 
     return 0;
 }

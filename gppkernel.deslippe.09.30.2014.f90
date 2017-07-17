@@ -42,6 +42,7 @@ program gppkernel
       real(kind(1.0d0)) :: limitone,limittwo
       real(kind(1.0d0)) :: starttime, endtime
       real(kind(1.0d0)) :: starttime_stat, endtime_stat
+      real(kind(1.0d0)) :: starttime_noFlagOCC, endtime_noFlagOCC, totaltime_noFlagOCC
       real(kind(1.0d0)) :: time_stat
       real(kind(1.0d0)) :: starttime_dyn, endtime_dyn
       real(kind(1.0d0)) :: time_dyn
@@ -58,6 +59,9 @@ program gppkernel
 
       time_stat = 0D0
       time_dyn = 0D0
+      starttime_noFlagOCC = 0D0
+      endtime_noFlagOCC = 0D0
+      totaltime_noFlagOCC = 0D0
 
 !$OMP PARALLEL PRIVATE(NTHREADS, TID)
       TID = OMP_GET_THREAD_NUM()
@@ -329,6 +333,7 @@ program gppkernel
             enddo
 
           else
+            call timget(starttime_noFlagOCC)
             do igbeg = 1,igmax,igblk
             igend = min(igbeg+igblk-1,igmax)
             do iw=nstart,nend
@@ -373,6 +378,8 @@ program gppkernel
 
             enddo
             enddo
+            call timget(endtime_noFlagOCC)
+            totaltime_noFlagOCC = totaltime_noFlagOCC + (endtime_noFlagOCC - starttime_noFlagOCC)
 
           endif
 
@@ -422,6 +429,7 @@ program gppkernel
       DEALLOCATE(ekq)
 
 !      if(mype==0)then
+        write(6,*) "noflag_occ time:",totaltime_noFlagOCC 
         write(6,*) "Runtime:", endtime-starttime
         write(6,*) "Runtime Stat:", time_stat
         write(6,*) "Runtime Dyn:", time_dyn
