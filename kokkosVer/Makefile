@@ -1,7 +1,7 @@
 KOKKOS_PATH = ${HOME}/Kokkos/kokkos
 KOKKOS_DEVICES = "OpenMP"
-#EXE_NAME = "gppKerKokkos"
-EXE_NAME = "kokkosArrayReduce"
+EXE_NAME = "gppKerKokkos"
+#EXE_NAME = "kokkosArrayReduce"
 
 #SRC = $(wildcard *.cpp)
 SRC = gppKerKokkos.cpp
