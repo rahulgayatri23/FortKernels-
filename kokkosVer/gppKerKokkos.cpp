@@ -313,8 +313,6 @@ int main(int argc, char** argv)
                 sch_array[i] = expr0;
             }
 
-//            mygpvar2 = aqsntemp(n1,igp);
-
             if(flag_occ)
             {
                 for(int iw=nstart; iw<nend; ++iw)
@@ -345,18 +343,9 @@ int main(int argc, char** argv)
                         for(int ig = igbeg; ig<min(igend,igmax); ++ig)
                         {
                             wdiff = doubleMinusKokkosComplex(wxt , wtilde_array(my_igp, ig));
-//                            double rden = Kokkos::real(wdiff * Kokkos::conj(wdiff));
                             rden = (Kokkos::complex<double>) 1.00/(wdiff * Kokkos::conj(wdiff));
-//                            rden = (Kokkos::complex<double>) 1.00/rden;
                             delw = rden * wtilde_array(my_igp, ig) * Kokkos::conj(wdiff);
-                            scha[ig] = mygpvar1 * delw * aqsntemp(n1,ig);
-                            scha[ig] *= I_eps_array(my_igp, ig);
-
-//                            delwr = Kokkos::real(delw * Kokkos::conj(delw));
-//                            wdiffr = Kokkos::real(wdiff * Kokkos::conj(wdiff));
-
-
-//                            if((wdiffr > limittwo) && (delwr < limitone)) scht += scha[ig];
+                            scha[ig] = mygpvar1 * delw * aqsntemp(n1,ig)* I_eps_array(my_igp, ig);
                         } // for iw-blockSize
 
                         for(int ig = igbeg; ig<min(igend,igmax); ++ig)

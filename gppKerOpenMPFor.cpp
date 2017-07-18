@@ -115,7 +115,7 @@ void flagOCC_solver(double wxt, std::complex<double> **wtilde_array, int my_igp,
         std::complex<double> wtilde2 = std::pow(wtilde,2);
         std::complex<double> Omega2 = wtilde2*I_eps_array[my_igp][ig];
         std::complex<double> mygpvar1 = std::conj(aqsmtemp[n1][igp]);
-        std::complex<double> mygpvar2 = aqsmtemp[n1][igp];
+        std::complex<double> mygpvar2 = aqsntemp[n1][igp];
         std::complex<double> matngmatmgp = aqsntemp[n1][ig] * mygpvar1;
         if(ig != igp) matngpmatmg = std::conj(aqsmtemp[n1][ig]) * mygpvar2;
 
@@ -391,6 +391,7 @@ int main(int argc, char** argv)
                         scht = ssxt = expr0;
                         wxt = wx_array[iw];
 
+//#pragma omp simd
                         for(int ig = igbeg; ig<min(igend,igmax); ++ig)
                         {
                             wdiff = wxt - wtilde_array[my_igp][ig];
@@ -402,7 +403,6 @@ int main(int argc, char** argv)
                         for(int ig = igbeg; ig<min(igend,igmax); ++ig)
                             scht += scha[ig];
 
-//                        noflagOCC_solver(igbeg, igend, igblk, wxt, wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, igmax, ncouls, igp);
                         sch_array[iw] +=(double) 0.5*scht;
 
                     }
