@@ -333,7 +333,8 @@ program gppkernel
             enddo
 
           else
-            call timget(starttime_noFlagOCC)
+!            call timget(starttime_noFlagOCC)
+
             do igbeg = 1,igmax,igblk
             igend = min(igbeg+igblk-1,igmax)
             do iw=nstart,nend
@@ -345,30 +346,31 @@ program gppkernel
 
 ! !dir$ no unroll
                 do ig = igbeg, min(igend,igmax)
-!                 do ig = 1, igmax
-
                   wdiff = wxt - wtilde_array(ig,my_igp)
 
                   cden = wdiff
                   rden = cden * CONJG(cden)
                   rden = 1D0 / rden
                   delw = wtilde_array(ig,my_igp) * CONJG(cden) * rden
-                  delwr = delw*CONJG(delw)
-                  wdiffr = wdiff*CONJG(wdiff)
+!                  delwr = delw*CONJG(delw)
+!                  wdiffr = wdiff*CONJG(wdiff)
 
 ! JRD: Complex division is hard to vectorize. So, we help the compiler.
                   scha(ig) = mygpvar1 * aqsntemp(ig,n1) * delw * I_eps_array(ig,my_igp)
 !                   scha_temp = mygpvar1 * aqsntemp(ig,n1) * delw * I_eps_array(ig,my_igp)
 
 ! JRD: This if is OK for vectorization
-                   if (wdiffr.gt.limittwo .and. delwr.lt.limitone) then
-                     scht = scht + scha(ig)
-                   endif
-
-!                  scha_mult = merge(1.0,0.0,wdiffr.gt.limittwo .and. delwr.lt.limitone)
-!                  scht = scht + scha(ig)*scha_mult
-
+!                   if (wdiffr.gt.limittwo .and. delwr.lt.limitone) then
+!                     scht = scht + scha(ig)
+!                   endif
                 enddo ! loop over g
+                do ig = igbeg, min(igend,igmax)
+                     scht = scht + scha(ig)
+                     enddo
+
+!                do ig = igbeg, min(igend,igmax)
+!                     scht = scht + scha(ig)
+!                 enddo
 
               sch_array(iw) = sch_array(iw) + 0.5D0*scht
 
@@ -378,8 +380,8 @@ program gppkernel
 
             enddo
             enddo
-            call timget(endtime_noFlagOCC)
-            totaltime_noFlagOCC = totaltime_noFlagOCC + (endtime_noFlagOCC - starttime_noFlagOCC)
+!            call timget(endtime_noFlagOCC)
+!            totaltime_noFlagOCC = totaltime_noFlagOCC + (endtime_noFlagOCC - starttime_noFlagOCC)
 
           endif
 
@@ -429,7 +431,7 @@ program gppkernel
       DEALLOCATE(ekq)
 
 !      if(mype==0)then
-        write(6,*) "noflag_occ time:",totaltime_noFlagOCC 
+!        write(6,*) "noflag_occ time:",totaltime_noFlagOCC 
         write(6,*) "Runtime:", endtime-starttime
         write(6,*) "Runtime Stat:", time_stat
         write(6,*) "Runtime Dyn:", time_dyn

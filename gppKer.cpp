@@ -125,7 +125,7 @@ void flagOCC_solver(double wxt, std::complex<double> **wtilde_array, int my_igp,
     }
 }
 
-void noflagOCC_solver(int igbeg, int igend, int igblk, double wxt, std::complex<double> **wtilde_array, int my_igp, int n1, std::complex<double> **aqsmtemp, std::complex<double> **aqsntemp, std::complex<double> **I_eps_array, std::complex<double> &ssxt, std::complex<double> &scht, int igmax, int ncouls, int igp)
+void noflagOCC_solver(int igbeg, int igend, int igblk, double wxt, std::complex<double> **wtilde_array, int my_igp, int n1, std::complex<double> **aqsmtemp, std::complex<double> **aqsntemp, std::complex<double> **i_eps_array, std::complex<double> &ssxt, std::complex<double> &scht, int igmax, int ncouls, int igp)
 {
     std::complex<double> scha[ncouls]/*, sch, delw, wdiff, cden*/;
     double to1 = 1e-6;
@@ -143,14 +143,8 @@ void noflagOCC_solver(int igbeg, int igend, int igblk, double wxt, std::complex<
         wdiff = wxt - wtilde_array[my_igp][ig];
         rden = 1/(wdiff * conj(wdiff));
         delw = wtilde_array[my_igp][ig] * conj(wdiff) * rden ; //*rden
-        scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig];
-
-//        delwr = real(delw * conj(delw));
-//        wdiffr = real(wdiff * conj(wdiff));
+        scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * i_eps_array[my_igp][ig];
 //        test[ig] = ((delwr < limitone) && (wdiffr > limittwo));
-
-//        if((wdiffr > limittwo) && (delwr < limitone)) 
-//            scht +=  mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig];
     }
     for(int ig = igbeg; ig<min(igend,igmax); ++ig)
         scht += scha[ig];
@@ -345,9 +339,9 @@ int main(int argc, char** argv)
             if(abs(wx_array[iw]) < to1) wx_array[iw] = to1;
         }
 
-//#pragma omp parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(ssx_array, sch_array, halfinvwtilde, ssxcutoff, sch, ssx, \
-        Omega2, scht, ssxt, wxt, eden, cden) schedule(dynamic) \
-        private(scha_mult, mygpvar1, mygpvar2, wtilde, matngmatmgp, matngpmatmg, wtilde2, wdiff, delw, delw2, delwr, wdiffr)
+#pragma omp parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(ssx_array, sch_array, \
+        scht, ssxt, wxt) schedule(dynamic) \
+        private(wtilde)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
             int indigp = inv_igp_index[my_igp];
@@ -380,17 +374,14 @@ int main(int argc, char** argv)
             else
             {
                 int igblk = 512;
-                //403 - 479
                 std::complex<double> scha[ncouls]/*, sch, delw, wdiff, cden*/;
                 double to1 = 1e-6;
-                double sexcut = 4.0;
-                double gamma = 0.5;
                 double limitone = 1.0/(to1*4.0);
                 double limittwo = pow(0.5,2);
                 std::complex<double> mygpvar1 = std::conj(aqsmtemp[n1][igp]);
-                std::complex<double> rden, cden, wdiff, delw; 
+                std::complex<double> rden, wdiff, delw; 
                 double delwr, wdiffr; //rden
-                noflagOCC_startTimer = omp_get_wtime(); //End timing here
+//                noflagOCC_startTimer = omp_get_wtime(); //End timing here
 
                 for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
                 {
@@ -406,30 +397,18 @@ int main(int argc, char** argv)
                             rden = 1/(wdiff * conj(wdiff));
                             delw = wtilde_array[my_igp][ig] * conj(wdiff) * rden ; //*rden
                             scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig];
-
-//                            wdiff = wxt - wtilde_array[my_igp][ig];
-//                            cden = wdiff;
-//                            rden = real(cden * conj(cden));
-//                            rden = 1.00/rden;
-//                            delw = wtilde_array[my_igp][ig] * conj(cden) * rden;
-//                            delwr = real(delw * conj(delw));
-//                            wdiffr = real(wdiff * conj(wdiff));
-//
-//                            scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig];
-//
-//                            if((wdiffr > limittwo) && (delwr < limitone)) 
-//                                scht += scha[ig];
                         }
+
                         for(int ig = igbeg; ig<min(igend,igmax); ++ig)
                             scht += scha[ig];
 
+//                        noflagOCC_solver(igbeg, igend, igblk, wxt, wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, igmax, ncouls, igp);
                         sch_array[iw] +=(double) 0.5*scht;
 
-//                        noflagOCC_solver(igbeg, igend, igblk, wxt, wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, igmax, ncouls, igp);
                     }
                 }
 
-                noflagOCC_totalTime += omp_get_wtime() - noflagOCC_startTimer;
+ //               noflagOCC_totalTime += omp_get_wtime() - noflagOCC_startTimer;
             }
 
             if(flag_occ)
@@ -441,7 +420,7 @@ int main(int argc, char** argv)
                 }
             }
 
-//#pragma omp critical
+#pragma omp critical
     {
             for(int iw=nstart; iw<nend; ++iw)
                 achtemp[iw] += sch_array[iw] * vcoul[igp];
