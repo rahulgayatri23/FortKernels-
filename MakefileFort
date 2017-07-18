@@ -1,13 +1,13 @@
-EXE = gppKerCpp
-SRC = gppKer.cpp 
+EXE = gppKerFort
+SRC = gppkernel.deslippe.09.30.2014.f90
 
-CXX = CC
+CXX = ftn
 
 CXXFLAGS = -O3 -qopt-report=5 -g -qopenmp -xCORE_AVX2 #  -xmic_avx512 #-no-vec
 LINK = ${CXX}
 LINKFLAGS = -dynamic -O3 -qopenmp
 
-OBJ = $(SRC:.cpp=.o)
+OBJ = $(SRC:.f90=.o)
 
 $(EXE): $(OBJ) 
 	$(CXX) $(OBJ) -o $(EXE) $(LINKFLAGS)
@@ -16,4 +16,4 @@ $(OBJ): $(SRC)
 	$(CXX) -c $(SRC) $(CXXFLAGS)
 
 clean: 
-	rm -f *.o gppKerCpp
+	rm -f gppkernel.deslippe.09.30.2014.o gppKerFort
