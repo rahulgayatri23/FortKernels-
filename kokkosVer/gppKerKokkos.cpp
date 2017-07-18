@@ -292,7 +292,7 @@ int main(int argc, char** argv)
             Kokkos::complex<double> wtilde2, Omega2;
             bool flag_occ = n1 < nvband;
             double wxt, delw2, delwr, wdiffr, scha_mult, ssxcutoff;
-            Kokkos::complex<double> mygpvar1, mygpvar2;
+//            Kokkos::complex<double> mygpvar1, mygpvar2;
             Kokkos::complex<double> schstemp = expr0;
             Kokkos::complex<double> matngmatmgp = expr;
             Kokkos::complex<double> matngpmatmg = expr;
@@ -313,8 +313,7 @@ int main(int argc, char** argv)
                 sch_array[i] = expr0;
             }
 
-            mygpvar1 = Kokkos::conj(aqsmtemp(n1,igp));
-            mygpvar2 = aqsntemp(n1,igp);
+//            mygpvar2 = aqsntemp(n1,igp);
 
             if(flag_occ)
             {
@@ -332,7 +331,9 @@ int main(int argc, char** argv)
             {
                 int igblk = 512;
                 int igmax = ncouls;
-                Kokkos::complex<double> delw, sch, wdiff;
+                Kokkos::complex<double> delw, sch, wdiff, rden;
+                Kokkos::complex<double> mygpvar1 = Kokkos::conj(aqsmtemp(n1,igp));
+
                 for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
                 {
                     int igend = min(igbeg+igblk-1, igmax);
@@ -344,18 +345,24 @@ int main(int argc, char** argv)
                         for(int ig = igbeg; ig<min(igend,igmax); ++ig)
                         {
                             wdiff = doubleMinusKokkosComplex(wxt , wtilde_array(my_igp, ig));
-                            double rden = Kokkos::real(wdiff * Kokkos::conj(wdiff));
-                            rden = 1.00/rden;
+//                            double rden = Kokkos::real(wdiff * Kokkos::conj(wdiff));
+                            rden = (Kokkos::complex<double>) 1.00/(wdiff * Kokkos::conj(wdiff));
+//                            rden = (Kokkos::complex<double>) 1.00/rden;
                             delw = rden * wtilde_array(my_igp, ig) * Kokkos::conj(wdiff);
-                            delwr = Kokkos::real(delw * Kokkos::conj(delw));
-                            wdiffr = Kokkos::real(wdiff * Kokkos::conj(wdiff));
-
                             scha[ig] = mygpvar1 * delw * aqsntemp(n1,ig);
                             scha[ig] *= I_eps_array(my_igp, ig);
 
-                            if((wdiffr > limittwo) && (delwr < limitone)) scht += scha[ig];
+//                            delwr = Kokkos::real(delw * Kokkos::conj(delw));
+//                            wdiffr = Kokkos::real(wdiff * Kokkos::conj(wdiff));
+
+
+//                            if((wdiffr > limittwo) && (delwr < limitone)) scht += scha[ig];
                         } // for iw-blockSize
-                            sch_array[iw] += 0.5*scht;
+
+                        for(int ig = igbeg; ig<min(igend,igmax); ++ig)
+                            scht+=scha[ig];
+
+                        sch_array[iw] += 0.5*scht;
                     } // for nstart - nend
                 } //for - ig-Block
             } //else-loop
