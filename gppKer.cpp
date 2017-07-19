@@ -67,8 +67,16 @@ void reduce_achstemp(int n1, int* inv_igp_index, int ncouls, std::complex<double
     double to1 = 1e-6;
     int igmax;
     std::complex<double> schstemp(0.0, 0.0);;
+
+//Variables to get around the inability to reduce complex variables && avoid critical.
+    int numThreads = omp_get_thread_num();
+    std::complex<double> achstemp_localArr[numThreads];
+    double achstemp_localReal = 0.00, achstemp_localImag = 0.00;
+
+#pragma omp parallel for private(n1, ncouls, ngpown, indinv, inv_igp_index) schedule(dynamic)
     for(int my_igp = 0; my_igp< ngpown; my_igp++)
     {
+        int tid = omp_get_thread_num();
         std::complex<double> schs(0.0, 0.0);
         std::complex<double> matngmatmgp(0.0, 0.0);
         std::complex<double> matngpmatmg(0.0, 0.0);
@@ -81,12 +89,11 @@ void reduce_achstemp(int n1, int* inv_igp_index, int ncouls, std::complex<double
 
         if(!(igp > ncouls || igp < 0)){
 
-        igmax = ncouls;
+            igmax = ncouls;
 
-        std::complex<double> mygpvar1 = std::conj(aqsmtemp[n1][igp]);
-        std::complex<double> mygpvar2 = aqsntemp[n1][igp];
+            std::complex<double> mygpvar1 = std::conj(aqsmtemp[n1][igp]);
+            std::complex<double> mygpvar2 = aqsntemp[n1][igp];
 
-//            //ig = igp ;
             schs = -I_eps_array[my_igp][igp];
             matngmatmgp = aqsntemp[n1][igp] * mygpvar1;
 
@@ -98,11 +105,17 @@ void reduce_achstemp(int n1, int* inv_igp_index, int ncouls, std::complex<double
             for(int ig=1; ig<igmax; ++ig)
                 schstemp = schstemp - aqsntemp[n1][igp] * I_eps_array[my_igp][ig] * mygpvar1;
         }
-        achstemp += schstemp * vcoul[igp] *(double) 0.5;
+        achstemp_localArr[tid] += schstemp * vcoul[igp] *(double) 0.5;
     }
+
+#pragma omp parallel for reduction(+:achstemp_localReal, achstemp_localImag)
+    for(int i = 0; i < numThreads; i++)
+    {
+        achstemp_localImag += std::imag(achstemp_localArr[i]);
+        achstemp_localReal += std::real(achstemp_localArr[i]);
+    }
+
 }
-
-
 
 void flagOCC_solver(double wxt, std::complex<double> **wtilde_array, int my_igp, int n1, std::complex<double> **aqsmtemp, std::complex<double> **aqsntemp, std::complex<double> **I_eps_array, std::complex<double> &ssxt, std::complex<double> &scht, int igmax, int ncouls, int igp)
 {
@@ -339,10 +352,9 @@ int main(int argc, char** argv)
             if(abs(wx_array[iw]) < to1) wx_array[iw] = to1;
         }
 
-//#pragma omp parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(ssx_array, sch_array, \
+#pragma omp parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(ssx_array, sch_array, \
         scht, ssxt, wxt) schedule(dynamic) \
         private(wtilde)
-#pragma omp target
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
             int indigp = inv_igp_index[my_igp];
