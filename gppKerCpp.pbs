@@ -6,7 +6,8 @@
 #PBS -l walltime=0:10:00,nodes=1
 #PBS -l gres=atlas1%atlas2
 #    End PBS directives and begin shell commands
-cp gppKerCpp $MEMBERWORK/csc190
+#rm $MEMBERWORK/csc190/gppKerCpp
+#cp gppKerCpp $MEMBERWORK/csc190
 cd $MEMBERWORK/csc190
 #export OMP_NUM_THREADS=1
-aprun -n 1 ./gppKerCpp 512 2 512 20
+aprun -n 1 ./gppKerCpp 512 2 2048 20
