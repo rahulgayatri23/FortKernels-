@@ -43,12 +43,10 @@ Kokkos::complex<double> doubleMultKokkosComplex(double op1, Kokkos::complex<doub
 KOKKOS_INLINE_FUNCTION
 void reduce_achstemp(int n1, Kokkos::View<int*> inv_igp_index, int ncouls, Kokkos::View<Kokkos::complex<double>** > aqsmtemp, Kokkos::View<Kokkos::complex<double>** > aqsntemp, Kokkos::View<Kokkos::complex<double>** > I_eps_array, Kokkos::complex<double>& achstemp, Kokkos::View<int*> indinv, int ngpown, Kokkos::View<double*> vcoul)
 {
-    Kokkos::complex<double> expr(0.5 , 0.5);
-    Kokkos::complex<double> expr0(0.0 , 0.0);
     Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, Kokkos::complex<double> &achstempUpdate)
     {
         Kokkos::complex<double> mygpvar1, mygpvar2;
-        Kokkos::complex<double> schstemp = expr0;
+        Kokkos::complex<double> schstemp(0.0, 0.0);
         int igmax = ncouls;
 
         int indigp = inv_igp_index(my_igp);
@@ -201,8 +199,7 @@ int main(int argc, char** argv)
     /********************KOKKOS RELATED VARS AND VIEWS ***************************/
     Kokkos::complex<double> expr(0.5 , 0.5);
     Kokkos::complex<double> expr0(0.0 , 0.0);
-    Kokkos::complex<double> achstemp = expr0;
-    Kokkos::complex<double> achstemp_tmp = expr0;
+    Kokkos::complex<double> achstemp(0.0 , 0.0);
 
     Kokkos::View<int*> inv_igp_index("inv_igp_index", ngpown);
     Kokkos::View<int*> indinv("indinv", ncouls);
@@ -216,7 +213,6 @@ int main(int argc, char** argv)
 
     Kokkos::View<complex<double> *> asxtemp ("asxtemp", nend-nstart);
     Kokkos::View<complex<double> *> acht_n1_loc(" acht_n1_loc", number_bands);
-//    Kokkos::View<complex<double> *> ssxa(" ssxa", ncouls);
 
     for(int i = 0; i< number_bands; i++)
        for(int j=0; j<ncouls; j++)
@@ -291,9 +287,7 @@ int main(int argc, char** argv)
         {
             Kokkos::complex<double> wtilde2, Omega2;
             bool flag_occ = n1 < nvband;
-            double wxt, delw2, delwr, wdiffr, scha_mult, ssxcutoff;
-//            Kokkos::complex<double> mygpvar1, mygpvar2;
-            Kokkos::complex<double> schstemp = expr0;
+            double wxt;
             Kokkos::complex<double> matngmatmgp = expr;
             Kokkos::complex<double> matngpmatmg = expr;
             Kokkos::complex<double> schs = expr0;
@@ -303,7 +297,7 @@ int main(int argc, char** argv)
             int igp = indinv(indigp);
             if(indigp == ncouls)
                 igp = ncouls-1;
-            Kokkos::complex<double> scha[ncouls], ssx_array[3], sch_array[3];
+            Kokkos::complex<double> ssx_array[3], sch_array[3];
 
             if(!(igp > ncouls || igp < 0)){
             
@@ -331,6 +325,7 @@ int main(int argc, char** argv)
                 int igmax = ncouls;
                 Kokkos::complex<double> delw, sch, wdiff, rden;
                 Kokkos::complex<double> mygpvar1 = Kokkos::conj(aqsmtemp(n1,igp));
+                Kokkos::complex<double> scha[ncouls];
 
                 for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
                 {
@@ -368,15 +363,15 @@ int main(int argc, char** argv)
             }
 
             for(int iw=nstart; iw<nend; ++iw)
+                achtempVarUpdate.value[iw] += vcoul(igp) * sch_array[iw];
+
+            //Cannot multiply and add to a view if RHS is not a view
             {
-                Kokkos::complex<double> addVal = vcoul(igp) * sch_array[iw];
-//                achtempVar.value[iw] += addVal;
-                achtempVarUpdate.value[iw] += addVal;
+                Kokkos::View<complex<double>> addVal("addVal");
+                addVal() = sch_array[2];
+                acht_n1_loc(n1) += addVal() * vcoul(igp);
             }
-            Kokkos::View<complex<double>> addVal("addVal");
-            addVal() = sch_array[2];
-            acht_n1_loc(n1) += addVal() * vcoul(igp);
-//            acht_n1_loc(n1) += sch_array[2] * vcoul(igp);
+
         },achtempVar); // for - ngpown 
 
         //Rahul - have to copy it into a diff buffer not related to kokkos-views so that the value is not modified at the start of each iteration.
