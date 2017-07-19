@@ -195,9 +195,6 @@ int main(int argc, char** argv)
     int ncouls = atoi(argv[3]);
     int nodes_per_group = atoi(argv[4]);
 
-    int tid, NTHREADS; // OpenMP related threading variables.
-
-
     int npes = 1; //Represents the number of ranks per node
     int ngpown = ncouls / (nodes_per_group * npes); //Number of gvectors per mpi task
 
@@ -208,6 +205,15 @@ int main(int argc, char** argv)
     int inv_igp_index[ngpown];
     int indinv[ncouls];
 
+    //OpenMP variables
+    int tid, numThreads;
+#pragma omp parallel private(tid) 
+    {
+        tid = omp_get_thread_num();
+        if(tid == 0)
+            numThreads = omp_get_num_threads();
+    }
+    std::cout << "Number of OpenMP Threads = " << numThreads << endl;
 
     double to1 = 1e-6;
 
@@ -238,9 +244,23 @@ int main(int argc, char** argv)
 
     std::complex<double> expr0( 0.0 , 0.0);
     std::complex<double> expr( 0.5 , 0.5);
-    std::complex<double> achtemp[nend-nstart];
     std::complex<double> asxtemp[nend-nstart];
+
     std::complex<double> acht_n1_loc[number_bands];
+    std::complex<double> **acht_n1_loc_threadArr;
+    {
+        acht_n1_loc_threadArr = new std::complex<double> *[numThreads];
+        for(int i=0; i<numThreads; i++)
+            acht_n1_loc_threadArr[i] = new std::complex<double>[number_bands] ;
+    }
+
+    std::complex<double> achtemp[nend-nstart];
+    std::complex<double> **achtemp_threadArr;
+    {
+        achtemp_threadArr = new std::complex<double> *[numThreads];
+        for(int i=0; i<numThreads; i++)
+            achtemp_threadArr[i] = new std::complex<double>[nend-nstart] ;
+    }
 
     std::complex<double> **aqsmtemp;
     {
@@ -354,9 +374,10 @@ int main(int argc, char** argv)
 
 #pragma omp parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(ssx_array, sch_array, \
         scht, ssxt, wxt) schedule(dynamic) \
-        private(wtilde)
+        private(wtilde, tid)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
+            tid = omp_get_thread_num();
             int indigp = inv_igp_index[my_igp];
             int igp = indinv[indigp];
             if(indigp == ncouls)
@@ -394,7 +415,6 @@ int main(int argc, char** argv)
                 std::complex<double> mygpvar1 = std::conj(aqsmtemp[n1][igp]);
                 std::complex<double> rden, wdiff, delw; 
                 double delwr, wdiffr; //rden
-//                noflagOCC_startTimer = omp_get_wtime(); //End timing here
 
                 for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
                 {
@@ -415,13 +435,9 @@ int main(int argc, char** argv)
                         for(int ig = igbeg; ig<min(igend,igmax); ++ig)
                             scht += scha[ig];
 
-//                        noflagOCC_solver(igbeg, igend, igblk, wxt, wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, igmax, ncouls, igp);
                         sch_array[iw] +=(double) 0.5*scht;
-
                     }
                 }
-
- //               noflagOCC_totalTime += omp_get_wtime() - noflagOCC_startTimer;
             }
 
             if(flag_occ)
@@ -429,21 +445,26 @@ int main(int argc, char** argv)
                 for(int iw=nstart; iw<nend; ++iw)
                 {
 //#pragma omp critical
-                    asxtemp[iw] += ssx_array[iw] * occ * vcoul[igp]; //occ does not change and is 1.00 so why not remove it.
+                    asxtemp[iw] += ssx_array[iw] * occ * vcoul[igp]; 
                 }
             }
 
-#pragma omp critical
-    {
             for(int iw=nstart; iw<nend; ++iw)
-                achtemp[iw] += sch_array[iw] * vcoul[igp];
+                achtemp_threadArr[tid][iw] += sch_array[iw] * vcoul[igp];
 
-            acht_n1_loc[n1] += sch_array[2] * vcoul[igp];
-    }
-
+            acht_n1_loc_threadArr[tid][n1] += sch_array[2] * vcoul[igp];
 
             } //for the if-loop to avoid break inside an openmp pragma statment
-        }
+        } //ngpown
+    } // number-bands
+
+    for(int i = 0; i < numThreads; i++)
+    {
+        for(int iw=nstart; iw<nend; ++iw)
+            achtemp[iw] += achtemp_threadArr[i][iw];
+
+        for(int n1 = 0; n1<number_bands; ++n1) 
+            acht_n1_loc[n1] += acht_n1_loc_threadArr[i][n1];
     }
 
     double end_time = omp_get_wtime(); //End timing here
