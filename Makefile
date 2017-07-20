@@ -2,8 +2,8 @@ EXE = gppKerCpp
 SRC = gppKer.cpp 
 
 CXX = CC
+CXXFLAGS = -O3 -g -fopenmp #--qopt-report=5 xCORE_AVX2 
 
-CXXFLAGS = -O3 -qopt-report=5 -g -qopenmp -xCORE_AVX2 #  -xmic_avx512 #-no-vec
 LINK = ${CXX}
 LINKFLAGS = -dynamic -O3 -qopenmp
 
