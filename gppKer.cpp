@@ -304,16 +304,11 @@ int main(int argc, char** argv)
     double occ=1.0;
     bool flag_occ;
 
-    double noflagOCC_startTimer = 0.00; 
-    double noflagOCC_endTimer = 0.00; 
-    double noflagOCC_totalTime = 0.00; 
     double start_time = omp_get_wtime(); //Start timing here.
 
     cout << "Size of wtilde_array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of aqsntemp = " << (ncouls*number_bands*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of I_eps_array array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
-
-    noflagOCC_startTimer = omp_get_wtime(); //End timing here
 
    for(int i=0; i<number_bands; i++)
        for(int j=0; j<ncouls; j++)
@@ -334,30 +329,12 @@ int main(int argc, char** argv)
        vcoul[i] = 1.0;
 
 
-    noflagOCC_totalTime += omp_get_wtime() - noflagOCC_startTimer;
-    cout << "********** Timer1  =  **********= " << noflagOCC_totalTime << " secs" << endl;
-
-
-    noflagOCC_startTimer = 0.00; 
-    noflagOCC_endTimer = 0.00; 
-    noflagOCC_totalTime = 0.00; 
-
-    noflagOCC_startTimer = omp_get_wtime(); //End timing here
-
     for(int ig=0, tmp=1; ig < ngpown; ++ig,tmp++)
         inv_igp_index[ig] = (ig+1) * ncouls / ngpown;
 
     //Do not know yet what this array represents
     for(int ig=0, tmp=1; ig<ncouls; ++ig,tmp++)
         indinv[ig] = ig;
-
-    noflagOCC_totalTime += omp_get_wtime() - noflagOCC_startTimer;
-    cout << "********** Timer2  =  **********= " << noflagOCC_totalTime << " secs" << endl;
-
-
-    noflagOCC_startTimer = 0.00; 
-    noflagOCC_endTimer = 0.00; 
-    noflagOCC_totalTime = 0.00; 
 
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
