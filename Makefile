@@ -5,7 +5,7 @@ CXX = CC
 CXXFLAGS = -O3 -g -fopenmp #--qopt-report=5 xCORE_AVX2 
 
 LINK = ${CXX}
-LINKFLAGS = -dynamic -O3 -qopenmp
+LINKFLAGS = -dynamic -O3 -fopenmp
 
 OBJ = $(SRC:.cpp=.o)
 
