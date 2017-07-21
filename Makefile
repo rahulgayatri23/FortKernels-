@@ -1,7 +1,7 @@
 EXE = gppKerCpp
 SRC = gppKer.cpp 
 
-CXX = CC
+CXX = g++
 CXXFLAGS = -O3 -g -fopenmp #--qopt-report=5 xCORE_AVX2 
 
 LINK = ${CXX}

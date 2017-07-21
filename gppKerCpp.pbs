@@ -7,7 +7,8 @@
 #PBS -l gres=atlas1%atlas2
 #    End PBS directives and begin shell commands
 #rm $MEMBERWORK/csc190/gppKerCpp
-#cp gppKerCpp $MEMBERWORK/csc190
+#cp ~/FortKernels~/gppKerCpp $MEMBERWORK/csc190
 cd $MEMBERWORK/csc190
-#export OMP_NUM_THREADS=1
-aprun -n 1 ./gppKerCpp 512 2 2048 20
+export OMP_NUM_THREADS=1
+aprun -n 1 ./gppKerCpp 512 2 8192 20
+ 
