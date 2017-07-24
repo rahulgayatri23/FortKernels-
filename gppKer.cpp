@@ -73,7 +73,7 @@ void reduce_achstemp(int n1, int* inv_igp_index, int ncouls, std::complex<double
     std::complex<double> achstemp_localArr[numThreads];
     double achstemp_localReal = 0.00, achstemp_localImag = 0.00;
 
-#pragma omp parallel for private(n1, ncouls, ngpown, indinv, inv_igp_index) schedule(dynamic)
+#pragma omp arallel for private(n1, ncouls, ngpown, indinv, inv_igp_index) schedule(dynamic)
     for(int my_igp = 0; my_igp< ngpown; my_igp++)
     {
         int tid = omp_get_thread_num();
@@ -108,7 +108,7 @@ void reduce_achstemp(int n1, int* inv_igp_index, int ncouls, std::complex<double
         achstemp_localArr[tid] += schstemp * vcoul[igp] *(double) 0.5;
     }
 
-#pragma omp parallel for reduction(+:achstemp_localReal, achstemp_localImag)
+//#pragma omp parallel for reduction(+:achstemp_localReal, achstemp_localImag) schedule(dynamic)
     for(int i = 0; i < numThreads; i++)
     {
         achstemp_localImag += std::imag(achstemp_localArr[i]);
@@ -338,11 +338,10 @@ int main(int argc, char** argv)
         indinv[ig] = ig;
 
 
-//#pragma omp target 
+#pragma omp target map(tofrom:achtemp_threadArr)
 {
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
-//        std::cout << "n1 = " << n1 << std::endl;
         flag_occ = n1 < nvband;
 
 
@@ -354,8 +353,8 @@ int main(int argc, char** argv)
             if(abs(wx_array[iw]) < to1) wx_array[iw] = to1;
         }
 
-#pragma omp parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(ssx_array, sch_array, \
-        scht, ssxt, wxt) schedule(dynamic) \
+#pragma omp teams distribute parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(ssx_array, sch_array, \
+        scht, ssxt, wxt) schedule(static,1) \
         private(wtilde, tid)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
@@ -442,12 +441,12 @@ int main(int argc, char** argv)
 } // OMP-target
 
 
-#pragma omp simd
+//#pragma omp simd
     for(int iw=nstart; iw<nend; ++iw)
         for(int i = 0; i < numThreads; i++)
             achtemp[iw] += achtemp_threadArr[i][iw];
 
-#pragma omp simd
+//#pragma omp simd
     for(int n1 = 0; n1<number_bands; ++n1) 
         for(int i = 0; i < numThreads; i++)
             acht_n1_loc[n1] += acht_n1_loc_threadArr[i][n1];
