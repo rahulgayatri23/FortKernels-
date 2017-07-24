@@ -1,0 +1,19 @@
+EXE = gppKerOpenMPFor
+SRC = gppKerOpenMPFor.cpp 
+
+CXX = /ccs/home/rgayatri/GCC/gcc-7.1.0/_build/bin/g++
+
+CXXFLAGS = -O3 -fopenmp 
+LINK = ${CXX}
+LINKFLAGS = -dynamic -O3 -fopenmp
+
+OBJ = $(SRC:.cpp=.o)
+
+$(EXE): $(OBJ) 
+	$(CXX) $(OBJ) -o $(EXE) $(LINKFLAGS)
+
+$(OBJ): $(SRC) 
+	$(CXX) -c $(SRC) $(CXXFLAGS)
+
+clean: 
+	rm -f *.o gppKerCpp

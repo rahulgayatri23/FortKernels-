@@ -73,7 +73,7 @@ void reduce_achstemp(int n1, int* inv_igp_index, int ncouls, std::complex<double
     std::complex<double> achstemp_localArr[numThreads];
     double achstemp_localReal = 0.00, achstemp_localImag = 0.00;
 
-#pragma omp arallel for private(n1, ncouls, ngpown, indinv, inv_igp_index) schedule(dynamic)
+//#pragma omp parallel for private(n1, ncouls, ngpown, indinv, inv_igp_index) schedule(dynamic)
     for(int my_igp = 0; my_igp< ngpown; my_igp++)
     {
         int tid = omp_get_thread_num();
@@ -338,12 +338,11 @@ int main(int argc, char** argv)
         indinv[ig] = ig;
 
 
-#pragma omp target map(tofrom:achtemp_threadArr)
+#pragma omp target map(tofrom:achtemp_threadArr) map(to:wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(ssx_array, sch_array, scht, ssxt, wxt)
 {
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
         flag_occ = n1 < nvband;
-
 
         reduce_achstemp(n1, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul);
 
@@ -355,7 +354,7 @@ int main(int argc, char** argv)
 
 #pragma omp teams distribute parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(ssx_array, sch_array, \
         scht, ssxt, wxt) schedule(static,1) \
-        private(wtilde, tid)
+        private(wtilde, tid) //num_teams(ngpown) 
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
             tid = omp_get_thread_num();
@@ -397,28 +396,47 @@ int main(int argc, char** argv)
                 std::complex<double> rden, wdiff, delw; 
                 double delwr, wdiffr; //rden
 
-                for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
+                for(int iw=nstart; iw<nend; ++iw)
                 {
-                    int igend = min(igbeg+igblk-1, igmax);
-                    for(int iw=nstart; iw<nend; ++iw)
+                    scht = ssxt = expr0;
+                    wxt = wx_array[iw];
+
+                    for(int ig = 0; ig<igmax; ++ig)
                     {
-                        scht = ssxt = expr0;
-                        wxt = wx_array[iw];
-
-                        for(int ig = igbeg; ig<min(igend,igmax); ++ig)
-                        {
-                            wdiff = wxt - wtilde_array[my_igp][ig];
-                            rden = (std::complex<double>) 1/(wdiff * conj(wdiff));
-                            delw = wtilde_array[my_igp][ig] * conj(wdiff) * rden ; //*rden
-                            scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig];
-                        }
-
-                        for(int ig = igbeg; ig<min(igend,igmax); ++ig)
-                            scht += scha[ig];
-
-                        sch_array[iw] +=(double) 0.5*scht;
+                        wdiff = wxt - wtilde_array[my_igp][ig];
+                        rden = (std::complex<double>) 1/(wdiff * conj(wdiff));
+                        delw = wtilde_array[my_igp][ig] * conj(wdiff) * rden ; //*rden
+                        scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig];
                     }
+
+                    for(int ig = 0; ig<igmax; ++ig)
+                        scht += scha[ig];
+
+                    sch_array[iw] +=(double) 0.5*scht;
                 }
+
+//                for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
+//                {
+//                    int igend = min(igbeg+igblk-1, igmax);
+//                    for(int iw=nstart; iw<nend; ++iw)
+//                    {
+//                        scht = ssxt = expr0;
+//                        wxt = wx_array[iw];
+//
+//                        for(int ig = igbeg; ig<min(igend,igmax); ++ig)
+//                        {
+//                            wdiff = wxt - wtilde_array[my_igp][ig];
+//                            rden = (std::complex<double>) 1/(wdiff * conj(wdiff));
+//                            delw = wtilde_array[my_igp][ig] * conj(wdiff) * rden ; //*rden
+//                            scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig];
+//                        }
+//
+//                        for(int ig = igbeg; ig<min(igend,igmax); ++ig)
+//                            scht += scha[ig];
+//
+//                        sch_array[iw] +=(double) 0.5*scht;
+//                    }
+//                }
             }
 
             if(flag_occ)
