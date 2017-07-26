@@ -11,8 +11,8 @@ using namespace std;
 int debug = 0;
 
 
-#define CACHE_LINE 32
-#define CACHE_ALIGN __declspec(align(CACHE_LINE)) 
+//#define CACHE_LINE 32
+//#define CACHE_ALIGN __declspec(align(CACHE_LINE))
 
 void ssxt_scht_solver(double wxt, int igp, int my_igp, int ig, std::complex<double> wtilde, std::complex<double> wtilde2, std::complex<double> Omega2, std::complex<double> matngmatmgp, std::complex<double> matngpmatmg, std::complex<double> mygpvar1, std::complex<double> mygpvar2, std::complex<double>& ssxa, std::complex<double>& scha, std::complex<double> I_eps_array_igp_myIgp)
 {
@@ -132,7 +132,7 @@ void flagOCC_solver(double wxt, std::complex<double> **wtilde_array, int my_igp,
         std::complex<double> matngmatmgp = aqsntemp[n1][ig] * mygpvar1;
         if(ig != igp) matngpmatmg = std::conj(aqsmtemp[n1][ig]) * mygpvar2;
 
-        ssxt_scht_solver(wxt, igp, my_igp, ig, wtilde, wtilde2, Omega2, matngmatmgp, matngpmatmg, mygpvar1, mygpvar2, ssxa[ig], scha[ig], I_eps_array[my_igp][ig]); 
+        ssxt_scht_solver(wxt, igp, my_igp, ig, wtilde, wtilde2, Omega2, matngmatmgp, matngpmatmg, mygpvar1, mygpvar2, ssxa[ig], scha[ig], I_eps_array[my_igp][ig]);
         ssxt += ssxa[ig];
         scht += scha[ig];
     }
@@ -147,10 +147,10 @@ void noflagOCC_solver(int igbeg, int igend, int igblk, double wxt, std::complex<
     double limitone = 1.0/(to1*4.0);
     double limittwo = pow(0.5,2);
     std::complex<double> mygpvar1 = std::conj(aqsmtemp[n1][igp]);
-    std::complex<double> rden, cden, wdiff, delw; 
+    std::complex<double> rden, cden, wdiff, delw;
     double delwr, wdiffr; //rden
-    bool test[ncouls]; 
-    
+    bool test[ncouls];
+
     for(int ig = igbeg; ig<min(igend,igmax); ++ig)
     {
         wdiff = wxt - wtilde_array[my_igp][ig];
@@ -175,7 +175,7 @@ void noflagOCC_solver(int igbeg, int igend, int igblk, double wxt, std::complex<
 
         scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig];
 
-        if((wdiffr > limittwo) && (delwr < limitone)) 
+        if((wdiffr > limittwo) && (delwr < limitone))
             scht += scha[ig];
     }
 *************************************************************/
@@ -207,7 +207,7 @@ int main(int argc, char** argv)
 
     //OpenMP variables
     int tid, numThreads;
-#pragma omp parallel private(tid) 
+#pragma omp parallel private(tid)
     {
         tid = omp_get_thread_num();
         if(tid == 0)
@@ -278,16 +278,16 @@ int main(int argc, char** argv)
 
     std::complex<double> **I_eps_array;
     {
-        I_eps_array = new CACHE_ALIGN std::complex<double> *[ngpown];
+        I_eps_array = new std::complex<double> *[ngpown];
         for(int i=0; i<ngpown; i++)
-            I_eps_array[i] = new CACHE_ALIGN std::complex<double>[ncouls];
+            I_eps_array[i] = new std::complex<double>[ncouls];
     }
 
     std::complex<double> **wtilde_array;
     {
-        wtilde_array = new CACHE_ALIGN std::complex<double> *[ngpown];
+        wtilde_array = new std::complex<double> *[ngpown];
         for(int i=0; i<ngpown; i++)
-            wtilde_array[i] = new CACHE_ALIGN std::complex<double>[ncouls];
+            wtilde_array[i] = new std::complex<double>[ncouls];
     }
 
     double vcoul[ncouls];
@@ -390,7 +390,7 @@ int main(int argc, char** argv)
                 double limitone = 1.0/(to1*4.0);
                 double limittwo = pow(0.5,2);
                 std::complex<double> mygpvar1 = std::conj(aqsmtemp[n1][igp]);
-                std::complex<double> rden, wdiff, delw; 
+                std::complex<double> rden, wdiff, delw;
                 double delwr, wdiffr; //rden
 
                 for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
@@ -422,7 +422,7 @@ int main(int argc, char** argv)
                 for(int iw=nstart; iw<nend; ++iw)
                 {
 //#pragma omp critical
-                    asxtemp[iw] += ssx_array[iw] * occ * vcoul[igp]; 
+                    asxtemp[iw] += ssx_array[iw] * occ * vcoul[igp];
                 }
             }
 
@@ -442,7 +442,7 @@ int main(int argc, char** argv)
             achtemp[iw] += achtemp_threadArr[i][iw];
 
 #pragma omp simd
-    for(int n1 = 0; n1<number_bands; ++n1) 
+    for(int n1 = 0; n1<number_bands; ++n1)
         for(int i = 0; i < numThreads; i++)
             acht_n1_loc[n1] += acht_n1_loc_threadArr[i][n1];
 
