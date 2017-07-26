@@ -17,13 +17,12 @@ EXE = ${EXE_NAME}.cuda
 KOKKOS_ARCH = "SNB,Kepler30"
 KOKKOS_CUDA_OPTIONS = "enable_lambda"
 else
-#CXX = g++
-CXX = CC
+CXX =g++
 EXE = ${EXE_NAME}.host
 KOKKOS_ARCH = "SNB"
 endif
 
-CXXFLAGS = -O3 -qopt-report=5 -xCORE_AVX2
+CXXFLAGS = -O3 #-qopt-report=5 -xCORE_AVX2
 LINK = ${CXX}
 LINKFLAGS =
 
