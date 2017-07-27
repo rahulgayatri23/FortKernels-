@@ -11,8 +11,8 @@
 #include <Kokkos_Complex.hpp>
 using namespace std;
 
-#define CUDASPACE 1
-#define OPENMPSPACE 0
+#define CUDASPACE 0
+#define OPENMPSPACE 1
 #define CUDAUVM 0
 #define SERIAL 0
 #define THREADS 0
@@ -20,10 +20,11 @@ using namespace std;
 KOKKOS_INLINE_FUNCTION
 Kokkos::complex<double> kokkos_square(Kokkos::complex<double> compl_num, int n)
 {
-    std::complex<double> powerExpr(Kokkos::real(compl_num), Kokkos::imag(compl_num));
-    powerExpr = std::pow(powerExpr,n);
+    double re = Kokkos::real(compl_num);
+    double im = Kokkos::imag(compl_num);
 
-    return powerExpr;
+    Kokkos::complex<double> result(re*re - im*im, 2*re*im);
+    return result;
 }
 
 KOKKOS_INLINE_FUNCTION
@@ -83,9 +84,6 @@ void reduce_achstemp(int n1, Kokkos::View<int*> inv_igp_index, int ncouls, Kokko
 KOKKOS_INLINE_FUNCTION
 void flagOCC_solver(double wxt, Kokkos::View<Kokkos::complex<double>** > wtilde_array, int my_igp, int n1, Kokkos::View<Kokkos::complex<double>** > aqsmtemp, Kokkos::View<Kokkos::complex<double>** > aqsntemp, Kokkos::View<Kokkos::complex<double>** > I_eps_array, Kokkos::complex<double> &ssxt, Kokkos::complex<double> &scht, int ncouls, int igp)
 {
-    Kokkos::complex<double> *ssxa, *scha;
-    ssxa = new Kokkos::complex<double>[ncouls];
-    scha = new Kokkos::complex<double>[ncouls];
     int igmax = ncouls;
 
     for(int ig=0; ig<igmax; ++ig)
@@ -98,7 +96,6 @@ void flagOCC_solver(double wxt, Kokkos::View<Kokkos::complex<double>** > wtilde_
         Kokkos::complex<double> expr0( 0.0 , 0.0);
         double to1 = 1e-6;
         double sexcut = 4.0;
-        double gamma = 0.5;
         double limitone = 1.0/(to1*4.0);
         double limittwo = pow(0.5,2);
         Kokkos::complex<double> sch, ssx;
@@ -138,14 +135,11 @@ void flagOCC_solver(double wxt, Kokkos::View<Kokkos::complex<double>** > wtilde_
         double ssxcutoff = sexcut*abs(I_eps_array(my_igp, ig));
         if((Kokkos::abs(ssx) > ssxcutoff) && (wxt < 0.00)) ssx = expr0;
 
-        ssxa[ig] = matngmatmgp*ssx;
-        scha[ig] = matngmatmgp*sch;
-
-        ssxt += ssxa[ig];
-        scht += scha[ig];
+        ssxt += matngmatmgp*ssx;
+        scht += matngmatmgp*sch;
     }
 }
-//Kokkos::complex<double>  achtemp[3];
+
 struct achtempStruct 
 {
     Kokkos::complex<double> value[3];
@@ -162,7 +156,6 @@ KOKKOS_INLINE_FUNCTION
             value[i] += other.value[i];
     }
 };
-//achtempStruct achtempVar = {{achtemp[0],achtemp[1],achtemp[2]}}; 
 
 int main(int argc, char** argv)
 {
@@ -201,6 +194,7 @@ int main(int argc, char** argv)
 
         typedef Kokkos::RangePolicy<ExecSpace>  range_policy;
 
+        typedef Kokkos::View<Kokkos::complex<double>, Layout, MemSpace>   ViewScalarTypeComplex;
         typedef Kokkos::View<Kokkos::complex<double>*, Layout, MemSpace>   ViewVectorTypeComplex;
         typedef Kokkos::View<Kokkos::complex<double>**, Layout, MemSpace>  ViewMatrixTypeComplex;
         typedef Kokkos::View<int*, Layout, MemSpace>   ViewVectorTypeInt;
@@ -217,24 +211,19 @@ int main(int argc, char** argv)
         int ncouls = atoi(argv[3]);
         int nodes_per_group = atoi(argv[4]);
 
-        int igmax = ncouls;
-
         int npes = 1; //Represents the number of ranks per node
         int ngpown = ncouls / (nodes_per_group * npes); //Number of gvectors per mpi task
 
         double e_lk = 10;
         double dw = 1;
         int nstart = 0, nend = 3;
-
         double to1 = 1e-6;
-
         double gamma = 0.5;
         double sexcut = 4.0;
         double limitone = 1.0/(to1*4.0);
         double limittwo = pow(0.5,2);
-
         double e_n1kq= 6.0; //This in the fortran code is derived through the double dimenrsion array ekq whose 2nd dimension is 1 and all the elements in the array have the same value
-
+        double occ=1.0;
 
         //Printing out the params passed.
         std::cout << "number_bands = " << number_bands \
@@ -250,13 +239,10 @@ int main(int argc, char** argv)
             << "\t limittwo = " << limittwo << endl;
 
 
-        double ssxcutoff;
-        double wxt, delw2, delwr, wdiffr, scha_mult;
-        double occ=1.0;
-        bool flag_occ;
         Kokkos::complex<double> expr(0.5 , 0.5);
         Kokkos::complex<double> expr0(0.0 , 0.0);
         Kokkos::complex<double> achstemp(0.0 , 0.0);
+        Kokkos::View<complex<double>> addVal("addVal");
 
         /********************KOKKOS RELATED VARS AND VIEWS ***************************/
 
@@ -265,21 +251,32 @@ int main(int argc, char** argv)
         ViewVectorTypeDouble vcoul ("vcoul", ncouls);
         ViewVectorTypeDouble wx_array ("wx_array", 3);
 
-        ViewMatrixTypeComplex aqsmtemp ("aqsntemp", number_bands, ncouls);
+        ViewMatrixTypeComplex aqsmtemp ("aqsmtemp", number_bands, ncouls);
         ViewMatrixTypeComplex aqsntemp ("aqsntemp", number_bands, ncouls);
         ViewMatrixTypeComplex I_eps_array ("I_eps_array", ngpown, ncouls);
         ViewMatrixTypeComplex wtilde_array ("wtilde_array", ngpown, ncouls);
 
         ViewVectorTypeComplex asxtemp ("asxtemp", nend-nstart);
         ViewVectorTypeComplex acht_n1_loc(" acht_n1_loc", number_bands);
+        ViewVectorTypeComplex ssx_array(" ssx_array", 3);
+        ViewVectorTypeComplex sch_array(" sch_array", 3);
+        ViewVectorTypeComplex scha ("scha", ncouls);
 
-        //Create mirrors of device views
+        ViewScalarTypeComplex delw("delw");
+        ViewScalarTypeComplex sch("sch");
+        ViewScalarTypeComplex wdiff("wdiff");
+        ViewScalarTypeComplex rden("rden");
+        ViewScalarTypeComplex mygpvar1("mygpvar1");
+
+        //Create host mirrors of device views
         ViewMatrixTypeComplex::HostMirror host_aqsntemp = Kokkos::create_mirror_view(aqsntemp);
         ViewMatrixTypeComplex::HostMirror host_aqsmtemp = Kokkos::create_mirror_view(aqsmtemp);
         ViewMatrixTypeComplex::HostMirror host_I_eps_array = Kokkos::create_mirror_view(I_eps_array);
         ViewMatrixTypeComplex::HostMirror host_wtilde_array= Kokkos::create_mirror_view(wtilde_array); 
         ViewVectorTypeInt::HostMirror host_inv_igp_index = Kokkos::create_mirror_view(inv_igp_index);
         ViewVectorTypeInt::HostMirror host_indinv = Kokkos::create_mirror_view(indinv);
+        ViewVectorTypeDouble::HostMirror host_vcoul = Kokkos::create_mirror_view(vcoul);
+        ViewVectorTypeDouble::HostMirror host_wx_array = Kokkos::create_mirror_view(wx_array);
 
         for(int i = 0; i< number_bands; i++)
            for(int j=0; j<ncouls; j++)
@@ -296,7 +293,7 @@ int main(int argc, char** argv)
            }
         
        for(int i=0; i<ncouls; i++)
-           vcoul(i) = 1.0;
+           host_vcoul(i) = 1.0;
 
 
 
@@ -310,7 +307,7 @@ int main(int argc, char** argv)
 
         //Do not know yet what this array represents
         for(int ig=0; ig<ncouls; ++ig)
-            indinv(ig) =ig;
+            host_indinv(ig) =ig;
 
         Kokkos::deep_copy(aqsmtemp, host_aqsmtemp);
         Kokkos::deep_copy(aqsntemp, host_aqsntemp);
@@ -318,27 +315,11 @@ int main(int argc, char** argv)
         Kokkos::deep_copy(wtilde_array, host_wtilde_array);
         Kokkos::deep_copy(inv_igp_index, host_inv_igp_index);
         Kokkos::deep_copy(indinv, host_indinv);
+        Kokkos::deep_copy(vcoul, host_vcoul);
 
     //********************** Structures to update arrays inside Kokkos parallel calls ************************************************
     //****** achtemp **********
         Kokkos::complex<double>  achtemp[nend-nstart];
-//        struct achtempStruct 
-//        {
-//            Kokkos::complex<double> value[3];
-//
-//KOKKOS_INLINE_FUNCTION
-//            void operator+=(achtempStruct const& other) 
-//            {
-//                for (int i = 0; i < 3; ++i) 
-//                    value[i] += other.value[i];
-//            }
-//KOKKOS_INLINE_FUNCTION
-//            void operator+=(achtempStruct const volatile& other) volatile 
-//            {
-//                for (int i = 0; i < 3; ++i) 
-//                    value[i] += other.value[i];
-//            }
-//        };
         achtempStruct achtempVar = {{achtemp[0],achtemp[1],achtemp[2]}}; 
 
 
@@ -350,40 +331,33 @@ int main(int argc, char** argv)
         for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
         {
      //       const int n1 = teamMember.league_rank();
-//            double wx_array[3];
 
-            reduce_achstemp(n1, inv_igp_index, ncouls, aqsmtemp, aqsntemp, I_eps_array, achstemp,  indinv, ngpown, vcoul);
+//            reduce_achstemp(n1, inv_igp_index, ncouls, aqsmtemp, aqsntemp, I_eps_array, achstemp,  indinv, ngpown, vcoul);
 
             for(int iw=nstart; iw<nend; ++iw)
             {
-                wx_array(iw) = e_lk - e_n1kq + dw*((iw+1)-2);
-                if(wx_array(iw) < to1) wx_array(iw) = to1;
+                host_wx_array(iw) = e_lk - e_n1kq + dw*((iw+1)-2);
+                if(host_wx_array(iw) < to1) host_wx_array(iw) = to1;
             }
 
-    //      Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, achtempStruct& achtempVarUpdate)
+//          Kokkos::parallel_for(range_policy(0, ngpown), KOKKOS_LAMBDA (int my_igp)
           Kokkos::parallel_reduce(range_policy(0, ngpown), KOKKOS_LAMBDA (int my_igp, achtempStruct& achtempVarUpdate)
-    //          for(int my_igp=0; my_igp<ngpown; ++my_igp)
+//              for(int my_igp=0; my_igp<ngpown; ++my_igp)
             {
-                Kokkos::complex<double> wtilde2, Omega2;
                 bool flag_occ = n1 < nvband;
                 double wxt;
-                Kokkos::complex<double> matngmatmgp = expr;
-                Kokkos::complex<double> matngpmatmg = expr;
-                Kokkos::complex<double> schs = expr0;
-                Kokkos::complex<double> wtilde;
                 Kokkos::complex<double> scht, ssxt;
                 int indigp = inv_igp_index(my_igp);
                 int igp = indinv(indigp);
                 if(indigp == ncouls)
                     igp = ncouls-1;
-                Kokkos::complex<double> ssx_array[3], sch_array[3];
 
                 if(!(igp > ncouls || igp < 0)){
                 
                 for(int i=0; i<3; i++)
                 {
-                    ssx_array[i] = expr0;
-                    sch_array[i] = expr0;
+                    ssx_array(i) = expr0;
+                    sch_array(i) = expr0;
                 }
 
                 if(flag_occ)
@@ -394,18 +368,15 @@ int main(int argc, char** argv)
                         wxt = wx_array(iw);
                         flagOCC_solver(wxt, wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp);
 
-                        ssx_array[iw] += ssxt;
-                        sch_array[iw] += 0.5*scht;
+                        ssx_array(iw) += ssxt;
+                        sch_array(iw) += 0.5*scht;
                     }
                 }
                 else
                 {
-                    int igblk = 512;
                     int igmax = ncouls;
-                    Kokkos::complex<double> delw, sch, wdiff, rden;
-                    Kokkos::complex<double> mygpvar1 = Kokkos::conj(aqsmtemp(n1,igp));
-                    Kokkos::complex<double> *scha;
-                    scha = new Kokkos::complex<double>[ncouls];
+                    mygpvar1() = Kokkos::conj(aqsmtemp(n1,igp));
+
                     for(int iw=nstart; iw<nend; ++iw)
                     {
                         scht = ssxt = expr0;
@@ -413,42 +384,46 @@ int main(int argc, char** argv)
 
                         for(int ig = 0; ig<igmax; ++ig)
                         {
-                            wdiff = doubleMinusKokkosComplex(wxt , wtilde_array(my_igp, ig));
-                            rden = (Kokkos::complex<double>) 1.00/(wdiff * Kokkos::conj(wdiff));
-                            delw = rden * wtilde_array(my_igp, ig) * Kokkos::conj(wdiff);
-                            scha[ig] = mygpvar1 * delw * aqsntemp(n1,ig)* I_eps_array(my_igp, ig);
+                            wdiff() = doubleMinusKokkosComplex(wxt , wtilde_array(my_igp, ig));
+                            rden() = (Kokkos::complex<double>) 1.00/(wdiff() * Kokkos::conj(wdiff()));
+                            delw() = rden() * wtilde_array(my_igp, ig) * Kokkos::conj(wdiff());
+                            scha(ig) = mygpvar1() * delw() * aqsntemp(n1,ig)* I_eps_array(my_igp, ig);
                         } // for ig
 
                         for(int ig = 0; ig<igmax; ++ig)
                             scht+=scha[ig];
 
-                        sch_array[iw] += 0.5*scht;
+                        sch_array(iw) += 0.5*scht;
                     } // for nstart - nend
 
                 } //else-loop
-            } // if-condition
+          } // if-condition
 
                 if(flag_occ)
                 {
                     for(int iw=nstart; iw<nend; ++iw)
                     {
-                        Kokkos::View<complex<double>> addVal("addVal");
-                        addVal() = occ * ssx_array[iw];
-                        asxtemp(iw) += addVal() ; //occ does not change and is 1.00 so why not remove it.
+//                       addVal() = occ * ssx_array(iw);
+                        asxtemp(iw) += ssx_array(iw) ; 
                     }
                 }
 
                 for(int iw=nstart; iw<nend; ++iw)
-                    achtempVarUpdate.value[iw] += vcoul(igp) * sch_array[iw];
+                    achtempVarUpdate.value[iw] += vcoul(igp) * sch_array(iw);
 
+//                for(int iw=nstart; iw<nend; ++iw)
+//                    achtempVar.value[iw] += vcoul(igp) * sch_array(iw);
+//
                 //Cannot multiply and add to a view if RHS is not a view
                 {
-                    Kokkos::View<complex<double>> addVal("addVal");
-                    addVal() = sch_array[2];
-                    acht_n1_loc(n1) += addVal() * vcoul(igp);
+//                    addVal() = sch_array(2);
+//                    acht_n1_loc(n1) += addVal() * vcoul(igp);
+                    acht_n1_loc(n1) += vcoul(igp) * sch_array(2);
                 }
 
+
             },achtempVar); // for - ngpown 
+ //           }); // for - ngpown 
 
             //copy it into a diff buffer not related to kokkos-views so that the value is not modified at the start of each iteration.
             for(int iw=nstart; iw<nend; ++iw)
