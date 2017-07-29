@@ -192,22 +192,22 @@ int main(int argc, char** argv)
 
 //********************** Structures to update arrays inside Kokkos parallel calls ************************************************
 //****** achtemp **********
-    Kokkos::complex<double>  achtemp[nend-nstart];
-    struct achtempStruct 
-    {
-         Kokkos::complex<double> value[3];
-        void operator+=(achtempStruct const& other) 
-        {
-            for (int i = 0; i < 3; ++i) 
-                value[i] += other.value[i];
-        }
-        void operator+=(achtempStruct const volatile& other) volatile 
-        {
-            for (int i = 0; i < 3; ++i) 
-                value[i] += other.value[i];
-        }
-    };
-    achtempStruct achtempVar = {{achtemp[0],achtemp[1],achtemp[2]}}; 
+//    Kokkos::complex<double>  achtemp[nend-nstart];
+//    struct achtempStruct 
+//    {
+//         Kokkos::complex<double> value[3];
+//        void operator+=(achtempStruct const& other) 
+//        {
+//            for (int i = 0; i < 3; ++i) 
+//                value[i] += other.value[i];
+//        }
+//        void operator+=(achtempStruct const volatile& other) volatile 
+//        {
+//            for (int i = 0; i < 3; ++i) 
+//                value[i] += other.value[i];
+//        }
+//    };
+//    achtempStruct achtempVar = {{achtemp[0],achtemp[1],achtemp[2]}}; 
 
 
 //**********************************************************************************************************************************
@@ -313,10 +313,7 @@ int main(int argc, char** argv)
     double end_time = omp_get_wtime(); //End timing here
 
     for(int iw=nstart; iw<nend; ++iw)
-    {
         cout << "Final achtemp[" << iw << "] = " << achtemp[iw] << endl;
-//        cout << "Final ssx_array[" << iw << "] = " << ssx_array[iw] << endl;
-    }
 
     cout << "********** Time Taken **********= " << end_time - start_time << " secs" << endl;
 

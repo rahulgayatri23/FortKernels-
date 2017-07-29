@@ -1,23 +1,5 @@
-#include <iostream>
-#include <cstdlib>
+#include <gppKerKokkos.h>  
 
-#include <iomanip>
-#include <cmath>
-#include <complex>
-#include <omp.h>
-#include <chrono>
-
-#include <Kokkos_Core.hpp>
-#include <Kokkos_Complex.hpp>
-using namespace std;
-
-#define CUDASPACE 0
-#define OPENMPSPACE 0
-#define CUDAUVM 1
-#define SERIAL 0
-#define THREADS 0
-
-KOKKOS_INLINE_FUNCTION
 Kokkos::complex<double> kokkos_square(Kokkos::complex<double> compl_num, int n)
 {
     double re = Kokkos::real(compl_num);
@@ -27,28 +9,24 @@ Kokkos::complex<double> kokkos_square(Kokkos::complex<double> compl_num, int n)
     return result;
 }
 
-KOKKOS_INLINE_FUNCTION
 Kokkos::complex<double> doubleMinusKokkosComplex(double op1, Kokkos::complex<double> op2)
 {
     Kokkos::complex<double> expr((op1 - Kokkos::real(op2)), (0 - Kokkos::imag(op2)));
     return expr;
 }
 
-KOKKOS_INLINE_FUNCTION
 Kokkos::complex<double> doublePlusKokkosComplex(double op1, Kokkos::complex<double> op2)
 {
     Kokkos::complex<double> expr((op1 + Kokkos::real(op2)), (0 + Kokkos::imag(op2)));
     return expr;
 }
 
-KOKKOS_INLINE_FUNCTION
 Kokkos::complex<double> doubleMultKokkosComplex(double op1, Kokkos::complex<double> op2)
 {
     Kokkos::complex<double> expr((op1 * Kokkos::real(op2)), (0 * Kokkos::imag(op2)));
     return expr;
 }
 
-KOKKOS_INLINE_FUNCTION
 void reduce_achstemp(int n1, Kokkos::View<int*> inv_igp_index, int ncouls, Kokkos::View<Kokkos::complex<double>** > aqsmtemp, Kokkos::View<Kokkos::complex<double>** > aqsntemp, Kokkos::View<Kokkos::complex<double>** > I_eps_array, Kokkos::complex<double>& achstemp, Kokkos::View<int*> indinv, int ngpown, Kokkos::View<double*> vcoul)
 {
     Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, Kokkos::complex<double> &achstempUpdate)
@@ -81,7 +59,6 @@ void reduce_achstemp(int n1, Kokkos::View<int*> inv_igp_index, int ncouls, Kokko
     },achstemp);
 }
 
-KOKKOS_INLINE_FUNCTION
 void flagOCC_solver(double wxt, Kokkos::View<Kokkos::complex<double>** > wtilde_array, int my_igp, int n1, Kokkos::View<Kokkos::complex<double>** > aqsmtemp, Kokkos::View<Kokkos::complex<double>** > aqsntemp, Kokkos::View<Kokkos::complex<double>** > I_eps_array, Kokkos::complex<double> &ssxt, Kokkos::complex<double> &scht, int ncouls, int igp)
 {
     int igmax = ncouls;
@@ -140,65 +117,12 @@ void flagOCC_solver(double wxt, Kokkos::View<Kokkos::complex<double>** > wtilde_
     }
 }
 
-struct achtempStruct 
-{
-    Kokkos::complex<double> value[3];
-KOKKOS_INLINE_FUNCTION
-    void operator+=(achtempStruct const& other) 
-    {
-        for (int i = 0; i < 3; ++i) 
-            value[i] += other.value[i];
-    }
-KOKKOS_INLINE_FUNCTION
-    void operator+=(achtempStruct const volatile& other) volatile 
-    {
-        for (int i = 0; i < 3; ++i) 
-            value[i] += other.value[i];
-    }
-};
-
 int main(int argc, char** argv)
 {
     Kokkos::initialize(argc, argv);
     {
-
-#if OPENMPSPACE
-        typedef Kokkos::OpenMP   ExecSpace;
-        typedef Kokkos::OpenMP        MemSpace;
-        typedef Kokkos::LayoutRight  Layout;
-#endif
-
-#if CUDASPACE
-        typedef Kokkos::Cuda     ExecSpace;
-        typedef Kokkos::CudaSpace     MemSpace;
-        typedef Kokkos::LayoutLeft   Layout;
-#endif
-
-#if SERIAL
-        typedef Kokkos::Serial   ExecSpace;
-        typedef Kokkos::HostSpace     MemSpace;
-#endif
-
-#if THREADS
-        typedef Kokkos::Threads  ExecSpace;
-        typedef Kokkos::HostSpace     MemSpace;
-#endif
-
-#if CUDAUVM
-        typedef Kokkos::Cuda     ExecSpace;
-        typedef Kokkos::CudaUVMSpace  MemSpace;
-        typedef Kokkos::LayoutLeft   Layout;
-#endif
-
-
-
-        typedef Kokkos::RangePolicy<ExecSpace>  range_policy;
-
-        typedef Kokkos::View<Kokkos::complex<double>, Layout, MemSpace>   ViewScalarTypeComplex;
-        typedef Kokkos::View<Kokkos::complex<double>*, Layout, MemSpace>   ViewVectorTypeComplex;
-        typedef Kokkos::View<Kokkos::complex<double>**, Layout, MemSpace>  ViewMatrixTypeComplex;
-        typedef Kokkos::View<int*, Layout, MemSpace>   ViewVectorTypeInt;
-        typedef Kokkos::View<double*, Layout, MemSpace>   ViewVectorTypeDouble;
+        int nstart = 0, nend = 3;
+        double occ=1.0;
 
         if (argc != 5)
         {
@@ -213,17 +137,6 @@ int main(int argc, char** argv)
 
         int npes = 1; //Represents the number of ranks per node
         int ngpown = ncouls / (nodes_per_group * npes); //Number of gvectors per mpi task
-
-        double e_lk = 10;
-        double dw = 1;
-        int nstart = 0, nend = 3;
-        double to1 = 1e-6;
-        double gamma = 0.5;
-        double sexcut = 4.0;
-        double limitone = 1.0/(to1*4.0);
-        double limittwo = pow(0.5,2);
-        double e_n1kq= 6.0; //This in the fortran code is derived through the double dimenrsion array ekq whose 2nd dimension is 1 and all the elements in the array have the same value
-        double occ=1.0;
 
         //Printing out the params passed.
         std::cout << "number_bands = " << number_bands \
@@ -319,20 +232,17 @@ int main(int argc, char** argv)
 
     //********************** Structures to update arrays inside Kokkos parallel calls ************************************************
     //****** achtemp **********
-        Kokkos::complex<double>  achtemp[nend-nstart];
-        achtempStruct achtempVar = {{achtemp[0],achtemp[1],achtemp[2]}}; 
+//        Kokkos::complex<double>  achtemp[nend-nstart];
+//        achtempStruct achtempVar = {{achtemp[0],achtemp[1],achtemp[2]}}; 
 
 
     //**********************************************************************************************************************************
 
         auto start_chrono = std::chrono::high_resolution_clock::now();
 
-    //    Kokkos::parallel_reduce(Kokkos::TeamPolicy<>(number_bands, Kokkos::AUTO), KOKKOS_LAMBDA (const Kokkos::TeamPolicy<>:: member_type teamMember, achtempStruct& achtempVarUpdate)
         for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
         {
-     //       const int n1 = teamMember.league_rank();
-
-//            reduce_achstemp(n1, inv_igp_index, ncouls, aqsmtemp, aqsntemp, I_eps_array, achstemp,  indinv, ngpown, vcoul);
+            reduce_achstemp(n1, inv_igp_index, ncouls, aqsmtemp, aqsntemp, I_eps_array, achstemp,  indinv, ngpown, vcoul);
 
             for(int iw=nstart; iw<nend; ++iw)
             {
@@ -340,7 +250,6 @@ int main(int argc, char** argv)
                 if(host_wx_array(iw) < to1) host_wx_array(iw) = to1;
             }
 
-//          Kokkos::parallel_for(range_policy(0, ngpown), KOKKOS_LAMBDA (int my_igp)
           Kokkos::parallel_reduce(range_policy(0, ngpown), KOKKOS_LAMBDA (int my_igp, achtempStruct& achtempVarUpdate)
 //              for(int my_igp=0; my_igp<ngpown; ++my_igp)
             {
@@ -395,32 +304,22 @@ int main(int argc, char** argv)
 
                         sch_array(iw) += 0.5*scht;
                     } // for nstart - nend
-
                 } //else-loop
-          } // if-condition
+              } // if-condition
 
                 if(flag_occ)
                 {
                     for(int iw=nstart; iw<nend; ++iw)
-                    {
-//                       addVal() = occ * ssx_array(iw);
                         asxtemp(iw) += occ * ssx_array(iw) ; 
-                    }
                 }
 
                 for(int iw=nstart; iw<nend; ++iw)
                     achtempVarUpdate.value[iw] += vcoul(igp) * sch_array(iw);
 
-                //Cannot multiply and add to a view if RHS is not a view
-                {
-//                    addVal() = sch_array(2);
-//                    acht_n1_loc(n1) += addVal() * vcoul(igp);
                     acht_n1_loc(n1) += vcoul(igp) * sch_array(2);
-                }
 
 
             },achtempVar); // for - ngpown 
- //           }); // for - ngpown 
 
             //copy it into a diff buffer not related to kokkos-views so that the value is not modified at the start of each iteration.
             for(int iw=nstart; iw<nend; ++iw)
@@ -431,10 +330,7 @@ int main(int argc, char** argv)
         auto end_chrono = std::chrono::high_resolution_clock::now();
 
         for(int iw=nstart; iw<nend; ++iw)
-        {
             cout << "Final achtemp[" << iw << "] = " << achtemp[iw] << endl;
-            cout << "Final ssx_array[" << iw << "] = " << ssx_array[iw] << endl;
-        }
 
             std::chrono::duration<double> elapsed_chrono = end_chrono - start_chrono;
 
