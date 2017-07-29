@@ -12,8 +12,8 @@
 using namespace std;
 
 #define CUDASPACE 0
-#define OPENMPSPACE 1
-#define CUDAUVM 0
+#define OPENMPSPACE 0
+#define CUDAUVM 1
 #define SERIAL 0
 #define THREADS 0
 
@@ -404,16 +404,13 @@ int main(int argc, char** argv)
                     for(int iw=nstart; iw<nend; ++iw)
                     {
 //                       addVal() = occ * ssx_array(iw);
-                        asxtemp(iw) += ssx_array(iw) ; 
+                        asxtemp(iw) += occ * ssx_array(iw) ; 
                     }
                 }
 
                 for(int iw=nstart; iw<nend; ++iw)
                     achtempVarUpdate.value[iw] += vcoul(igp) * sch_array(iw);
 
-//                for(int iw=nstart; iw<nend; ++iw)
-//                    achtempVar.value[iw] += vcoul(igp) * sch_array(iw);
-//
                 //Cannot multiply and add to a view if RHS is not a view
                 {
 //                    addVal() = sch_array(2);
@@ -434,7 +431,10 @@ int main(int argc, char** argv)
         auto end_chrono = std::chrono::high_resolution_clock::now();
 
         for(int iw=nstart; iw<nend; ++iw)
+        {
             cout << "Final achtemp[" << iw << "] = " << achtemp[iw] << endl;
+            cout << "Final ssx_array[" << iw << "] = " << ssx_array[iw] << endl;
+        }
 
             std::chrono::duration<double> elapsed_chrono = end_chrono - start_chrono;
 
