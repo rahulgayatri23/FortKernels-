@@ -153,7 +153,6 @@ void noflagOCC_solver(int igbeg, int igend, int igblk, double wxt, std::complex<
         rden = (std::complex<double>) 1/(wdiff * conj(wdiff));
         delw = wtilde_array[my_igp][ig] * conj(wdiff) * rden ; //*rden
         scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * i_eps_array[my_igp][ig];
-//        test[ig] = ((delwr < limitone) && (wdiffr > limittwo));
     }
     for(int ig = igbeg; ig<min(igend,igmax); ++ig)
         scht += scha[ig];
