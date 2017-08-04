@@ -215,7 +215,7 @@ int main(int argc, char** argv)
 
 //**********************************************************************************************************************************
 
-    double start_time = omp_get_wtime(); //Start timing here.
+    auto start_chrono = std::chrono::high_resolution_clock::now();
 
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
@@ -309,12 +309,14 @@ int main(int argc, char** argv)
     } // for - number_bands
 
    
-    double end_time = omp_get_wtime(); //End timing here
+        auto end_chrono = std::chrono::high_resolution_clock::now();
 
-    for(int iw=nstart; iw<nend; ++iw)
-        cout << "Final achtemp[" << iw << "] = " << achtemp[iw] << endl;
+        for(int iw=nstart; iw<nend; ++iw)
+            cout << "Final achtemp[" << iw << "] = " << achtemp[iw] << endl;
 
-    cout << "********** Time Taken **********= " << end_time - start_time << " secs" << endl;
+        std::chrono::duration<double> elapsed_chrono = end_chrono - start_chrono;
+
+        cout << "********** Chrono Time Taken **********= " << elapsed_chrono.count() << " secs" << endl;
 
     }
     Kokkos::finalize();

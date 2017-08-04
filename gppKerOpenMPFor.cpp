@@ -211,15 +211,11 @@ int main(int argc, char** argv)
     std::cout << "Number of OpenMP Threads = " << numThreads << endl;
 
     double to1 = 1e-6;
-
     double gamma = 0.5;
     double sexcut = 4.0;
     double limitone = 1.0/(to1*4.0);
     double limittwo = pow(0.5,2);
-
-    double e_n1kq= 6.0; //This in the fortran code is derived through the double dimenrsion array ekq whose 2nd dimension is 1 and all the elements in the array have the same value
-//    MyAllocator<64> alloc;
-
+    double e_n1kq= 6.0; 
 
     //Printing out the params passed.
     std::cout << "number_bands = " << number_bands \
@@ -299,7 +295,7 @@ int main(int argc, char** argv)
     double occ=1.0;
     bool flag_occ;
 
-    double start_time = omp_get_wtime(); //Start timing here.
+    auto start_chrono = std::chrono::high_resolution_clock::now();
 
     cout << "Size of wtilde_array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of aqsntemp = " << (ncouls*number_bands*2.0*8) / pow(1024,2) << " Mbytes" << endl;
@@ -418,7 +414,7 @@ int main(int argc, char** argv)
             {
                 for(int iw=nstart; iw<nend; ++iw)
                 {
-//#pragma omp critical
+#pragma omp critical
                     asxtemp[iw] += ssx_array[iw] * occ * vcoul[igp]; 
                 }
             }
@@ -432,7 +428,6 @@ int main(int argc, char** argv)
         } //ngpown
     } // number-bands
 
-
 #pragma omp simd
     for(int iw=nstart; iw<nend; ++iw)
         for(int i = 0; i < numThreads; i++)
@@ -443,13 +438,14 @@ int main(int argc, char** argv)
         for(int i = 0; i < numThreads; i++)
             acht_n1_loc[n1] += acht_n1_loc_threadArr[i][n1];
 
-    double end_time = omp_get_wtime(); //End timing here
+    auto end_chrono = std::chrono::high_resolution_clock::now();
 
     for(int iw=nstart; iw<nend; ++iw)
         cout << "achtemp[" << iw << "] = " << std::setprecision(15) << achtemp[iw] << endl;
 
-//    cout << "********** noflagOCC_timing =  **********= " << noflagOCC_totalTime << " secs" << endl;
-    cout << "********** Time Taken **********= " << end_time - start_time << " secs" << endl;
+    std::chrono::duration<double> elapsed_chrono = end_chrono - start_chrono;
+
+    cout << "********** Chrono Time Taken **********= " << elapsed_chrono.count() << " secs" << endl;
 
     return 0;
 }
