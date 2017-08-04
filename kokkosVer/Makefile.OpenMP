@@ -1,8 +1,8 @@
 KOKKOS_PATH = ${HOME}/Kokkos/kokkos
 KOKKOS_DEVICES = "OpenMP"
-EXE_NAME = "gppKerKokkosminView"
+EXE_NAME = "gppKerKokkosOpenMP"
 
-SRC = gppKerKokkos_minViews.cpp
+SRC = gppKerKokkosOpenMP.cpp
 
 default: build
 	echo "Start Build"

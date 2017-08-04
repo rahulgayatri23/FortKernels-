@@ -54,6 +54,9 @@ typedef Kokkos::View<Kokkos::complex<double>**, Layout, MemSpace>  ViewMatrixTyp
 typedef Kokkos::View<int*, Layout, MemSpace>   ViewVectorTypeInt;
 typedef Kokkos::View<double*, Layout, MemSpace>   ViewVectorTypeDouble;
 
+typedef Kokkos::View<int, Layout, MemSpace>   ViewScalarTypeInt;
+typedef Kokkos::View<double, Layout, MemSpace>   ViewScalarTypeDouble;
+
 struct achtempStruct 
 {
     Kokkos::complex<double> value[3];
@@ -72,10 +75,11 @@ KOKKOS_INLINE_FUNCTION
 };
 
 KOKKOS_INLINE_FUNCTION
-void flagOCC_solver(double wxt, Kokkos::View<Kokkos::complex<double>** > wtilde_array, int my_igp, int n1, Kokkos::View<Kokkos::complex<double>** > aqsmtemp, Kokkos::View<Kokkos::complex<double>** > aqsntemp, Kokkos::View<Kokkos::complex<double>** > I_eps_array, Kokkos::complex<double> &ssxt, Kokkos::complex<double> &scht, int ncouls, int igp);
+void flagOCC_solver(ViewScalarTypeComplex mygpvar1, double wxt, ViewMatrixTypeComplex wtilde_array, int my_igp, int n1, ViewMatrixTypeComplex aqsmtemp, ViewMatrixTypeComplex aqsntemp, ViewMatrixTypeComplex I_eps_array, Kokkos::complex<double> &ssxt, ViewScalarTypeComplex scht, int ncouls, int igp);
+
 
 KOKKOS_INLINE_FUNCTION
-void reduce_achstemp(int n1, Kokkos::View<int*> inv_igp_index, int ncouls, Kokkos::View<Kokkos::complex<double>** > aqsmtemp, Kokkos::View<Kokkos::complex<double>** > aqsntemp, Kokkos::View<Kokkos::complex<double>** > I_eps_array, Kokkos::complex<double>& achstemp, Kokkos::View<int*> indinv, int ngpown, Kokkos::View<double*> vcoul);
+void reduce_achstemp(ViewScalarTypeComplex mygpvar1,ViewScalarTypeComplex schstemp,  int n1, ViewVectorTypeInt inv_igp_index, int ncouls, ViewMatrixTypeComplex aqsmtemp, ViewMatrixTypeComplex aqsntemp, ViewMatrixTypeComplex I_eps_array, Kokkos::complex<double>& achstemp, ViewVectorTypeInt indinv, int ngpown, Kokkos::View<double*> vcoul);
 
 KOKKOS_INLINE_FUNCTION
 Kokkos::complex<double> doubleMultKokkosComplex(double op1, Kokkos::complex<double> op2);
@@ -89,25 +93,18 @@ Kokkos::complex<double> doubleMinusKokkosComplex(double op1, Kokkos::complex<dou
 KOKKOS_INLINE_FUNCTION
 Kokkos::complex<double> kokkos_square(Kokkos::complex<double> compl_num, int n);
 
-Kokkos::complex<double> expr0( 0.0 , 0.0);
-Kokkos::complex<double> expr( 0.5 , 0.5);
-Kokkos::complex<double> achstemp(0.0 , 0.0);
-Kokkos::complex<double> schstemp(0.0, 0.0);
-Kokkos::complex<double> mygpvar1, mygpvar2, schs, matngmatmgp, cden, wtilde, wtilde2, Omega2, sch, ssx, wdiff, delw ;
-
-
-double e_lk = 10;
-double dw = 1;
-int nstart = 0, nend = 3;
-double to1 = 1e-6;
-double sexcut = 4.0;
-double limitone = 1.0/(to1*4.0);
-double limittwo = pow(0.5,2);
-double e_n1kq= 6.0; 
-double ssxcutoff, rden;
-double wxt, delw2, delwr, wdiffr, scha_mult;
-double occ=1.0;
-bool flag_occ;
-
 Kokkos::complex<double>  achtemp[3];
 achtempStruct achtempVar = {{achtemp[0],achtemp[1],achtemp[2]}}; 
+
+Kokkos::complex<double> expr0( 0.0 , 0.0);
+Kokkos::complex<double> expr( 0.5 , 0.5);
+Kokkos::complex<double> achstemp = expr0;
+double e_lk = 10;
+double e_n1kq= 6.0; 
+double dw = 1;
+double to1 = 1e-6;
+double limitone = 1.0/(to1*4.0);
+double limittwo = pow(0.5,2);
+double sexcut = 4.0;
+int nstart = 0, nend = 3;
+bool flag_occ;

@@ -3,7 +3,7 @@ SRC = gppKerOpenMPFor.cpp
 
 CXX = CC
 
-CXXFLAGS = -O3 -qopenmp 
+CXXFLAGS = -O3 -qopenmp -xCORE_AVX2
 LINK = ${CXX}
 LINKFLAGS = -dynamic -O3 -qopenmp
 
