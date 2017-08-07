@@ -6,6 +6,8 @@
 #include <cmath>
 #include <complex>
 #include <omp.h>
+#include <ctime>
+#include <chrono>
 
 using namespace std;
 int debug = 0;
@@ -336,6 +338,8 @@ int main(int argc, char** argv)
     for(int ig=0, tmp=1; ig<ncouls; ++ig,tmp++)
         indinv[ig] = ig;
 
+    auto start_chrono = std::chrono::high_resolution_clock::now();
+
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
         flag_occ = n1 < nvband;
@@ -418,13 +422,9 @@ int main(int argc, char** argv)
             }
 
             if(flag_occ)
-            {
                 for(int iw=nstart; iw<nend; ++iw)
-                {
-//#pragma omp critical
+#pragma omp critical
                     asxtemp[iw] += ssx_array[iw] * occ * vcoul[igp]; 
-                }
-            }
 
             for(int iw=nstart; iw<nend; ++iw)
                 achtemp_threadArr[tid][iw] += sch_array[iw] * vcoul[igp];
@@ -446,13 +446,12 @@ int main(int argc, char** argv)
         for(int i = 0; i < numThreads; i++)
             acht_n1_loc[n1] += acht_n1_loc_threadArr[i][n1];
 
-    double end_time = omp_get_wtime(); //End timing here
+    std::chrono::duration<double> elapsed_chrono = std::chrono::high_resolution_clock::now() - start_chrono;
 
     for(int iw=nstart; iw<nend; ++iw)
         cout << "achtemp[" << iw << "] = " << std::setprecision(15) << achtemp[iw] << endl;
 
-//    cout << "********** noflagOCC_timing =  **********= " << noflagOCC_totalTime << " secs" << endl;
-    cout << "********** Time Taken **********= " << end_time - start_time << " secs" << endl;
+    cout << "********** Chrono Time Taken **********= " << elapsed_chrono.count() << " secs" << endl;
 
     return 0;
 }

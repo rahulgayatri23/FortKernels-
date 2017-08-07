@@ -1,3 +1,4 @@
+/* OpenMP 3.5 version of the code, where the only parallel-for and reduction are being used */
 #include <iostream>
 #include <cstdlib>
 #include <memory>
@@ -6,13 +7,11 @@
 #include <cmath>
 #include <complex>
 #include <omp.h>
+#include <ctime>
+#include <chrono>
 
 using namespace std;
 int debug = 0;
-
-
-#define CACHE_LINE 32
-#define CACHE_ALIGN __declspec(align(CACHE_LINE)) 
 
 void ssxt_scht_solver(double wxt, int igp, int my_igp, int ig, std::complex<double> wtilde, std::complex<double> wtilde2, std::complex<double> Omega2, std::complex<double> matngmatmgp, std::complex<double> matngpmatmg, std::complex<double> mygpvar1, std::complex<double> mygpvar2, std::complex<double>& ssxa, std::complex<double>& scha, std::complex<double> I_eps_array_igp_myIgp)
 {
@@ -154,10 +153,9 @@ void noflagOCC_solver(int igbeg, int igend, int igblk, double wxt, std::complex<
     for(int ig = igbeg; ig<min(igend,igmax); ++ig)
     {
         wdiff = wxt - wtilde_array[my_igp][ig];
-        rden = 1/(wdiff * conj(wdiff));
+        rden = (std::complex<double>) 1/(wdiff * conj(wdiff));
         delw = wtilde_array[my_igp][ig] * conj(wdiff) * rden ; //*rden
         scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * i_eps_array[my_igp][ig];
-//        test[ig] = ((delwr < limitone) && (wdiffr > limittwo));
     }
     for(int ig = igbeg; ig<min(igend,igmax); ++ig)
         scht += scha[ig];
@@ -216,15 +214,11 @@ int main(int argc, char** argv)
     std::cout << "Number of OpenMP Threads = " << numThreads << endl;
 
     double to1 = 1e-6;
-
     double gamma = 0.5;
     double sexcut = 4.0;
     double limitone = 1.0/(to1*4.0);
     double limittwo = pow(0.5,2);
-
-    double e_n1kq= 6.0; //This in the fortran code is derived through the double dimenrsion array ekq whose 2nd dimension is 1 and all the elements in the array have the same value
-//    MyAllocator<64> alloc;
-
+    double e_n1kq= 6.0; 
 
     //Printing out the params passed.
     std::cout << "number_bands = " << number_bands \
@@ -278,16 +272,16 @@ int main(int argc, char** argv)
 
     std::complex<double> **I_eps_array;
     {
-        I_eps_array = new CACHE_ALIGN std::complex<double> *[ngpown];
+        I_eps_array = new std::complex<double> *[ngpown];
         for(int i=0; i<ngpown; i++)
-            I_eps_array[i] = new CACHE_ALIGN std::complex<double>[ncouls];
+            I_eps_array[i] = new std::complex<double>[ncouls];
     }
 
     std::complex<double> **wtilde_array;
     {
-        wtilde_array = new CACHE_ALIGN std::complex<double> *[ngpown];
+        wtilde_array = new std::complex<double> *[ngpown];
         for(int i=0; i<ngpown; i++)
-            wtilde_array[i] = new CACHE_ALIGN std::complex<double>[ncouls];
+            wtilde_array[i] = new std::complex<double>[ncouls];
     }
 
     double vcoul[ncouls];
@@ -304,16 +298,11 @@ int main(int argc, char** argv)
     double occ=1.0;
     bool flag_occ;
 
-    double noflagOCC_startTimer = 0.00; 
-    double noflagOCC_endTimer = 0.00; 
-    double noflagOCC_totalTime = 0.00; 
-    double start_time = omp_get_wtime(); //Start timing here.
 
     cout << "Size of wtilde_array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of aqsntemp = " << (ncouls*number_bands*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of I_eps_array array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
 
-    noflagOCC_startTimer = omp_get_wtime(); //End timing here
 
    for(int i=0; i<number_bands; i++)
        for(int j=0; j<ncouls; j++)
@@ -334,16 +323,6 @@ int main(int argc, char** argv)
        vcoul[i] = 1.0;
 
 
-    noflagOCC_totalTime += omp_get_wtime() - noflagOCC_startTimer;
-    cout << "********** Timer1  =  **********= " << noflagOCC_totalTime << " secs" << endl;
-
-
-    noflagOCC_startTimer = 0.00; 
-    noflagOCC_endTimer = 0.00; 
-    noflagOCC_totalTime = 0.00; 
-
-    noflagOCC_startTimer = omp_get_wtime(); //End timing here
-
     for(int ig=0, tmp=1; ig < ngpown; ++ig,tmp++)
         inv_igp_index[ig] = (ig+1) * ncouls / ngpown;
 
@@ -351,13 +330,7 @@ int main(int argc, char** argv)
     for(int ig=0, tmp=1; ig<ncouls; ++ig,tmp++)
         indinv[ig] = ig;
 
-    noflagOCC_totalTime += omp_get_wtime() - noflagOCC_startTimer;
-    cout << "********** Timer2  =  **********= " << noflagOCC_totalTime << " secs" << endl;
-
-
-    noflagOCC_startTimer = 0.00; 
-    noflagOCC_endTimer = 0.00; 
-    noflagOCC_totalTime = 0.00; 
+    auto start_chrono = std::chrono::high_resolution_clock::now();
 
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
@@ -427,7 +400,7 @@ int main(int argc, char** argv)
                         for(int ig = igbeg; ig<min(igend,igmax); ++ig)
                         {
                             wdiff = wxt - wtilde_array[my_igp][ig];
-                            rden = 1/(wdiff * conj(wdiff));
+                            rden = (std::complex<double>) 1/(wdiff * conj(wdiff));
                             delw = wtilde_array[my_igp][ig] * conj(wdiff) * rden ; //*rden
                             scha[ig] = mygpvar1 * aqsntemp[n1][ig] * delw * I_eps_array[my_igp][ig];
                         }
@@ -444,7 +417,7 @@ int main(int argc, char** argv)
             {
                 for(int iw=nstart; iw<nend; ++iw)
                 {
-//#pragma omp critical
+#pragma omp critical
                     asxtemp[iw] += ssx_array[iw] * occ * vcoul[igp]; 
                 }
             }
@@ -458,7 +431,6 @@ int main(int argc, char** argv)
         } //ngpown
     } // number-bands
 
-
 #pragma omp simd
     for(int iw=nstart; iw<nend; ++iw)
         for(int i = 0; i < numThreads; i++)
@@ -469,13 +441,14 @@ int main(int argc, char** argv)
         for(int i = 0; i < numThreads; i++)
             acht_n1_loc[n1] += acht_n1_loc_threadArr[i][n1];
 
-    double end_time = omp_get_wtime(); //End timing here
+    auto end_chrono = std::chrono::high_resolution_clock::now();
 
     for(int iw=nstart; iw<nend; ++iw)
         cout << "achtemp[" << iw << "] = " << std::setprecision(15) << achtemp[iw] << endl;
 
-//    cout << "********** noflagOCC_timing =  **********= " << noflagOCC_totalTime << " secs" << endl;
-    cout << "********** Time Taken **********= " << end_time - start_time << " secs" << endl;
+    std::chrono::duration<double> elapsed_chrono = end_chrono - start_chrono;
+
+    cout << "********** Chrono Time Taken **********= " << elapsed_chrono.count() << " secs" << endl;
 
     return 0;
 }
