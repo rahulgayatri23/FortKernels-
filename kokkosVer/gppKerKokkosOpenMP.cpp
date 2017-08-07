@@ -4,10 +4,11 @@
 //KOKKOS_INLINE_FUNCTION
 Kokkos::complex<double> kokkos_square(Kokkos::complex<double> compl_num, int n)
 {
-    std::complex<double> powerExpr(Kokkos::real(compl_num), Kokkos::imag(compl_num));
-    powerExpr = std::pow(powerExpr,n);
+    double re = Kokkos::real(compl_num);
+    double im = Kokkos::imag(compl_num);
 
-    return powerExpr;
+    Kokkos::complex<double> result(re*re - im*im, 2*re*im);
+    return result;
 }
 
 //KOKKOS_INLINE_FUNCTION
