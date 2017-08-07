@@ -1,7 +1,7 @@
 /*Kokkos code for OpenMP version*/
-#include "gppKerKokkos.h"
+#include "gppKerKokkosOpenMP.h"
 
-//KOKKOS_INLINE_FUNCTION
+KOKKOS_INLINE_FUNCTION
 Kokkos::complex<double> kokkos_square(Kokkos::complex<double> compl_num, int n)
 {
     double re = Kokkos::real(compl_num);
@@ -11,28 +11,28 @@ Kokkos::complex<double> kokkos_square(Kokkos::complex<double> compl_num, int n)
     return result;
 }
 
-//KOKKOS_INLINE_FUNCTION
+KOKKOS_INLINE_FUNCTION
 Kokkos::complex<double> doubleMinusKokkosComplex(double op1, Kokkos::complex<double> op2)
 {
     Kokkos::complex<double> expr((op1 - Kokkos::real(op2)), (0 - Kokkos::imag(op2)));
     return expr;
 }
 
-//KOKKOS_INLINE_FUNCTION
+KOKKOS_INLINE_FUNCTION
 Kokkos::complex<double> doublePlusKokkosComplex(double op1, Kokkos::complex<double> op2)
 {
     Kokkos::complex<double> expr((op1 + Kokkos::real(op2)), (0 + Kokkos::imag(op2)));
     return expr;
 }
 
-//KOKKOS_INLINE_FUNCTION
+KOKKOS_INLINE_FUNCTION
 Kokkos::complex<double> doubleMultKokkosComplex(double op1, Kokkos::complex<double> op2)
 {
     Kokkos::complex<double> expr((op1 * Kokkos::real(op2)), (0 * Kokkos::imag(op2)));
     return expr;
 }
 
-//KOKKOS_INLINE_FUNCTION
+KOKKOS_INLINE_FUNCTION
 void reduce_achstemp(ViewScalarTypeComplex mygpvar1, ViewScalarTypeComplex schstemp, int n1, ViewVectorTypeInt inv_igp_index, int ncouls, ViewMatrixTypeComplex aqsmtemp, ViewMatrixTypeComplex aqsntemp, ViewMatrixTypeComplex I_eps_array, Kokkos::complex<double>& achstemp, ViewVectorTypeInt indinv, int ngpown, Kokkos::View<double*> vcoul)
 {
     Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, Kokkos::complex<double> &achstempUpdate)
@@ -59,7 +59,7 @@ void reduce_achstemp(ViewScalarTypeComplex mygpvar1, ViewScalarTypeComplex schst
     },achstemp);
 }
 
-//KOKKOS_INLINE_FUNCTION
+KOKKOS_INLINE_FUNCTION
 void flagOCC_solver(ViewScalarTypeComplex mygpvar1, double wxt, ViewMatrixTypeComplex wtilde_array, int my_igp, int n1, ViewMatrixTypeComplex aqsmtemp, ViewMatrixTypeComplex aqsntemp, ViewMatrixTypeComplex I_eps_array, Kokkos::complex<double> &ssxt, Kokkos::complex<double> &scht, int ncouls, int igp)
 {
     Kokkos::complex<double> ssxa[ncouls], scha[ncouls];

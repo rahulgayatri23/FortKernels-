@@ -12,8 +12,8 @@ using namespace std;
 
 
 #define CUDASPACE 0
-#define OPENMPSPACE 0
-#define CUDAUVM 1
+#define OPENMPSPACE 1
+#define CUDAUVM 0
 #define SERIAL 0
 #define THREADS 0
 
@@ -74,26 +74,18 @@ KOKKOS_INLINE_FUNCTION
     }
 };
 
-//KOKKOS_INLINE_FUNCTION
-//void flagOCC_solver(ViewScalarTypeComplex mygpvar1, double wxt, ViewMatrixTypeComplex wtilde_array, int my_igp, int n1, ViewMatrixTypeComplex aqsmtemp, ViewMatrixTypeComplex aqsntemp, ViewMatrixTypeComplex I_eps_array, Kokkos::complex<double> &ssxt, ViewScalarTypeComplex scht, int ncouls, int igp);
-//
-//
-//KOKKOS_INLINE_FUNCTION
-//void reduce_achstemp(ViewScalarTypeComplex mygpvar1,ViewScalarTypeComplex schstemp,  int n1, ViewVectorTypeInt inv_igp_index, int ncouls, ViewMatrixTypeComplex aqsmtemp, ViewMatrixTypeComplex aqsntemp, ViewMatrixTypeComplex I_eps_array, Kokkos::complex<double>& achstemp, ViewVectorTypeInt indinv, int ngpown, Kokkos::View<double*> vcoul);
-//
-//KOKKOS_INLINE_FUNCTION
-//Kokkos::complex<double> doubleMultKokkosComplex(double op1, Kokkos::complex<double> op2);
-//
-//KOKKOS_INLINE_FUNCTION
-//Kokkos::complex<double> doublePlusKokkosComplex(double op1, Kokkos::complex<double> op2);
-//
-//KOKKOS_INLINE_FUNCTION
-//Kokkos::complex<double> doubleMinusKokkosComplex(double op1, Kokkos::complex<double> op2);
-//
-//KOKKOS_INLINE_FUNCTION
-//Kokkos::complex<double> kokkos_square(Kokkos::complex<double> compl_num, int n);
-
 Kokkos::complex<double>  achtemp[3];
 achtempStruct achtempVar = {{achtemp[0],achtemp[1],achtemp[2]}}; 
 
-Kokkos::complex<double> achstemp(0.00, 0.00);
+Kokkos::complex<double> expr0( 0.0 , 0.0);
+Kokkos::complex<double> expr( 0.5 , 0.5);
+Kokkos::complex<double> achstemp = expr0;
+double e_lk = 10;
+double e_n1kq= 6.0; 
+double dw = 1;
+double to1 = 1e-6;
+double limitone = 1.0/(to1*4.0);
+double limittwo = pow(0.5,2);
+double sexcut = 4.0;
+int nstart = 0, nend = 3;
+bool flag_occ;
