@@ -1,14 +1,4 @@
-//#include <iostream>
-//#include <cstdlib>
-//
-//#include <iomanip>
-//#include <cmath>
-//#include <complex>
-//#include <omp.h>
-//
-//#include <Kokkos_Core.hpp>
-//#include <Kokkos_Complex.hpp>
-//using namespace std;
+/*Kokkos code for OpenMP version*/
 #include "gppKerKokkos.h"
 
 //KOKKOS_INLINE_FUNCTION

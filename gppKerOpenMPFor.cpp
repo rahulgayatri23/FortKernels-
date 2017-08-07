@@ -1,3 +1,4 @@
+/* OpenMP 3.5 version of the code, where the only parallel-for and reduction are being used */
 #include <iostream>
 #include <cstdlib>
 #include <memory>
@@ -6,6 +7,8 @@
 #include <cmath>
 #include <complex>
 #include <omp.h>
+#include <ctime>
+#include <chrono>
 
 using namespace std;
 int debug = 0;
