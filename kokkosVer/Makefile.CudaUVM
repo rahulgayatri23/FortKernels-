@@ -1,5 +1,5 @@
 KOKKOS_PATH = ${HOME}/Kokkos/kokkos
-KOKKOS_DEVICES = "Cuda"
+KOKKOS_DEVICES = "Cuda KOKKOS_CUDA_OPTIONS=force_uvm"
 EXE_NAME = "gppKerKokkosCuda"
 
 SRC = gppKerKokkosCuda.cpp
@@ -19,7 +19,7 @@ EXE = ${EXE_NAME}.host
 KOKKOS_ARCH = "SNB"
 endif
 
-CXXFLAGS = -O3 --expt-extended-lambda #-qopt-report=5 -xCORE_AVX2
+CXXFLAGS = -O3 #-qopt-report=5 -xCORE_AVX2
 LINK = ${CXX}
 LINKFLAGS =
 

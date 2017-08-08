@@ -35,8 +35,8 @@ Kokkos::complex<double> doubleMultKokkosComplex(double op1, Kokkos::complex<doub
 KOKKOS_INLINE_FUNCTION
 void reduce_achstemp(ViewScalarTypeComplex mygpvar1, ViewScalarTypeComplex schstemp, int n1, ViewVectorTypeInt inv_igp_index, int ncouls, ViewMatrixTypeComplex aqsmtemp, ViewMatrixTypeComplex aqsntemp, ViewMatrixTypeComplex I_eps_array, Kokkos::complex<double>& achstemp, ViewVectorTypeInt indinv, int ngpown, Kokkos::View<double*> vcoul)
 {
-    double to1 = 1e-6;
-    Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, Kokkos::complex<double> &achstempUpdate)
+        double to1 = 1e-6;
+    Kokkos::parallel_reduce(range_policy( 0, ngpown), KOKKOS_LAMBDA (int my_igp, Kokkos::complex<double> &achstempUpdate)
     {
         int indigp = inv_igp_index(my_igp);
         int igp = indinv(indigp);
@@ -136,14 +136,10 @@ int main(int argc, char** argv)
     double e_lk = 10;
     double e_n1kq= 6.0; 
     double dw = 1;
-    double to1 = 1e-6;
     int nstart = 0, nend = 3;
-    double limitone = 1.0/(to1*4.0);
+    double limitone = 1.0/1e-6*4.0;
     double limittwo = pow(0.5,2);
     double sexcut = 4.0;
-
-    Kokkos::complex<double> expr0( 0.0 , 0.0);
-    Kokkos::complex<double> expr( 0.5 , 0.5);
 
     //Printing out the params passed.
     std::cout << "number_bands = " << number_bands \
@@ -178,23 +174,41 @@ int main(int argc, char** argv)
 
     ViewScalarTypeComplex mygpvar1("mygpvar1");
     ViewScalarTypeComplex schstemp("schstemp");
+//    ViewScalarTypeDouble to1("to1");
+//    to1() = 1e-6;
+
+    double to1 = 1e-6;
+    //Create host mirrors of device views
+    ViewMatrixTypeComplex::HostMirror host_aqsntemp = Kokkos::create_mirror_view(aqsntemp);
+    ViewMatrixTypeComplex::HostMirror host_aqsmtemp = Kokkos::create_mirror_view(aqsmtemp);
+    ViewMatrixTypeComplex::HostMirror host_I_eps_array = Kokkos::create_mirror_view(I_eps_array);
+    ViewMatrixTypeComplex::HostMirror host_wtilde_array= Kokkos::create_mirror_view(wtilde_array); 
+    ViewVectorTypeInt::HostMirror host_inv_igp_index = Kokkos::create_mirror_view(inv_igp_index);
+    ViewVectorTypeInt::HostMirror host_indinv = Kokkos::create_mirror_view(indinv);
+    ViewVectorTypeDouble::HostMirror host_vcoul = Kokkos::create_mirror_view(vcoul);
+    ViewVectorTypeDouble::HostMirror host_wx_array = Kokkos::create_mirror_view(wx_array);
+
+
+    Kokkos::complex<double> expr0( 0.0 , 0.0);
+    Kokkos::complex<double> expr( 0.5 , 0.5);
+        Kokkos::complex<double> achstemp(0.0 , 0.0);
 
     for(int i = 0; i< number_bands; i++)
        for(int j=0; j<ncouls; j++)
        {
-           aqsmtemp(i,j) = expr;
-           aqsntemp(i,j) = expr;
+           host_aqsmtemp(i,j) = expr;
+           host_aqsntemp(i,j) = expr;
        }
 
     for(int i = 0; i< ngpown; i++)
        for(int j=0; j<ncouls; j++)
        {
-           I_eps_array(i,j) = expr;
-           wtilde_array(i,j) = expr;
+           host_I_eps_array(i,j) = expr;
+           host_wtilde_array(i,j) = expr;
        }
     
    for(int i=0; i<ncouls; i++)
-       vcoul(i) = 1.0;
+       host_vcoul(i) = 1.0;
 
     cout << "Size of wtilde_array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of aqsntemp = " << (ncouls*number_bands*2.0*8) / pow(1024,2) << " Mbytes" << endl;
@@ -202,13 +216,42 @@ int main(int argc, char** argv)
 
     //For MPI Work distribution
     for(int ig=0; ig < ngpown; ++ig)
-        inv_igp_index(ig) = (ig+1) * ncouls / ngpown;
+        host_inv_igp_index(ig) = (ig+1) * ncouls / ngpown;
 
     //Do not know yet what this array represents
     for(int ig=0; ig<ncouls; ++ig)
-        indinv(ig) =ig;
+        host_indinv(ig) =ig;
+
+
+        //Deep copy from host to Device Views
+        Kokkos::deep_copy(aqsmtemp, host_aqsmtemp);
+        Kokkos::deep_copy(aqsntemp, host_aqsntemp);
+        Kokkos::deep_copy(I_eps_array, host_I_eps_array);
+        Kokkos::deep_copy(wtilde_array, host_wtilde_array);
+        Kokkos::deep_copy(inv_igp_index, host_inv_igp_index);
+        Kokkos::deep_copy(indinv, host_indinv);
+        Kokkos::deep_copy(vcoul, host_vcoul);
+
 
 //**********************************************************************************************************************************
+__device__ struct achtempStruct 
+{
+    Kokkos::complex<double> value[3];
+KOKKOS_INLINE_FUNCTION
+    void operator+=(achtempStruct const& other) 
+    {
+        for (int i = 0; i < 3; ++i) 
+            value[i] += other.value[i];
+    }
+KOKKOS_INLINE_FUNCTION
+    void operator+=(achtempStruct const volatile& other) volatile 
+    {
+        for (int i = 0; i < 3; ++i) 
+            value[i] += other.value[i];
+    }
+};
+Kokkos::complex<double>  achtemp[3];
+achtempStruct achtempVar = {{achtemp[0],achtemp[1],achtemp[2]}}; 
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
 
@@ -221,8 +264,6 @@ int main(int argc, char** argv)
             wx_array(iw) = e_lk - e_n1kq + dw*((iw+1)-2);
             if(wx_array(iw) < to1) wx_array(iw) = to1;
         }
-//         cout << "achstemp = " << achstemp << endl;
-
       Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, achtempStruct& achtempVarUpdate)
 //          for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {

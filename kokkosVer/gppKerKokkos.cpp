@@ -208,8 +208,6 @@ int main(int argc, char** argv)
        for(int i=0; i<ncouls; i++)
            host_vcoul(i) = 1.0;
 
-
-
         cout << "Size of wtilde_array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
         cout << "Size of aqsntemp = " << (ncouls*number_bands*2.0*8) / pow(1024,2) << " Mbytes" << endl;
         cout << "Size of I_eps_array array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
