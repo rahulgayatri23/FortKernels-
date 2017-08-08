@@ -6,9 +6,8 @@
 #include <cmath>
 #include <complex>
 #include <omp.h>
-#include <chrono>
 #include <ctime>
-
+#include <chrono>
 
 using namespace std;
 int debug = 0;
@@ -265,8 +264,6 @@ int main(int argc, char** argv)
     double occ=1.0;
     bool flag_occ;
 
-    auto start_chrono = std::chrono::high_resolution_clock::now();
-
     cout << "Size of wtilde_array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of aqsntemp = " << (ncouls*number_bands*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of I_eps_array array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
@@ -296,6 +293,8 @@ int main(int argc, char** argv)
     //Do not know yet what this array represents
     for(int ig=0, tmp=1; ig<ncouls; ++ig,tmp++)
         indinv[ig] = ig;
+
+    auto start_chrono = std::chrono::high_resolution_clock::now();
 
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
@@ -376,13 +375,9 @@ int main(int argc, char** argv)
             }
 
             if(flag_occ)
-            {
                 for(int iw=nstart; iw<nend; ++iw)
-                {
 #pragma omp critical
                     asxtemp[iw] += ssx_array[iw] * occ * vcoul[igp];
-                }
-            }
 
             for(int iw=nstart; iw<nend; ++iw)
                 achtemp_threadArr[tid][iw] += sch_array[iw] * vcoul[igp];
