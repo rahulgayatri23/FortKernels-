@@ -1,9 +1,13 @@
 EXE = gppKerOpenMPFor
 SRC = gppKerOpenMPFor.cpp 
 
-CXX = CC
+CXX = icc
 
-CXXFLAGS = -O3 -qopenmp -xCORE_AVX2
+CXXFLAGS = -O3 -std=c++11
+CXXFLAGS += -qopenmp 
+CXXFLAGS += -xCORE_AVX2
+#CXXFLAGS += -xMIC_AVX512
+
 LINK = ${CXX}
 LINKFLAGS = -dynamic -O3 -qopenmp
 

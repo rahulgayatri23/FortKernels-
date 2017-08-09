@@ -1,11 +1,15 @@
 EXE = gppKerCpp
 SRC = gppKer.cpp 
 
-CXX = g++
-CXXFLAGS = -O3 -g -fopenmp #--qopt-report=5 xCORE_AVX2 
+CXX = icc
+
+CXXFLAGS = -O3 -std=c++11
+CXXFLAGS += -qopenmp 
+CXXFLAGS += -xCORE_AVX2
+#CXXFLAGS += -xMIC_AVX512
 
 LINK = ${CXX}
-LINKFLAGS = -dynamic -O3 -fopenmp
+LINKFLAGS = -O3 -qopenmp
 
 OBJ = $(SRC:.cpp=.o)
 
