@@ -348,8 +348,8 @@ int main(int argc, char** argv)
                 int igblk = 512;
                 std::complex<double> scha[ncouls]/*, sch, delw, wdiff, cden*/;
                 std::complex<double> mygpvar1 = std::conj(aqsmtemp[n1][igp]);
-                std::complex<double> rden, wdiff, delw;
-                double delwr, wdiffr; //rden
+                std::complex<double> cden, wdiff, delw;
+                double delwr, wdiffr, rden; 
 
                 for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
                 {
@@ -358,12 +358,14 @@ int main(int argc, char** argv)
                     {
                         scht = ssxt = expr0;
                         wxt = wx_array[iw];
-
+#pragma ivdep
                         for(int ig = igbeg; ig<min(igend,igmax); ++ig)
-                        {
-                            wdiff = wxt - wtilde_array[my_igp][ig];
-                            rden = (std::complex<double>) 1/(wdiff * conj(wdiff));
-                            delw = wtilde_array[my_igp][ig] * conj(wdiff) * rden ; //*rden
+                        { 
+			    wdiff = wxt - wtilde_array[my_igp][ig];
+			    cden = wdiff;
+			    rden = std::real(cden * std::conj(cden));
+			    rden = 1/rden;
+                            delw = wtilde_array[my_igp][ig] * conj(cden) * rden ; //*rden
                             delwr = std::real(delw*std::conj(delw));
                             wdiffr = std::real(wdiff*std::conj(wdiff));
 
