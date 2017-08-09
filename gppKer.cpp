@@ -349,9 +349,8 @@ int main(int argc, char** argv)
             else
             {
                 int igblk = 512;
-                std::complex<double> scha[ncouls]/*, sch, delw, wdiff, cden*/;
                 std::complex<double> mygpvar1 = std::conj((*aqsmtemp)[n1][igp]);
-                std::complex<double> cden, wdiff, delw;
+                std::complex<double> scha, cden, wdiff, delw;
                 double delwr, wdiffr, rden; //rden
 
                 for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
@@ -372,14 +371,14 @@ int main(int argc, char** argv)
                             delwr = std::real(delw*std::conj(delw));
                             wdiffr = std::real(wdiff*std::conj(wdiff));
 
-                            scha[ig] = mygpvar1 * (*aqsntemp)[n1][ig] * delw * (*I_eps_array)[my_igp][ig];
+                            scha = mygpvar1 * (*aqsntemp)[n1][ig] * delw * (*I_eps_array)[my_igp][ig];
 
                             if ((wdiffr > limittwo) && (delwr < limitone))
-                                scht = scht + scha[ig];
+                                scht = scht + scha;
                         }
 
                         sch_array[iw] +=(double) 0.5*scht;
-			}
+				    }
                 }
             }
 
@@ -391,7 +390,6 @@ int main(int argc, char** argv)
             for(int iw=nstart; iw<nend; ++iw)
                 (*achtemp_threadArr_vla)[tid][iw] += sch_array[iw] * vcoul[igp];
 
-//            acht_n1_loc_threadArr[tid][n1] += sch_array[2] * vcoul[igp];
             (*acht_n1_loc_vla)[tid][n1] += sch_array[2] * vcoul[igp];
 
             } //for the if-loop to avoid break inside an openmp pragma statment

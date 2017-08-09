@@ -5,7 +5,9 @@ SRC=gppKer.cpp
 #CXX=CC
 CXX=icc
 
-CXXFLAGS=-O3 -std=c++11 -qopt-report=5 -g -qopenmp #-xCORE_AVX2 #  -xmic_avx512 #-no-vec
+CXXFLAGS=-O3 -std=c++11 -qopt-report=5 -g -qopenmp 
+CXXFLAGS+= -xCORE_AVX2
+#CXXFLAGS+= -xMIC_AVX512
 LINK=${CXX}
 LINKFLAGS=-O3 -qopenmp
 
