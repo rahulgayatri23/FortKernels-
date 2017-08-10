@@ -7,7 +7,7 @@
 #include <complex>
 #include <omp.h>
 #include <ctime>
-#include <chrono>
+//#include <chrono>
 
 using namespace std;
 int debug = 0;
@@ -19,10 +19,9 @@ int debug = 0;
 void ssxt_scht_solver(double wxt, int igp, int my_igp, int ig, std::complex<double> wtilde, std::complex<double> wtilde2, std::complex<double> Omega2, std::complex<double> matngmatmgp, std::complex<double> matngpmatmg, std::complex<double> mygpvar1, std::complex<double> mygpvar2, std::complex<double>& ssxa, std::complex<double>& scha, std::complex<double> I_eps_array_igp_myIgp)
 {
     std::complex<double> expr0( 0.0 , 0.0);
-    double delw2, scha_mult, ssxcutoff;
+    double ssxcutoff;
     double to1 = 1e-6;
     double sexcut = 4.0;
-    double gamma = 0.5;
     double limitone = 1.0/(to1*4.0);
     double limittwo = pow(0.5,2);
     std::complex<double> sch, ssx;
@@ -67,7 +66,6 @@ void ssxt_scht_solver(double wxt, int igp, int my_igp, int ig, std::complex<doub
 void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, std::complex<double> *aqsmtemp_arr, std::complex<double> *aqsntemp_arr, std::complex<double> *I_eps_array_tmp, std::complex<double>& achstemp,  int* indinv, int ngpown, double* vcoul)
 {
     double to1 = 1e-6;
-    int igmax;
     std::complex<double> schstemp(0.0, 0.0);;
 //Variables to get around the inability to reduce complex variables && avoid critical.
     int numThreads = omp_get_thread_num();
@@ -102,7 +100,6 @@ void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, s
             igmax = ncouls;
 
             std::complex<double> mygpvar1 = std::conj((*aqsmtemp)[n1][igp]);
-            std::complex<double> mygpvar2 = (*aqsntemp)[n1][igp];
 
             schs = -(*I_eps_array)[my_igp][igp];
             matngmatmgp = (*aqsntemp)[n1][igp] * mygpvar1;
@@ -192,7 +189,7 @@ int main(int argc, char** argv)
     }
     std::cout << "Number of OpenMP Threads = " << numThreads << endl;
 
-    double to1 = 1e-6, \ 
+    double to1 = 1e-6, \
     gamma = 0.5, \
     sexcut = 4.0;
     double limitone = 1.0/(to1*4.0), \
@@ -260,8 +257,6 @@ int main(int argc, char** argv)
     std::complex<double> achstemp = std::complex<double>(0.0, 0.0);
     std::complex<double> ssx_array[3], \
         sch_array[3], \
-        ssxa[ncouls], \
-        scha[ncouls], \
         scht, ssxt, wtilde;
 
     double wxt;
@@ -298,7 +293,8 @@ int main(int argc, char** argv)
     for(int ig=0, tmp=1; ig<ncouls; ++ig,tmp++)
         indinv[ig] = ig;
 
-    auto start_chrono = std::chrono::high_resolution_clock::now();
+//    auto start_chrono = std::chrono::high_resolution_clock::now();
+    double start_time = omp_get_wtime(); //Start timing here.
 
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
@@ -313,7 +309,7 @@ int main(int argc, char** argv)
             if(abs(wx_array[iw]) < to1) wx_array[iw] = to1;
         }
 
-#pragma omp parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(ssx_array, sch_array, \
+#pragma omp parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, wx_array)  firstprivate(ssx_array, sch_array, \
         scht, ssxt, wxt) schedule(dynamic) \
         private(wtilde, tid)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
@@ -407,12 +403,14 @@ int main(int argc, char** argv)
         for(int i = 0; i < numThreads; i++)
             acht_n1_loc[n1] += (*acht_n1_loc_vla)[i][n1];
 
-    std::chrono::duration<double> elapsed_chrono = std::chrono::high_resolution_clock::now() - start_chrono;
+ //   std::chrono::duration<double> elapsed_chrono = std::chrono::high_resolution_clock::now() - start_chrono;
+    double elapsed_time = omp_get_wtime() - start_time; //End timing here
 
     for(int iw=nstart; iw<nend; ++iw)
         cout << "achtemp[" << iw << "] = " << std::setprecision(15) << achtemp[iw] << endl;
 
-    cout << "********** Chrono Time Taken **********= " << elapsed_chrono.count() << " secs" << endl;
+//    cout << "********** Chrono Time Taken **********= " << elapsed_chrono.count() << " secs" << endl;
+    cout << "********** Time Taken **********= " << elapsed_time << " secs" << endl;
 
     return 0;
 }
