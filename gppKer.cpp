@@ -295,7 +295,7 @@ int main(int argc, char** argv)
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
 
-#pragma omp target data map(to:wtilde_array_tmp[0:ngpown*ncouls], aqsntemp_arr[0:number_bands*ncouls], aqsmtemp_arr[0:number_bands*ncouls], I_eps_array_tmp[0:ngpown*ncouls], wx_array,vcoul) 
+//#pragma omp target data map(to:wtilde_array_tmp[0:ngpown*ncouls], aqsntemp_arr[0:number_bands*ncouls], aqsmtemp_arr[0:number_bands*ncouls], I_eps_array_tmp[0:ngpown*ncouls], wx_array,vcoul) 
 {
 //#pragma omp target map(tofrom:achtemp,achstemp)
 //#pragma omp teams distribute
@@ -315,9 +315,9 @@ int main(int argc, char** argv)
 #pragma omp parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, wx_array)  firstprivate( wxt) schedule(static,1) private(tid)  
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
-	    std::complex<double> ssx_array[3], \
-		sch_array[3], \
-		scht, ssxt ;
+            std::complex<double> ssx_array[3], \
+            sch_array[3], \
+            scht, ssxt ;
 
             tid = omp_get_thread_num();
             int indigp = inv_igp_index[my_igp];
@@ -361,7 +361,7 @@ int main(int argc, char** argv)
                     {
                         scht = ssxt = expr0;
                         wxt = wx_array[iw];
-#pragma ivdep
+//#pragma ivdep
                         for(int ig = igbeg; ig<min(igend,igmax); ++ig)
                         { 
                             wdiff = wxt - (*wtilde_array)[my_igp][ig];
