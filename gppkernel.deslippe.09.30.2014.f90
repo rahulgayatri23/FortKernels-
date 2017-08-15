@@ -352,21 +352,21 @@ program gppkernel
                   rden = cden * CONJG(cden)
                   rden = 1D0 / rden
                   delw = wtilde_array(ig,my_igp) * CONJG(cden) * rden
-!                  delwr = delw*CONJG(delw)
-!                  wdiffr = wdiff*CONJG(wdiff)
+                  delwr = delw*CONJG(delw)
+                  wdiffr = wdiff*CONJG(wdiff)
 
 ! JRD: Complex division is hard to vectorize. So, we help the compiler.
                   scha(ig) = mygpvar1 * aqsntemp(ig,n1) * delw * I_eps_array(ig,my_igp)
 !                   scha_temp = mygpvar1 * aqsntemp(ig,n1) * delw * I_eps_array(ig,my_igp)
 
 ! JRD: This if is OK for vectorization
-!                   if (wdiffr.gt.limittwo .and. delwr.lt.limitone) then
-!                     scht = scht + scha(ig)
-!                   endif
-                enddo ! loop over g
-                do ig = igbeg, min(igend,igmax)
+                   if (wdiffr.gt.limittwo .and. delwr.lt.limitone) then
                      scht = scht + scha(ig)
-                     enddo
+                   endif
+                enddo ! loop over g
+!                do ig = igbeg, min(igend,igmax)
+!                     scht = scht + scha(ig)
+!                     enddo
 
 !                do ig = igbeg, min(igend,igmax)
 !                     scht = scht + scha(ig)
