@@ -27,7 +27,8 @@ program gppkernel
       integer,parameter:: igblk=512
       !integer,parameter:: igblk=512000
       integer, allocatable :: indinv(:), inv_igp_index(:)
-      complex(kind((1.0d0,1.0d0))) :: achstemp,achxtemp,matngmatmgp,matngpmatmg,wdiff,mygpvar1,mygpvar2,schstemp,schs,wx_array(3),sch,ssx,ssxt,scht
+      complex(kind((1.0d0,1.0d0))) :: achstemp,achxtemp,matngmatmgp,matngpmatmg,wdiff,mygpvar1,mygpvar2,schstemp
+      complex(kind((1.0d0,1.0d0))) ::schs,wx_array(3),sch,ssx,ssxt,scht
       complex(kind((1.0d0,1.0d0))) :: wtilde,halfinvwtilde,wtilde2,Omega2
       complex(kind((1.0d0,1.0d0))), allocatable :: aqsmtemp(:,:), aqsntemp(:,:), I_eps_array(:,:), acht_n1_loc(:)
       complex(kind((1.0d0,1.0d0))), allocatable :: asxtemp(:),achtemp(:),ssx_array(:),sch_array(:),ssxa(:),scha(:),wtilde_array(:,:)
@@ -49,7 +50,7 @@ program gppkernel
       logical :: flag_occ
       CHARACTER(len=32) :: arg
       integer npes,mype,ierr
-      include 'mpif.h'
+!      include 'mpif.h'
 
 !      call mpi_init(ierr)
 
