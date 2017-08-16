@@ -223,7 +223,7 @@ int main(int argc, char** argv)
     std::complex<double> *acht_n1_loc_threadArr;
     acht_n1_loc_threadArr = new std::complex<double> [numThreads*number_bands];
     std::complex<double> (*acht_n1_loc_vla)[numThreads][number_bands];
-    acht_n1_loc_vla = (std::complex<double>(*)[numThreads][ncouls]) (acht_n1_loc_threadArr);
+    acht_n1_loc_vla = (std::complex<double>(*)[numThreads][number_bands]) (acht_n1_loc_threadArr);
 
     std::complex<double> achtemp[nend-nstart];
     std::complex<double> *achtemp_threadArr;
