@@ -357,11 +357,10 @@ program gppkernel
 
 ! JRD: Complex division is hard to vectorize. So, we help the compiler.
                   scha(ig) = mygpvar1 * aqsntemp(ig,n1) * delw * I_eps_array(ig,my_igp)
-                  scht = scht + scha(ig)
 
 ! JRD: This if is OK for vectorization
 !                   if (wdiffr.gt.limittwo .and. delwr.lt.limitone) then
-!                     scht = scht + scha(ig)
+                     scht = scht + scha(ig)
 !                   endif
                 enddo ! loop over g
 

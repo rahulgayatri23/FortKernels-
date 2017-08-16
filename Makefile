@@ -6,8 +6,8 @@ CXX=CC
 #CXX=icc
 
 CXXFLAGS=-O3 -std=c++11 -qopt-report=5 -g -qopenmp 
-CXXFLAGS+= -xCORE_AVX2
-#CXXFLAGS+= -xMIC_AVX512
+#CXXFLAGS+= -xCORE_AVX2
+CXXFLAGS+= -xMIC_AVX512
 LINK=${CXX}
 LINKFLAGS=-O3 -qopenmp -dynamic
 
