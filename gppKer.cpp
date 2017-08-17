@@ -295,8 +295,8 @@ int main(int argc, char** argv)
 
 //#pragma omp target data map(to:wtilde_array_tmp[0:ngpown*ncouls], aqsntemp_arr[0:number_bands*ncouls], aqsmtemp_arr[0:number_bands*ncouls], I_eps_array_tmp[0:ngpown*ncouls], wx_array,vcoul) 
 {
-#pragma omp target map(tofrom:achtemp,achstemp)
-#pragma omp teams distribute
+//#pragma omp target map(tofrom:achtemp,achstemp)
+//#pragma omp teams distribute
 
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
@@ -359,7 +359,7 @@ int main(int argc, char** argv)
                     {
                         scht = ssxt = expr0;
                         wxt = wx_array[iw];
-//#pragma ivdep
+#pragma ivdep
                         for(int ig = igbeg; ig<min(igend,igmax); ++ig)
                         { 
                             wdiff = wxt - (*wtilde_array)[my_igp][ig];
