@@ -16,7 +16,7 @@ int debug = 0;
 #pragma omp declare target
 void flagOCC_solver(double , std::complex<double>* , int , int , std::complex<double>* , std::complex<double>* , std::complex<double>* , std::complex<double>& , std::complex<double>& , int , int , int , int , int );
 
-void reduce_achstemp(int , int , int*, int , std::complex<double>* , std::complex<double>* , std::complex<double>* , std::complex<double>* ,  int* , int , double* );
+void reduce_achstemp(int , int , int*, int , std::complex<double>* , std::complex<double>* , std::complex<double>* , std::complex<double>& ,  int* , int , double* );
 
 void ssxt_scht_solver(double , int , int , int , std::complex<double> , std::complex<double> , std::complex<double> , std::complex<double> , std::complex<double> , std::complex<double> , std::complex<double> , std::complex<double>& , std::complex<double>& , std::complex<double> );
 #pragma omp end declare target
@@ -73,7 +73,7 @@ void ssxt_scht_solver(double wxt, int igp, int my_igp, int ig, std::complex<doub
     scha = matngmatmgp*sch;
 }
 
-void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, std::complex<double> *aqsmtemp_arr, std::complex<double> *aqsntemp_arr, std::complex<double> *I_eps_array_tmp, std::complex<double>* achstemp,  int* indinv, int ngpown, double* vcoul)
+void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, std::complex<double> *aqsmtemp_arr, std::complex<double> *aqsntemp_arr, std::complex<double> *I_eps_array_tmp, std::complex<double>& achstemp,  int* indinv, int ngpown, double* vcoul)
 {
     double to1 = 1e-6;
     int igmax;
@@ -127,8 +127,7 @@ void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, s
         achstemp_localArr[tid] += schstemp * vcoul[igp] *(double) 0.5;
     }
 
-//#pragma omp parallel for reduction(+:achstemp_localReal, achstemp_localImag)
-#pragma omp simd
+#pragma omp parallel for reduction(+:achstemp_localReal, achstemp_localImag)
     for(int i = 0; i < numThreads; i++)
     {
         achstemp_localImag += std::imag(achstemp_localArr[i]);
@@ -266,13 +265,12 @@ int main(int argc, char** argv)
     double vcoul[ncouls];
     double wx_array[3];
 
-//    std::complex<double> achstemp = std::complex<double>(0.0, 0.0);
-    std::complex<double> *achstemp = new std::complex<double>;
-//    std::complex<double> ssx_array[3], \
-//        sch_array[3], \
-//        ssxa[ncouls], \
-//        scha[ncouls], \
-//        scht, ssxt, wtilde;
+    std::complex<double> achstemp = std::complex<double>(0.0, 0.0);
+    std::complex<double> ssx_array[3], \
+        sch_array[3], \
+        ssxa[ncouls], \
+        scha[ncouls], \
+        scht, ssxt, wtilde;
 
     double wxt;
     double occ=1.0;
@@ -313,14 +311,13 @@ int main(int argc, char** argv)
 #pragma omp target map(to:wtilde_array_tmp[0:ngpown*ncouls], aqsntemp_arr[0:number_bands*ncouls], aqsmtemp_arr[0:number_bands*ncouls], I_eps_array_tmp[0:ngpown*ncouls], wx_array,vcoul) \
     map(from: achtemp_threadArr_vla, acht_n1_loc_vla, asxtemp_threadArr_vla)
 {
+//#pragma omp teams 
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
         flag_occ = n1 < nvband;
-        std::complex<double> expr0( 0.0 , 0.0);
-        std::complex<double> expr( 0.5 , 0.5);
 
 
-        reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp_arr, aqsntemp_arr, I_eps_array_tmp, achstemp, indinv, ngpown, vcoul);
+//        reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp_arr, aqsntemp_arr, I_eps_array_tmp, achstemp, indinv, ngpown, vcoul);
 
         for(int iw=nstart; iw<nend; ++iw)
         {
@@ -328,8 +325,9 @@ int main(int argc, char** argv)
             if(abs(wx_array[iw]) < to1) wx_array[iw] = to1;
         }
 
-#pragma omp teams distribute parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, wx_array)  firstprivate(wxt) schedule(dynamic) \
-        private(tid)
+#pragma omp teams distribute parallel for simd shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(ssx_array, sch_array, \
+        scht, ssxt, wxt) schedule(dynamic) \
+        private(wtilde, tid)
 //#pragma omp parallel for shared(wtilde_array, aqsntemp, aqsmtemp, I_eps_array, scha,wx_array)  firstprivate(ssx_array, sch_array, \
         scht, ssxt, wxt) schedule(dynamic) \
         private(wtilde, tid)
@@ -341,12 +339,6 @@ int main(int argc, char** argv)
             if(indigp == ncouls)
                 igp = ncouls-1;
             int igmax;
-
-            std::complex<double> ssx_array[3], \
-                sch_array[3], \
-                ssxa[ncouls], \
-                scha[ncouls], \
-                scht, ssxt, wtilde;
 
             if(!(igp > ncouls || igp < 0)) {
                 igmax = ncouls;

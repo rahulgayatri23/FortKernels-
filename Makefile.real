@@ -1,0 +1,22 @@
+EXE = gppKerCppReal
+SRC = gppKer_real.cpp 
+
+CXX = CC
+
+CXXFLAGS = -O3 -qopt-report=5 -g -std=c++11
+CXXFLAGS += -qopenmp -xCORE_AVX2 #  -xmic_avx512 #-no-vec
+CXXFLAGS += -xCORE_AVX2 
+#CXXFLAGS += -xmic_avx512 
+LINK = ${CXX}
+LINKFLAGS = -dynamic -O3 -qopenmp
+
+OBJ = $(SRC:.cpp=.o)
+
+$(EXE): $(OBJ) 
+	$(CXX) $(OBJ) -o $(EXE) $(LINKFLAGS)
+
+$(OBJ): $(SRC) 
+	$(CXX) -c $(SRC) $(CXXFLAGS)
+
+clean: 
+	rm -f *.o gppKerCppReal
