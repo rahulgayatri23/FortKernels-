@@ -7,10 +7,13 @@ SRC = gppKerOpenMPFor.cpp
 CXX = CC
 
 LINK = ${CXX}
-CXXFLAGS=-O3 -qopenmp -qopt-report=5 #-qopenmp-offload=host
-CXXFLAGS+=-xCORE_AVX2
-#CXXFLAGS += -xMIC_AVX512
-LINKFLAGS=-qopenmp
+CXXFLAGS=-O3 -g -qopenmp -std=c++11 -qopt-report=5 
+#CXXFLAGS+=-xCORE_AVX2
+CXXFLAGS+=-xMIC_AVX512
+LINKFLAGS=-qopenmp -dynamic
+
+#CXXFLAGS = -O3 -std=c++11 -fopenmp
+#LINKFLAGS = -fopenmp
 
 #ifeq ($(CXX), g++)
 #    CXXFLAGS=-O3 -std=c++11 -fopenmp
