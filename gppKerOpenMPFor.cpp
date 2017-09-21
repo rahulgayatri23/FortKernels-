@@ -363,7 +363,7 @@ int main(int argc, char** argv)
                         scht = ssxt = expr0;
                         wxt = wx_array[iw];
 #pragma ivdep
-                        for(int ig = igbeg; ig<min(igend,igmax); ++ig)
+                        for(int ig = igbeg; ig<igend; ++ig)
                         { 
                             wdiff = wxt - (*wtilde_array)[my_igp][ig];
                             cden = wdiff;

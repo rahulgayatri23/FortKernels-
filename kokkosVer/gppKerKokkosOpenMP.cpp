@@ -394,7 +394,7 @@ int main(int argc, char** argv)
         }); //ngpown
     } // number-bands
 
-//#pragma omp simd
+#pragma omp simd
     for(int iw=nstart; iw<nend; ++iw)
         for(int i = 0; i < numThreads; i++)
         {
@@ -402,7 +402,7 @@ int main(int argc, char** argv)
             asxtemp[iw] += asxtemp_threadArr_vla(i,iw);
         }
 
-//#pragma omp simd
+#pragma omp simd
     for(int n1 = 0; n1<number_bands; ++n1)
         for(int i = 0; i < numThreads; i++)
             acht_n1_loc[n1] += acht_n1_loc_vla(i,n1);

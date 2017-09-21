@@ -372,8 +372,10 @@ int main(int argc, char** argv)
                     {
                         std::complex<double> matngmatmgp = std::complex<double>(0.0, 0.0);
                         std::complex<double> matngpmatmg = std::complex<double>(0.0, 0.0);
-                        std::complex<double> *ssxa = new std::complex<double>[ncouls];
-                        std::complex<double> *scha = new std::complex<double>[ncouls];
+//                        std::complex<double> ssxa[ncouls];
+//                        std::complex<double> scha[ncouls];
+//                        std::complex<double> *ssxa = new std::complex<double>[ncouls];
+//                        std::complex<double> *scha = new std::complex<double>[ncouls];
                     
                         for(int ig=0; ig<ncouls; ++ig)
                         {
