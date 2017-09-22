@@ -13,14 +13,13 @@ class GPUComplex : public float4 {
     double im;
 
 public:
-//#pragma omp declare target
+#pragma omp declare target
 explicit GPUComplex () {
     re = 0.00;
     im = 0.00;
 }
 
 
-//#pragma omp declare target
 explicit GPUComplex(const double& x, const double& y) {
     re = x;
     im = y;
@@ -31,10 +30,16 @@ GPUComplex(const GPUComplex& src) {
     im = src.im;
 }
 
-//#pragma omp declare target
     GPUComplex& operator =(const GPUComplex& src) {
     re = src.re;
     im = src.im;
+
+    return *this;
+}
+
+    GPUComplex& operator =(const double &src) {
+    re = src;
+    im = 0.00;
 
     return *this;
 }
@@ -45,11 +50,19 @@ GPUComplex(const GPUComplex& src) {
 
     return *this;
 }
-void print() {
-    printf("re,im : %f, %f\n", this->re, this->im);
+
+    GPUComplex& operator -() {
+    re = -this->re;
+    im = -this->im;
+
+    return *this;
 }
 
-//#pragma omp declare target
+void print() const {
+    printf("\( %f, %f) ", this->re, this->im);
+    printf("\n");
+}
+
     double abs(const GPUComplex& src) {
 
     double re_this = src.x * src.re;
@@ -80,22 +93,36 @@ void print() {
         this->im = val;
     }
 
-    friend GPUComplex GPUComplex_square(GPUComplex& src) ;
-    friend GPUComplex GPUComplex_conj(const GPUComplex& src) ;
-    friend GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) ;
-    friend double GPUComplex_abs(const GPUComplex& src) ;
-    friend void GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
-    friend void GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
-    friend void GPUComplex_mult(GPUComplex& a, double b, double c) ;
+
+    friend const GPUComplex GPUComplex_square(GPUComplex& src) ;
+    friend const GPUComplex GPUComplex_conj(const GPUComplex& src) ;
+    friend const GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) ;
+    friend const double GPUComplex_abs(const GPUComplex& src) ;
+    friend const GPUComplex  GPUComplex_mult(GPUComplex& a, double b, double c) ;
+    friend const GPUComplex GPUComplex_mult(const GPUComplex& a, double b) ;
+    friend const void GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
+    friend const void GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
+    friend const GPUComplex doubleMinusGPUComplex(double &a, GPUComplex& src) ;
+    friend const GPUComplex doublePlusGPUComplex(double a, GPUComplex& src) ;
+    friend double GPUComplex_real( const GPUComplex& src) ;
+    friend double GPUComplex_imag( const GPUComplex& src) ;
+#pragma omp end declare target
         
 };
-    GPUComplex GPUComplex_square(GPUComplex& src) ;
-    GPUComplex GPUComplex_conj(const GPUComplex& src) ;
-    GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) ;
-    double GPUComplex_abs(const GPUComplex& src) ;
-    void GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
-    void GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
-    void GPUComplex_mult(GPUComplex& a, double b, double c) ;
+#pragma omp declare target
+    const GPUComplex GPUComplex_square(GPUComplex& src) ;
+    const GPUComplex GPUComplex_conj(const GPUComplex& src) ;
+    const GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) ;
+    const double GPUComplex_abs(const GPUComplex& src) ;
+    const GPUComplex GPUComplex_mult(GPUComplex& a, double b, double c) ;
+    const GPUComplex GPUComplex_mult(const GPUComplex& a, double b) ;
+    const void GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
+    const void GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
+    const GPUComplex doubleMinusGPUComplex(double &a, GPUComplex& src) ;
+    const GPUComplex doublePlusGPUComplex(double a, GPUComplex& src) ;
+    double GPUComplex_real( const GPUComplex& src) ;
+    double GPUComplex_imag( const GPUComplex& src) ;
+#pragma omp end declare target
 
 
 #endif
