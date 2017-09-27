@@ -413,6 +413,8 @@ int main(int argc, char** argv)
 
     std::chrono::duration<double> elapsed_chrono = std::chrono::high_resolution_clock::now() - start_chrono;
 
+    cout << "achstemp = " << *achstemp << endl;
+
     for(int iw=nstart; iw<nend; ++iw)
         cout << "achtemp[" << iw << "] = " << std::setprecision(15) << achtemp[iw] << endl;
 

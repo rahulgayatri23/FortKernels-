@@ -92,6 +92,7 @@ void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, s
             std::complex<double> mygpvar1 = std::conj(aqsmtemp[n1*ncouls+igp]);
             std::complex<double> mygpvar2 = aqsntemp[n1*ncouls+igp];
 
+
             schs = I_eps_array[my_igp*ncouls+igp];
             matngmatmgp = aqsntemp[n1*ncouls+igp] * mygpvar1;
 
@@ -103,6 +104,7 @@ void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, s
             for(int ig=1; ig<ncouls; ++ig)
                 schstemp = schstemp - aqsntemp[n1*ncouls+igp] * I_eps_array[my_igp*ncouls+ig] * mygpvar1;
         }
+
         achstemp_localArr[tid] += schstemp * vcoul[igp] *(double) 0.5;
     }
 
@@ -113,7 +115,8 @@ void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, s
         achstemp_localReal += std::real(achstemp_localArr[i]);
     }
     std::complex<double> tmp(achstemp_localReal, achstemp_localImag);
-    *achstemp = tmp;
+    *achstemp += tmp;
+
 
     free(achstemp_localArr);
 
@@ -277,7 +280,7 @@ int main(int argc, char** argv)
             if(abs(wx_array[iw]) < to1) wx_array[iw] = to1;
         }
 
-#pragma omp parallel for default(shared) firstprivate(sch_array, ngpown) schedule(dynamic) private(tid) 
+#pragma omp parallel for default(shared) firstprivate(sch_array, ngpown, ncouls) schedule(dynamic) private(tid) 
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
             tid = omp_get_thread_num();
@@ -312,19 +315,15 @@ int main(int argc, char** argv)
            {
                int igblk = 512;
                std::complex<double> mygpvar1 = std::conj(aqsmtemp[n1*ncouls+igp]);
-               std::complex<double> scha, cden, wdiff, delw;
+               std::complex<double> cden, wdiff, delw;
+               std::complex<double> scha[ncouls];
                double delwr, wdiffr, rden; //rden
-
-               for(int igbeg=0; igbeg<ncouls; igbeg+=igblk)
+               for(int iw=nstart; iw<nend; ++iw)
                {
-                   int igend = min(igbeg+igblk-1, ncouls);
-                   for(int iw=nstart; iw<nend; ++iw)
-                   {
-                       scht = ssxt = expr0;
-                       wxt = wx_array[iw];
-#pragma ivdep
-                       for(int ig = igbeg; ig<igend; ++ig)
-                       { 
+                   scht = ssxt = expr0;
+                   wxt = wx_array[iw];
+                   for(int ig = 0; ig<ncouls; ++ig)
+                   { 
                            wdiff = wxt - wtilde_array[my_igp*ncouls+ig];
                            cden = wdiff;
                            rden = std::real(cden * std::conj(cden));
@@ -333,14 +332,18 @@ int main(int argc, char** argv)
                            delwr = std::real(delw*std::conj(delw));
                            wdiffr = std::real(wdiff*std::conj(wdiff));
 
-                           scha = mygpvar1 * aqsntemp[n1*ncouls+ig] * delw * I_eps_array[my_igp*ncouls+ig];
-
                            if ((wdiffr > limittwo) && (delwr < limitone))
-                               scht += scha;
-                       }
+                               scha[ig] = mygpvar1 * aqsntemp[n1*ncouls+ig] * delw * I_eps_array[my_igp*ncouls+ig];
+                               else 
+                                   scht += expr0;
+                   }
+
+                    for(int ig = 0; ig<ncouls; ++ig)
+                            scht += scha[ig];
+
                        sch_array[iw] +=(double) 0.5*scht;
- 			    }
                }
+
            }
 
            if(flag_occ)
@@ -367,6 +370,7 @@ int main(int argc, char** argv)
             acht_n1_loc[n1] += acht_n1_loc_threadArr[i*number_bands+n1];
 
     std::chrono::duration<double> elapsed_chrono = std::chrono::high_resolution_clock::now() - start_chrono;
+    cout << "achstemp = " << *achstemp << endl;
 
     for(int iw=nstart; iw<nend; ++iw)
         cout << "achtemp[" << iw << "] = " << std::setprecision(15) << achtemp[iw] << endl;

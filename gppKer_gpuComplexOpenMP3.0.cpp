@@ -117,7 +117,7 @@ void flagOCC_solver(double wxt, GPUComplex *wtilde_array, int my_igp, int n1, GP
         }
     
         ssxcutoff = GPUComplex_abs(I_eps_array[my_igp*ngpown+ig]) * sexcut;
-        if((GPUComplex_abs(ssx) > ssxcutoff) && (wxt < 0.00)) ssx = 0.00;
+        if((GPUComplex_abs(ssx) > ssxcutoff) && (wxt < 0.00)) ssx = expr0;
 
         ssxt += GPUComplex_product(matngmatmgp , ssx);
         scht += GPUComplex_product(matngmatmgp , sch);
@@ -188,7 +188,7 @@ int main(int argc, char** argv)
     
 
     GPUComplex *acht_n1_loc = new GPUComplex[number_bands];
-    GPUComplex*acht_n1_loc_threadArr = new GPUComplex [numThreads*number_bands];
+    GPUComplex* acht_n1_loc_threadArr = new GPUComplex [numThreads*number_bands];
     GPUComplex *achtemp = new GPUComplex[nend-nstart];
     GPUComplex *achtemp_threadArr = new GPUComplex [numThreads*(nend-nstart)];
     GPUComplex *asxtemp = new GPUComplex[nend-nstart];
@@ -197,8 +197,6 @@ int main(int argc, char** argv)
     GPUComplex *I_eps_array = new GPUComplex[ngpown*ncouls];
     GPUComplex *wtilde_array = new GPUComplex[ngpown*ncouls];
     GPUComplex *ssx_array = new GPUComplex[3];
-//    GPUComplex *sch_array = new GPUComplex[3];
-//    GPUComplex *scha = new GPUComplex[ncouls];
     GPUComplex achstemp;
 
     double *vcoul = new double[ncouls];
@@ -250,7 +248,7 @@ int main(int argc, char** argv)
             if(wx_array[iw] < to1) wx_array[iw] = to1;
         }
 
-#pragma omp parallel for default(shared) firstprivate(ngpown, flag_occ, limittwo, limitone)  private(tid)//schedule(dynamic) 
+//#pragma omp parallel for default(shared) firstprivate(ngpown, flag_occ, limittwo, limitone)  private(tid)//schedule(dynamic) 
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
             GPUComplex *sch_array = new GPUComplex[3];
@@ -277,73 +275,7 @@ int main(int argc, char** argv)
                {
                    scht = ssxt = expr0;
                    wxt = wx_array[iw];
-                       flagOCC_solver(wxt, wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
-//                    {
-//                        GPUComplex matngmatmgp(0.0, 0.0);
-//                        GPUComplex matngpmatmg(0.0, 0.0);
-//                        GPUComplex *ssxa = new GPUComplex[ncouls];
-//                        GPUComplex *scha = new GPUComplex[ncouls];
-//                    
-//                        for(int ig=0; ig<ncouls; ++ig)
-//                        {
-//                            GPUComplex wtilde = wtilde_array[my_igp*ncouls+ig];
-//                            GPUComplex wtilde2 = GPUComplex_square(wtilde);
-//                            GPUComplex Omega2 = GPUComplex_product(wtilde2,I_eps_array[my_igp*ncouls+ig]);
-//                            GPUComplex mygpvar1 = GPUComplex_conj(aqsmtemp[n1*ncouls+igp]);
-//                            GPUComplex mygpvar2 = aqsmtemp[n1*ncouls+igp];
-//                            GPUComplex matngmatmgp = GPUComplex_product(aqsntemp[n1*ncouls+ig] , mygpvar1);
-//                            if(ig != igp) matngpmatmg = GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+ig]) , mygpvar2);
-//                    
-//                    //        ssxt_scht_solver(wxt, igp, my_igp, ig, wtilde, wtilde2, Omega2, matngmatmgp, matngpmatmg, mygpvar1, mygpvar2, ssxa[ig], scha[ig], I_eps_array[my_igp*ngpown+ig]);
-//                            {
-//                                double delw2, scha_mult, ssxcutoff;
-//                                double to1 = 1e-6;
-//                                double sexcut = 4.0;
-//                                double gamma = 0.5;
-//                                double limitone = 1.0/(to1*4.0);
-//                                double limittwo = pow(0.5,2);
-//                                GPUComplex sch, ssx;
-//                            
-//                                GPUComplex wdiff = doubleMinusGPUComplex(wxt , wtilde);
-//                            
-//                                GPUComplex cden = wdiff;
-//                                double rden = 1/GPUComplex_real(GPUComplex_product(cden , GPUComplex_conj(cden)));
-//                                GPUComplex delw = GPUComplex_mult(GPUComplex_product(wtilde , GPUComplex_conj(cden)) , rden);
-//                                double delwr = GPUComplex_real(GPUComplex_product(delw , GPUComplex_conj(delw)));
-//                                double wdiffr = GPUComplex_real(GPUComplex_product(wdiff , GPUComplex_conj(wdiff)));
-//                            
-//                                if((wdiffr > limittwo) && (delwr < limitone))
-//                                {
-//                                    sch = GPUComplex_product(delw , I_eps_array[my_igp*ngpown+ig]);
-//                                    double cden = std::pow(wxt,2);
-//                                    rden = std::pow(cden,2);
-//                                    rden = 1.00 / rden;
-//                                    ssx = GPUComplex_mult(Omega2 , cden , rden);
-//                                }
-//                                else if (delwr > to1)
-//                                {
-//                                    sch = expr0;
-//                                    cden = GPUComplex_mult(GPUComplex_product(wtilde2, doublePlusGPUComplex((double)0.50, delw)), 4.00);
-//                                    rden = GPUComplex_real(GPUComplex_product(cden , GPUComplex_conj(cden)));
-//                                    rden = 1.00/rden;
-//                                    ssx = GPUComplex_product(GPUComplex_product(-Omega2 , GPUComplex_conj(cden)), GPUComplex_mult(delw, rden));
-//                                }
-//                                else
-//                                {
-//                                    sch = expr0;
-//                                    ssx = expr0;
-//                                }
-//                            
-//                                ssxcutoff = GPUComplex_abs(I_eps_array[my_igp*ngpown+ig]) * sexcut;
-//                                if((GPUComplex_abs(ssx) > ssxcutoff) && (wxt < 0.00)) ssx = 0.00;
-//                            
-//                                ssxa[ig] = GPUComplex_product(matngmatmgp , ssx);
-//                                scha[ig] = GPUComplex_product(matngmatmgp , sch);
-//                            }
-//                            ssxt += ssxa[ig];
-//                            scht += scha[ig];
-//                        }
-//                    }
+                   flagOCC_solver(wxt, wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
 
                    ssx_array[iw] += ssxt;
                    sch_array[iw] += GPUComplex_mult(scht, 0.5) ;
@@ -351,8 +283,7 @@ int main(int argc, char** argv)
            }
            else
            {
-                GPUComplex mygpvar1;
-                mygpvar1 = GPUComplex_conj(aqsmtemp[n1*ncouls+igp]);
+                GPUComplex mygpvar1 = GPUComplex_conj(aqsmtemp[n1*ncouls+igp]);
                 GPUComplex wdiff, delw,tmp ;
                 double delwr, wdiffr, rden; 
 
@@ -363,8 +294,6 @@ int main(int argc, char** argv)
 
                    for(int ig = 0; ig<ncouls; ++ig)
                    { 
-                            scha[ig] = expr; ;
-
                        wdiff = doubleMinusGPUComplex(wxt , wtilde_array[my_igp*ncouls+ig]);
                        rden = GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)));
                        rden = 1/rden;
@@ -372,25 +301,22 @@ int main(int argc, char** argv)
                        delwr = GPUComplex_real(GPUComplex_product(delw,GPUComplex_conj(delw)));
                        wdiffr = GPUComplex_real(GPUComplex_product(wdiff,GPUComplex_conj(wdiff)));
 
-
                         if ((wdiffr > limittwo) && (delwr < limitone))
                             scha[ig] = GPUComplex_product(GPUComplex_product(mygpvar1 , aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig]));
                             else 
                                 scha[ig] = expr0;
-
                    }
 
                     for(int ig = 0; ig<ncouls; ++ig)
                             scht += scha[ig];
 
-
                        sch_array[iw] += GPUComplex_mult(scht, 0.5);
+                }
             }
-           }
 
            if(flag_occ)
                for(int iw=nstart; iw<nend; ++iw)
-#pragma omp critical
+//#pragma omp critical
                    asxtemp[iw] += GPUComplex_mult(ssx_array[iw] , occ , vcoul[igp]);
 
             for(int iw=nstart; iw<nend; ++iw)
@@ -425,7 +351,9 @@ int main(int argc, char** argv)
     cout << "********** Chrono Time Taken **********= " << elapsed_chrono.count() << " secs" << endl;
 
     free(acht_n1_loc);
+    free(acht_n1_loc_threadArr);
     free(achtemp);
+    free(achtemp_threadArr);
     free(aqsmtemp);
     free(aqsntemp);
     free(I_eps_array);

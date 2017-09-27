@@ -276,11 +276,11 @@ int main(int argc, char** argv)
         indinv[ig] = ig;
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
-#pragma omp target enter data map(alloc:acht_n1_loc[0:number_bands], achtemp[0:(nend-nstart)], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls], scha[0:ncouls], asxtemp[0:(nend-nstart)])
-
-#pragma omp target update to(aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls], wtilde_array[0:ngpown*ncouls])
-
-#pragma omp target map(to:ssx_array[0:3], sch_array[0:3]) map(tofrom:achstemp_real, achstemp_imag)  
+//#pragma omp target enter data map(alloc:acht_n1_loc[0:number_bands], achtemp[0:(nend-nstart)], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls], scha[0:ncouls], asxtemp[0:(nend-nstart)])
+//
+//#pragma omp target update to(aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls], wtilde_array[0:ngpown*ncouls])
+//
+//#pragma omp target map(to:ssx_array[0:3], sch_array[0:3]) map(tofrom:achstemp_real, achstemp_imag)  
 {
        for(int iw=nstart; iw<nend; ++iw)
        {
@@ -289,7 +289,7 @@ int main(int argc, char** argv)
        }
        achstemp_real=0.00; achstemp_imag = 0.00;
 
-#pragma target teams distribute shared(vcoul, aqsntemp, aqsmtemp, I_eps_array, ssx_array) 
+//#pragma target teams distribute shared(vcoul, aqsntemp, aqsmtemp, I_eps_array, ssx_array) 
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
         flag_occ = n1 < nvband;
@@ -336,6 +336,7 @@ int main(int argc, char** argv)
 //            achstemp = tmp*0.5;
         
         }
+        
 
         for(int iw=nstart; iw<nend; ++iw)
         {
@@ -452,7 +453,7 @@ int main(int argc, char** argv)
                    scht = ssxt = expr0;
                    wxt = wx_array[iw];
 
-#pragma omp for schedule(static)
+//#pragma omp for schedule(static)
                    for(int ig = 0; ig<ncouls; ++ig)
                    { 
                        wdiff = wxt - wtilde_array[my_igp*ncouls+ig];
@@ -492,9 +493,9 @@ int main(int argc, char** argv)
         } //ngpown
     } // number-bands
 } //TARGET
-#pragma omp target update from (acht_n1_loc[0:number_bands], achtemp[0:(nend-nstart)], asxtemp[0:(nend-nstart)])
-
-#pragma omp target exit data map(delete: acht_n1_loc[:0], achtemp[:0], aqsmtemp[:0],aqsntemp[:0], I_eps_array[:0], wtilde_array[:0], vcoul[:0], inv_igp_index[:0], indinv[:0], scha[:0], asxtemp[:0])
+//#pragma omp target update from (acht_n1_loc[0:number_bands], achtemp[0:(nend-nstart)], asxtemp[0:(nend-nstart)])
+//
+//#pragma omp target exit data map(delete: acht_n1_loc[:0], achtemp[:0], aqsmtemp[:0],aqsntemp[:0], I_eps_array[:0], wtilde_array[:0], vcoul[:0], inv_igp_index[:0], indinv[:0], scha[:0], asxtemp[:0])
 
 //#pragma omp target exit data map(delete: acht_n1_loc[0:number_bands], achtemp[0:(nend-nstart)], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls], scha[0:ncouls], asxtemp[0:(nend-nstart)])
 
