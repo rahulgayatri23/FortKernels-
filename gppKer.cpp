@@ -348,21 +348,51 @@ int main(int argc, char** argv)
             }
             else
             {
-                int igblk = 512;
-                std::complex<double> mygpvar1 = std::conj((*aqsmtemp)[n1][igp]);
-                std::complex<double> scha, cden, wdiff, delw;
-                double delwr, wdiffr, rden; //rden
+               int igblk = 512;
+               std::complex<double> mygpvar1 = std::conj((*aqsmtemp)[n1][igp]);
+               std::complex<double> cden, wdiff, delw;
+               std::complex<double> scha;
+               double delwr, wdiffr, rden; //rden
 
-                for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
-                {
-                    int igend = min(igbeg+igblk-1, igmax);
-                    for(int iw=nstart; iw<nend; ++iw)
-                    {
-                        scht = ssxt = expr0;
-                        wxt = wx_array[iw];
-#pragma ivdep
-                        for(int ig = igbeg; ig<min(igend,igmax); ++ig)
-                        { 
+/*NON CAHCE-BLOCKED VERSION */
+//               for(int iw=nstart; iw<nend; ++iw)
+//               {
+//                   scht = ssxt = expr0;
+//                   wxt = wx_array[iw];
+//                   for(int ig = 0; ig<ncouls; ++ig)
+//                   { 
+//                        wdiff = wxt - (*wtilde_array)[my_igp][ig];
+//                        cden = wdiff;
+//                        rden = std::real(cden * std::conj(cden));
+//                        rden = 1/rden;
+//                        delw = (*wtilde_array)[my_igp][ig] * conj(cden) * rden ; //*rden
+//                        delwr = std::real(delw*std::conj(delw));
+//                        wdiffr = std::real(wdiff*std::conj(wdiff));
+//
+//                        if ((wdiffr > limittwo) && (delwr < limitone))
+//                            scha[ig] = mygpvar1 * (*aqsntemp)[n1][ig] * delw * (*I_eps_array)[my_igp][ig];
+//                            else 
+//                                scha[ig] = expr0;
+//                        
+//                   }
+//
+//                    for(int ig = 0; ig<ncouls; ++ig)
+//                            scht += scha[ig];
+//
+//                       sch_array[iw] +=(double) 0.5*scht;
+//               }
+
+
+/*CAHCE-BLOCKED VERSION */
+               for(int igbeg = 0; igbeg < ncouls; igbeg+=igblk)
+               {
+                   int igend = min(igbeg+igblk, ncouls);
+                   for(int iw = nstart; iw < nend; iw++)
+                   {
+                       scht = ssxt = expr0;
+                       wxt = wx_array[iw];
+                       for(int ig = igbeg; ig < igend; ig++)
+                       {
                             wdiff = wxt - (*wtilde_array)[my_igp][ig];
                             cden = wdiff;
                             rden = std::real(cden * std::conj(cden));
@@ -374,12 +404,13 @@ int main(int argc, char** argv)
                             scha = mygpvar1 * (*aqsntemp)[n1][ig] * delw * (*I_eps_array)[my_igp][ig];
 
                             if ((wdiffr > limittwo) && (delwr < limitone))
-                                scht = scht + scha;
-                        }
+                                scht += scha;
+                        
+                       }
 
-                        sch_array[iw] +=(double) 0.5*scht;
-				    }
-                }
+                           sch_array[iw] +=(double) 0.5*scht;
+                   }
+               }
             }
 
             if(flag_occ)
