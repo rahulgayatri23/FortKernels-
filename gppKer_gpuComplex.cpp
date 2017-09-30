@@ -337,7 +337,6 @@ int main(int argc, char** argv)
             if(wx_array[iw] < to1) wx_array[iw] = to1;
         }
 
-//#pragma teams distribute shared(vcoul, aqsntemp, aqsmtemp, I_eps_array, ssx_array) reduction(+:achtemp_re, achtemp_im)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
             GPUComplex scht, ssxt;
@@ -407,17 +406,13 @@ int main(int argc, char** argv)
                for(int iw=nstart; iw<nend; ++iw)
                    asxtemp[iw] += GPUComplex_mult(ssx_array[iw] , occ , vcoul[igp]);
 
-//#pragma omp critical
-{
             for(int iw=nstart; iw<nend; ++iw)
             {
                 achtemp_re[iw] += GPUComplex_real( GPUComplex_mult(sch_array[iw] , vcoul[igp]));
                 achtemp_im[iw] += GPUComplex_imag( GPUComplex_mult(sch_array[iw] , vcoul[igp]));
-//                achtemp[iw] += GPUComplex_mult(sch_array[iw] , vcoul[igp]);
             }
 
             acht_n1_loc[n1] += GPUComplex_mult(sch_array[2] , vcoul[igp]);
-}
 
             } //for the if-loop to avoid break inside an openmp pragma statment
         } //ngpown
