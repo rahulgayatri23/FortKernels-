@@ -1,0 +1,19 @@
+EXE = gppKerFort.ex
+SRC = gppkernel_Fort.f90
+
+#CXX = xlc++
+CXX = gfortran
+
+CXXFLAGS= -g -O3 -fopenmp#-foffload="-lm" -foffload=nvptx-none
+LINKFLAGS=-fopenmp
+
+OBJ = $(SRC:.f90=.o)
+
+$(EXE): $(OBJ) 
+	$(CXX) $(OBJ) -o $(EXE) $(LINKFLAGS)
+
+$(OBJ): $(SRC) 
+	$(CXX) -c $(SRC) $(CXXFLAGS)
+
+clean: 
+	rm -f $(SRC).o $(EXE)

@@ -1,0 +1,22 @@
+EXE = testCase.ex
+SRC = testComplexPerformance.cpp 
+SRC+=Complex.cpp
+
+CXX = g++
+
+LINK = ${CXX}
+
+
+CXXFLAGS= -g -foffload="-lm" -foffload=nvptx-none -O3 -std=c++11 -fopenmp#nvptx-none
+LINKFLAGS=-fopenmp
+
+OBJ = $(SRC:.cpp=.o)
+
+$(EXE): $(OBJ) 
+	$(CXX) $(OBJ) -o $(EXE) $(LINKFLAGS)
+
+$(OBJ): $(SRC) 
+	$(CXX) -c $(SRC) $(CXXFLAGS)
+
+clean: 
+	rm -f $(SRC).o $(EXE)

@@ -1,0 +1,22 @@
+EXE = gppKerFortOpenMP4.ex
+SRC = gppkernel_FortOpenMP4.f90
+
+#CXX = xlc++
+CXX = gfortran
+
+#CXXFLAGS=-O3 -std=gnu++11 -g -qsmp -qoffload -Xptxas -v
+#LINKFLAGS=-qsmp -qoffload 
+
+CXXFLAGS= -g -foffload="-lm" -foffload=nvptx-none -O3 -fopenmp
+LINKFLAGS=-fopenmp
+
+OBJ = $(SRC:.f90=.o)
+
+$(EXE): $(OBJ) 
+	$(CXX) $(OBJ) -o $(EXE) $(LINKFLAGS)
+
+$(OBJ): $(SRC) 
+	$(CXX) -c $(SRC) $(CXXFLAGS)
+
+clean: 
+	rm -f $(SRC).o $(EXE)
