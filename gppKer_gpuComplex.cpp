@@ -338,6 +338,7 @@ int main(int argc, char** argv)
         }
 
 //#pragma teams distribute shared(vcoul, aqsntemp, aqsmtemp, I_eps_array, ssx_array) reduction(+:achtemp_re, achtemp_im)
+#pragma omp for
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
             GPUComplex scht, ssxt;
@@ -379,7 +380,7 @@ int main(int argc, char** argv)
                    scht = ssxt = expr0;
                    wxt = wx_array[iw];
 
-#pragma omp for schedule(static)
+#pragma omp simd
                    for(int ig = 0; ig<ncouls; ++ig)
                    { 
                        wdiff = doubleMinusGPUComplex(wxt , wtilde_array[my_igp*ncouls+ig]);

@@ -1,5 +1,5 @@
-EXE = gppKer_gpuComplexOpenMP3.0.ex
-SRC = gppKer_gpuComplexOpenMP3.0.cpp 
+EXE = gppKer_gpuComplex.ex
+SRC = gppKer_gpuComplex.cpp 
 SRC+=Complex.h
 
 #CXX = xlc++
@@ -11,7 +11,7 @@ LINK = ${CXX}
 #CXXFLAGS=-O3 -g -std=c++11 -qsmp -g  
 #LINKFLAGS=-qsmp 
 
-CXXFLAGS= -g -O3 -std=c++11 -fopenmp#-foffload="-lm" -foffload=nvptx-none
+CXXFLAGS= -g -O3 -std=c++11 -fopenmp -foffload="-lm" -foffload=nvptx-none
 LINKFLAGS=-fopenmp
 
 OBJ = $(SRC:.cpp=.o)
