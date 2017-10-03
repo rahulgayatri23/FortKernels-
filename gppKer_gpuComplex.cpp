@@ -220,8 +220,8 @@ int main(int argc, char** argv)
     int inv_igp_index[ngpown];
     int indinv[ncouls];
 
-    //OpenMP variables
-    int tid, numThreads;
+    //OpenMP Printing of threads on Host and Device
+    int tid, numThreads, numTeams;
 #pragma omp parallel shared(numThreads) private(tid)
     {
         tid = omp_get_thread_num();
@@ -229,6 +229,24 @@ int main(int argc, char** argv)
             numThreads = omp_get_num_threads();
     }
     std::cout << "Number of OpenMP Threads = " << numThreads << endl;
+
+#pragma omp target map(tofrom: numTeams, numThreads)
+#pragma omp teams shared(numTeams) private(tid)
+    {
+        tid = omp_get_team_num();
+        if(tid == 0)
+        {
+            numTeams = omp_get_num_teams();
+#pragma omp parallel 
+            {
+                int ttid = omp_get_thread_num();
+                if(ttid == 0)
+                    numThreads = omp_get_num_threads();
+            }
+        }
+    }
+    std::cout << "Number of OpenMP Teams = " << numTeams << std::endl;
+    std::cout << "Number of OpenMP DEVICE Threads = " << numThreads << std::endl;
 
     double to1 = 1e-6, \
     gamma = 0.5, \
@@ -266,8 +284,8 @@ int main(int argc, char** argv)
     GPUComplex *I_eps_array = new GPUComplex[ngpown*ncouls];
     GPUComplex *wtilde_array = new GPUComplex[ngpown*ncouls];
     GPUComplex *ssx_array = new GPUComplex[3];
-    GPUComplex *sch_array = new GPUComplex[3];
-    GPUComplex *scha = new GPUComplex[ncouls];
+//    GPUComplex *sch_array = new GPUComplex[3];
+//    GPUComplex *scha = new GPUComplex[ncouls];
     GPUComplex *ssxa = new GPUComplex[ncouls];
     GPUComplex achstemp;
 
@@ -309,13 +327,13 @@ int main(int argc, char** argv)
     for(int ig=0, tmp=1; ig<ncouls; ++ig,tmp++)
         indinv[ig] = ig;
 
-    auto start_chrono = std::chrono::high_resolution_clock::now();
 
-#pragma omp target enter data map(alloc:acht_n1_loc[0:number_bands], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls], asxtemp[0:(nend-nstart)], sch_array[0:3], ssx_array[0:3],ssxa[0:ncouls], scha[0:ncouls], achtemp_re[0:3], achtemp_im[0:3])
+#pragma omp target enter data map(alloc:acht_n1_loc[0:number_bands], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls], asxtemp[0:(nend-nstart)], ssx_array[0:3],ssxa[0:ncouls], achtemp_re[0:3], achtemp_im[0:3])
 
 #pragma omp target update to(aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls], wtilde_array[0:ngpown*ncouls])
 
-#pragma omp target
+    auto start_chrono = std::chrono::high_resolution_clock::now();
+#pragma omp target 
 {
        for(int iw=nstart; iw<nend; ++iw)
        {
@@ -324,10 +342,12 @@ int main(int argc, char** argv)
            achtemp_im[iw] = 0.00;
        }
 
-#pragma teams distribute shared(vcoul, aqsntemp, aqsmtemp, I_eps_array, ssx_array) reduction(+:achtemp_re, achtemp_im)
+#pragma omp teams distribute shared(vcoul, aqsntemp, aqsmtemp, I_eps_array) firstprivate(achstemp, numThreads, ssx_array, ssxa)//reduction(+:achtemp_re, achtemp_im)
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
         flag_occ = n1 < nvband;
+            GPUComplex sch_array[3];
+            GPUComplex scha[ncouls];
 
         reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul, numThreads);
 
@@ -337,10 +357,10 @@ int main(int argc, char** argv)
             if(wx_array[iw] < to1) wx_array[iw] = to1;
         }
 
-//#pragma teams distribute shared(vcoul, aqsntemp, aqsmtemp, I_eps_array, ssx_array) reduction(+:achtemp_re, achtemp_im)
-#pragma omp for
+#pragma omp parallel for firstprivate(sch_array, scha)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
+
             GPUComplex scht, ssxt;
             int indigp = inv_igp_index[my_igp];
             int igp = indinv[indigp];
@@ -380,7 +400,7 @@ int main(int argc, char** argv)
                    scht = ssxt = expr0;
                    wxt = wx_array[iw];
 
-#pragma omp simd
+//#pragma omp simd
                    for(int ig = 0; ig<ncouls; ++ig)
                    { 
                        wdiff = doubleMinusGPUComplex(wxt , wtilde_array[my_igp*ncouls+ig]);
@@ -408,13 +428,12 @@ int main(int argc, char** argv)
                for(int iw=nstart; iw<nend; ++iw)
                    asxtemp[iw] += GPUComplex_mult(ssx_array[iw] , occ , vcoul[igp]);
 
-//#pragma omp critical
+#pragma omp critical
 {
             for(int iw=nstart; iw<nend; ++iw)
             {
                 achtemp_re[iw] += GPUComplex_real( GPUComplex_mult(sch_array[iw] , vcoul[igp]));
                 achtemp_im[iw] += GPUComplex_imag( GPUComplex_mult(sch_array[iw] , vcoul[igp]));
-//                achtemp[iw] += GPUComplex_mult(sch_array[iw] , vcoul[igp]);
             }
 
             acht_n1_loc[n1] += GPUComplex_mult(sch_array[2] , vcoul[igp]);
@@ -424,14 +443,14 @@ int main(int argc, char** argv)
         } //ngpown
     } // number-bands
 } //TARGET
+    std::chrono::duration<double> elapsed_chrono = std::chrono::high_resolution_clock::now() - start_chrono;
 #pragma omp target update from (acht_n1_loc[0:number_bands], asxtemp[0:(nend-nstart)], achtemp_re[0:(nend-nstart)], achtemp_im[0:(nend-nstart)] )
 
-#pragma omp target exit data map(delete: acht_n1_loc[:0], aqsmtemp[:0],aqsntemp[:0], I_eps_array[:0], wtilde_array[:0], vcoul[:0], inv_igp_index[:0], indinv[:0], scha[:0], asxtemp[:0])
+#pragma omp target exit data map(delete: acht_n1_loc[:0], aqsmtemp[:0],aqsntemp[:0], I_eps_array[:0], wtilde_array[:0], vcoul[:0], inv_igp_index[:0], indinv[:0], asxtemp[:0])
 
 
     printf(" \n Final achstemp\n");
     achstemp.print();
-    std::chrono::duration<double> elapsed_chrono = std::chrono::high_resolution_clock::now() - start_chrono;
 
     printf("\n Final achtemp\n");
     for(int iw=nstart; iw<nend; ++iw)

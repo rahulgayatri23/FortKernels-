@@ -23,4 +23,4 @@ $(OBJ): $(SRC)
 	$(CXX) -c $(SRC) $(CXXFLAGS)
 
 clean: 
-	rm -f *.o gppKer_gpuComplexOpenMP3.0.ex
+	rm -f *.o $(EXE)
