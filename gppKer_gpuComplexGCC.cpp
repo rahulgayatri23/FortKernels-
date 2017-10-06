@@ -327,13 +327,17 @@ int main(int argc, char** argv)
     for(int ig=0, tmp=1; ig<ncouls; ++ig,tmp++)
         indinv[ig] = ig;
 
+        double achtemp_re0 = 0, achtemp_im0 = 0,\
+            achtemp_re1 = 0, achtemp_im1 = 0,\
+            achtemp_re2 = 0, achtemp_im2 = 0;
+
     auto start_chrono_withDataMovement = std::chrono::high_resolution_clock::now();
 #pragma omp target enter data map(alloc:acht_n1_loc[0:number_bands], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls], asxtemp[0:(nend-nstart)], ssx_array[0:3], achtemp_re[nstart:nend], achtemp_im[nstart:nend])
 
 #pragma omp target update to(aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls], wtilde_array[0:ngpown*ncouls])
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
-#pragma omp target 
+#pragma omp target // map(to: achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2)
 {
        for(int iw=nstart; iw<nend; ++iw)
        {
@@ -436,10 +440,18 @@ int main(int argc, char** argv)
                for(int iw=nstart; iw<nend; ++iw)
                    asxtemp[iw] += GPUComplex_mult(ssx_array[iw] , occ , vcoul[igp]);
 
+            //achtemp_re0 += GPUComplex_real( GPUComplex_mult(sch_array[0] , vcoul[igp]));
+            //achtemp_im0 += GPUComplex_imag( GPUComplex_mult(sch_array[0] , vcoul[igp]));
+            //achtemp_re1 += GPUComplex_real( GPUComplex_mult(sch_array[1] , vcoul[igp]));
+            //achtemp_im1 += GPUComplex_imag( GPUComplex_mult(sch_array[1] , vcoul[igp]));
+            //achtemp_re2 += GPUComplex_real( GPUComplex_mult(sch_array[2] , vcoul[igp]));
+            //achtemp_im2 += GPUComplex_imag( GPUComplex_mult(sch_array[2] , vcoul[igp]));
+
             for(int iw=nstart; iw<nend; ++iw)
             {
 #pragma omp atomic
                 achtemp_re[iw] += GPUComplex_real( GPUComplex_mult(sch_array[iw] , vcoul[igp]));
+#pragma omp atomic
                 achtemp_im[iw] += GPUComplex_imag( GPUComplex_mult(sch_array[iw] , vcoul[igp]));
             }
 
@@ -448,6 +460,12 @@ int main(int argc, char** argv)
             } //for the if-loop to avoid break inside an openmp pragma statment
         } //ngpown
     } // number-bands
+//    achtemp_re[0] = achtemp_re0;
+//    achtemp_im[0] = achtemp_im0;
+//    achtemp_re[1] = achtemp_re1;
+//    achtemp_im[1] = achtemp_im1;
+//    achtemp_re[2] = achtemp_re2;
+//    achtemp_im[2] = achtemp_im2;
 } //TARGET
 
     std::chrono::duration<double> elapsed_chrono = std::chrono::high_resolution_clock::now() - start_chrono;

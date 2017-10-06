@@ -9,8 +9,6 @@
 #include <ctime>
 #include <chrono>
 
-#include "Complex.h"
-
 #define N 800
 
 #define c(x,y,z) c[x + ny* (y+nz*z)]
@@ -27,10 +25,10 @@ int main()
         if(tid == 0)
             numThreads = omp_get_num_threads();
     }
-    std::cout << "Number of OpenMP HOST Threads = " << numThreads << std::endl;
+    std::cout << "Number of OpenMP Threads = " << numThreads << std::endl;
 
-#pragma omp target map(tofrom: numTeams, numThreads)
-#pragma omp teams shared(numTeams) private(tid)
+#pragma omp target enter data map(alloc: numTeams, numThreads)
+#pragma omp target teams map(tofrom: numTeams, numThreads) shared(numTeams) private(tid)
     {
         tid = omp_get_team_num();
         if(tid == 0)
@@ -44,6 +42,7 @@ int main()
             }
         }
     }
+#pragma omp target exit data map(delete: numTeams, numThreads)
     std::cout << "Number of OpenMP Teams = " << numTeams << std::endl;
     std::cout << "Number of OpenMP DEVICE Threads = " << numThreads << std::endl;
 
@@ -78,11 +77,9 @@ int main()
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
 
-//#pragma omp parallel for simd collapse(3)
-
-#pragma omp target
+#pragma omp target map(to:a[0:nx*ny*nz] , b[0:nx*ny*nz]) map(tofrom:c[0:nx*ny*nz])
 {
-#pragma omp teams distribute 
+#pragma omp teams distribute //shared(a , b, c)
     for(size_t z = 0; z < nz ; z++)
     {
 #pragma omp parallel for 

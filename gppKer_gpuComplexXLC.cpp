@@ -338,6 +338,10 @@ int main(int argc, char** argv)
            achtemp_re[iw] = 0.00;
            achtemp_im[iw] = 0.00;
        }
+        double achtemp_re0 = 0, achtemp_im0 = 0,\
+            achtemp_re1 = 0, achtemp_im1 = 0,\
+            achtemp_re2 = 0, achtemp_im2 = 0;
+
 
     auto start_chrono_withDataMovement = std::chrono::high_resolution_clock::now();
 #pragma omp target enter data map(alloc:acht_n1_loc[0:number_bands], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls], asxtemp[0:(nend-nstart)], ssx_array[0:3], achtemp_re[nstart:nend], achtemp_im[nstart:nend])
@@ -345,19 +349,18 @@ int main(int argc, char** argv)
 #pragma omp target update to(aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls], wtilde_array[0:ngpown*ncouls], asxtemp[nstart:nend], achtemp_re[nstart:nend], achtemp[nstart:nend])
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
-#pragma omp target map(to:aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls])\
+#pragma omp target map(to:aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls], achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2)\
     map(tofrom:acht_n1_loc[0:number_bands], asxtemp[nstart:nend], achtemp_re[nstart:nend], achtemp[nstart:nend], wx_array[nstart:nend]) 
  
 {
 
 #pragma omp teams distribute shared(vcoul, aqsntemp, aqsmtemp, I_eps_array) firstprivate(achstemp) //reduction(+:achtemp_re0, achtemp_im0, achtemp_re1, achtemp_im1, achtemp_re2, achtemp_im2)
-//#pragma omp teams distribute 
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
         flag_occ = n1 < nvband;
         GPUComplex sch_array[3];
 
-//        reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul, numThreads);
+        reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul, numThreads);
 
         for(int iw=nstart; iw<nend; ++iw)
         {
@@ -403,22 +406,13 @@ int main(int argc, char** argv)
                 GPUComplex wdiff, delw;
                 double delwr, wdiffr, rden; 
 
-/* Cache BLOCKED VERSION*/
-//            int igblk = 512, numBlock = 0;
-            for(int igbeg=0; igbeg<ncouls; igbeg+=igblk)
-            {
-                scht = expr0;
-                int igend;
-                (igbeg+igblk) < ncouls? igend=igbeg+igblk : igend = ncouls;
-
+/*NON Cache BLOCKED VERSION*/
                 for(int iw=nstart; iw<nend; ++iw)
                 {
                     wxt = wx_array[iw];
-                    int sch_cntr = 0;
-                    GPUComplex scha_tmp(0.00, 0.00);
-////#pragma omp simd
-                    for(int ig = igbeg; ig<igend; ++ig)
-                    { 
+                    scht = expr0;
+                    for(int ig = 0; ig<ncouls; ++ig)
+                    {
                         wdiff = doubleMinusGPUComplex(wxt , wtilde_array[my_igp*ncouls+ig]);
                         rden = GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)));
                         rden = 1/rden;
@@ -429,18 +423,55 @@ int main(int argc, char** argv)
                         if ((wdiffr > limittwo) && (delwr < limitone))
                             scht += GPUComplex_product(GPUComplex_product(mygpvar1 , aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig]));
                     }
-
-                    
                     sch_array[iw] += GPUComplex_mult(scht, 0.5);
-
                 }
+
+///* Cache BLOCKED VERSION*/
+//            for(int igbeg=0; igbeg<ncouls; igbeg+=igblk)
+//            {
+//                scht = expr0;
+//                int igend;
+//                (igbeg+igblk) < ncouls? igend=igbeg+igblk : igend = ncouls;
 //
-            }
+//                for(int iw=nstart; iw<nend; ++iw)
+//                {
+//                    wxt = wx_array[iw];
+//                    int sch_cntr = 0;
+//                    GPUComplex scha_tmp(0.00, 0.00);
+//////#pragma omp simd
+//                    for(int ig = igbeg; ig<igend; ++ig)
+//                    { 
+//                        wdiff = doubleMinusGPUComplex(wxt , wtilde_array[my_igp*ncouls+ig]);
+//                        rden = GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)));
+//                        rden = 1/rden;
+//                        delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), rden); 
+//                        delwr = GPUComplex_real(GPUComplex_product(delw,GPUComplex_conj(delw)));
+//                        wdiffr = GPUComplex_real(GPUComplex_product(wdiff,GPUComplex_conj(wdiff)));
+//                        
+//                        if ((wdiffr > limittwo) && (delwr < limitone))
+//                            scht += GPUComplex_product(GPUComplex_product(mygpvar1 , aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig]));
+//                    }
+//                    sch_array[iw] += GPUComplex_mult(scht, 0.5);
+//                }
+//            }
            }
 
            if(flag_occ)
                for(int iw=nstart; iw<nend; ++iw)
                    asxtemp[iw] += GPUComplex_mult(ssx_array[iw] , occ , vcoul[igp]);
+            
+//#pragma omp atomic
+//            achtemp_re0 += GPUComplex_real( GPUComplex_mult(sch_array[0] , vcoul[igp]));
+//#pragma omp atomic
+//            achtemp_im0 += GPUComplex_imag( GPUComplex_mult(sch_array[0] , vcoul[igp]));
+//#pragma omp atomic
+//            achtemp_re1 += GPUComplex_real( GPUComplex_mult(sch_array[1] , vcoul[igp]));
+//#pragma omp atomic
+//            achtemp_im1 += GPUComplex_imag( GPUComplex_mult(sch_array[1] , vcoul[igp]));
+//#pragma omp atomic
+//            achtemp_re2 += GPUComplex_real( GPUComplex_mult(sch_array[2] , vcoul[igp]));
+//#pragma omp atomic
+            achtemp_im2 += GPUComplex_imag( GPUComplex_mult(sch_array[2] , vcoul[igp]));
 
             for(int iw=nstart; iw<nend; ++iw)
             {
@@ -454,6 +485,12 @@ int main(int argc, char** argv)
 
             } //for the if-loop to avoid break inside an openmp pragma statment
         } //ngpown
+//    achtemp_re[0] = achtemp_re0;
+//    achtemp_im[0] = achtemp_im0;
+//    achtemp_re[1] = achtemp_re1;
+//    achtemp_im[1] = achtemp_im1;
+//    achtemp_re[2] = achtemp_re2;
+//    achtemp_im[2] = achtemp_im2;
     } // number-bands
 } //TARGET
 
