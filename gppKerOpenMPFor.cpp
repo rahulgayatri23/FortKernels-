@@ -357,7 +357,7 @@ int main(int argc, char** argv)
 
                 for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
                 {
-                    int igend = min(igbeg+igblk-1, igmax);
+                    int igend = min(igbeg+igblk, igmax);
                     for(int iw=nstart; iw<nend; ++iw)
                     {
                         scht = ssxt = expr0;
