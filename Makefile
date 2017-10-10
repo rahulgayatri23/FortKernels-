@@ -1,23 +1,50 @@
-EXE=gppKerCpp
-SRC=gppKer.cpp
+EXE = gppKer_OpenACC.ex
+SRC1 = gppKer_OpenACC.cpp 
+SRC2 = gpuComplex.cpp
 
-#CXX=/Users/rgayatri/Documents/Softs/GCC/gcc-7.1.0/_build/bin/g++
-CXX=CC
-#CXX=icc
+#CXX = xlc++
+#CXX = CC 
+CXX = g++
+#CXX = clang++
 
-CXXFLAGS=-O3 -std=c++11 -qopt-report=5 -g -qopenmp 
-#CXXFLAGS+= -xCORE_AVX2
-CXXFLAGS+= -xMIC_AVX512
-LINK=${CXX}
-LINKFLAGS=-O3 -qopenmp -dynamic
+LINK = ${CXX}
 
-OBJ=$(SRC:.cpp=.o)
+ifeq ($(CXX),g++)
+	CXXFLAGS= -g -O3 -std=c++11 -fopenacc
+	LINKFLAGS=-fopenacc
+endif 
 
-$(EXE): $(OBJ)
-	$(CXX) $(OBJ) -o $(EXE) $(LINKFLAGS)
+ifeq ($(CXX),xlc++)
+#	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp
+#	LINKFLAGS=-qsmp
+	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp=noauto:omp -qoffload #-Xptxas -v
+	LINKFLAGS=-qsmp=noauto:omp -qoffload 
+endif 
 
-$(OBJ): $(SRC)
-	$(CXX) -c $(SRC) $(CXXFLAGS)
+ifeq ($(CXX),clang++)
+	CXXFLAGS=-O3 -std=gnu++11 -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda --cuda-path=${CUDA_HOME}
+	LINKFLAGS=-fopenmp -fopenmp-targets=nvptx64-nvidia-cuda --cuda-path=${CUDA_HOME}
+endif 
 
-clean:
-	rm -f *.o gppKerCpp
+ifeq ($(CXX),icc)
+	CXXFLAGS=-O3 -qopenmp -qopt-report=5
+	CXXFLAGS+=xCORE_AVX2
+#	CXXFLAGS+=-xMIC_AVX512
+	LINKFLAGS=-qopenmp
+endif 
+
+OBJ1 = $(SRC1:.cpp=.o)
+OBJ2 = $(SRC2:.cpp=.o)
+
+$(EXE): $(OBJ1) $(OBJ2) 
+	$(CXX) $(OBJ1) $(OBJ2) -o $(EXE) $(LINKFLAGS)
+
+$(OBJ1): $(SRC1) 
+	$(CXX) -c $(SRC1) $(CXXFLAGS)
+
+$(OBJ2): $(SRC2) 
+	$(CXX) -c $(SRC2) $(CXXFLAGS)
+
+clean: 
+	rm -f $(OBJ1) $(OBJ2) $(EXE)
+
