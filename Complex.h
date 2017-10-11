@@ -13,7 +13,8 @@
 
 #include "/sw/summitdev/cuda/8.0.54/include/vector_types.h"
 
-class GPUComplex {
+class GPUComplex
+{
 
     private : 
     double re;

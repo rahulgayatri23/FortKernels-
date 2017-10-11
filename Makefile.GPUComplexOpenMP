@@ -1,10 +1,9 @@
 EXE = gppKer_gpuComplexOpenMP3.ex
-SRC1 = gppKer_gpuComplexOpenMP3.cpp 
-SRC2 = Complex.h
+SRC = gppKer_gpuComplexOpenMP3.cpp 
 
-#CXX = xlc++
+CXX = xlc++
 #CXX = CC 
-CXX = g++
+#CXX = g++
 #CXX = clang++
 
 LINK = ${CXX}
@@ -31,18 +30,14 @@ ifeq ($(CXX),icc)
 	LINKFLAGS=-qopenmp
 endif 
 
-OBJ1 = $(SRC1:.cpp=.o)
-OBJ2 = $(SRC2:.cpp=.o)
+OBJ = $(SRC:.cpp=.o)
 
-$(EXE): $(OBJ1) $(OBJ2) 
-	$(CXX) $(OBJ1) $(OBJ2) -o $(EXE) $(LINKFLAGS)
+$(EXE): $(OBJ) 
+	$(CXX) $(OBJ) -o $(EXE) $(LINKFLAGS)
 
 $(OBJ1): $(SRC1) 
-	$(CXX) -c $(SRC1) $(CXXFLAGS)
-
-$(OBJ2): $(SRC2) 
-	$(CXX) -c $(SRC2) $(CXXFLAGS)
+	$(CXX) -c $(SRC) $(CXXFLAGS)
 
 clean: 
-	rm -f $(OBJ1) $(OBJ2) $(EXE)
+	rm -f $(OBJ) $(EXE)
 
