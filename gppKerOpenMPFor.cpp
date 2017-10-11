@@ -192,7 +192,7 @@ int main(int argc, char** argv)
     }
     std::cout << "Number of OpenMP Threads = " << numThreads << endl;
 
-    double to1 = 1e-6, \ 
+    double to1 = 1e-6, \
     gamma = 0.5, \
     sexcut = 4.0;
     double limitone = 1.0/(to1*4.0), \
@@ -223,7 +223,7 @@ int main(int argc, char** argv)
     std::complex<double> *acht_n1_loc_threadArr;
     acht_n1_loc_threadArr = new std::complex<double> [numThreads*number_bands];
     std::complex<double> (*acht_n1_loc_vla)[numThreads][number_bands];
-    acht_n1_loc_vla = (std::complex<double>(*)[numThreads][ncouls]) (acht_n1_loc_threadArr);
+    acht_n1_loc_vla = (std::complex<double>(*)[numThreads][number_bands]) (acht_n1_loc_threadArr);
 
     std::complex<double> achtemp[nend-nstart];
     std::complex<double> *achtemp_threadArr;
@@ -355,13 +355,13 @@ int main(int argc, char** argv)
 
                 for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
                 {
-                    int igend = min(igbeg+igblk-1, igmax);
+                    int igend = min(igbeg+igblk, igmax);
                     for(int iw=nstart; iw<nend; ++iw)
                     {
                         scht = ssxt = expr0;
                         wxt = wx_array[iw];
 #pragma ivdep
-                        for(int ig = igbeg; ig<min(igend,igmax); ++ig)
+                        for(int ig = igbeg; ig<igend; ++ig)
                         { 
                             wdiff = wxt - (*wtilde_array)[my_igp][ig];
                             cden = wdiff;

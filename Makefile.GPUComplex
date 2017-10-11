@@ -1,22 +1,24 @@
-EXE = gppKerOpenMPFor.ex
-SRC1 = gppKerOpenMPFor_xl.cpp 
-#SRC1 = gppKerOpenMPFor.cpp 
+EXE = gppKer_gpuComplex.ex
+SRC1 = gppKer_gpuComplex.cpp 
+SRC2 = Complex_target.cpp
 
-#CXX = xlc++
+CXX = xlc++
 #CXX = CC 
-CXX = g++
+#CXX = g++
 #CXX = clang++
 
 LINK = ${CXX}
 
 ifeq ($(CXX),g++)
-	CXXFLAGS= -g -O3 -std=c++11 -fopenmp 
+	CXXFLAGS= -g -O3 -std=c++11 -fopenmp -foffload="-lm" -foffload=nvptx-none
 	LINKFLAGS=-fopenmp
 endif 
 
 ifeq ($(CXX),xlc++)
-	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp
-	LINKFLAGS=-qsmp
+#	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp
+#	LINKFLAGS=-qsmp
+	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp=noauto:omp -qoffload #-Xptxas -v
+	LINKFLAGS=-qsmp=noauto:omp -qoffload 
 endif 
 
 ifeq ($(CXX),clang++)
@@ -32,13 +34,17 @@ ifeq ($(CXX),icc)
 endif 
 
 OBJ1 = $(SRC1:.cpp=.o)
+OBJ2 = $(SRC2:.cpp=.o)
 
-$(EXE): $(OBJ1)  
-	$(CXX) $(OBJ1) -o $(EXE) $(LINKFLAGS)
+$(EXE): $(OBJ1) $(OBJ2) 
+	$(CXX) $(OBJ1) $(OBJ2) -o $(EXE) $(LINKFLAGS)
 
 $(OBJ1): $(SRC1) 
 	$(CXX) -c $(SRC1) $(CXXFLAGS)
 
+$(OBJ2): $(SRC2) 
+	$(CXX) -c $(SRC2) $(CXXFLAGS)
+
 clean: 
-	rm -f $(OBJ1) $(EXE)
+	rm -f $(OBJ1) $(OBJ2) $(EXE)
 
