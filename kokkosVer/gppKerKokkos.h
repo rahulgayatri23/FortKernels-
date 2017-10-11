@@ -12,8 +12,8 @@ using namespace std;
 
 
 #define CUDASPACE 0
-#define OPENMPSPACE 1
-#define CUDAUVM 0
+#define OPENMPSPACE 0
+#define CUDAUVM 1
 #define SERIAL 0
 #define THREADS 0
 
@@ -46,6 +46,8 @@ using namespace std;
 #endif
 
 typedef Kokkos::RangePolicy<ExecSpace>  range_policy;
+typedef Kokkos::TeamPolicy<> team_policy;
+typedef Kokkos::TeamPolicy<>::member_type member_type;
 
 typedef Kokkos::View<Kokkos::complex<double>, Layout, MemSpace>   ViewScalarTypeComplex;
 typedef Kokkos::View<Kokkos::complex<double>*, Layout, MemSpace>   ViewVectorTypeComplex;
