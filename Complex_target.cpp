@@ -13,13 +13,14 @@
 
 #include "/sw/summitdev/cuda/8.0.54/include/vector_types.h"
 
-class GPUComplex {
+class GPUComplex : public double2{
 
     private : 
     double re;
     double im;
 
 public:
+#pragma omp declare target
 explicit GPUComplex () {
     re = 0.00;
     im = 0.00;
@@ -117,8 +118,10 @@ void set_imag(double val)
     friend inline const GPUComplex doublePlusGPUComplex(double a, GPUComplex& src) ;
     friend inline double GPUComplex_real( const GPUComplex& src) ;
     friend inline double GPUComplex_imag( const GPUComplex& src) ;
+#pragma omp end declare target
         
 };
+#pragma omp declare target
     const inline GPUComplex GPUComplex_square(GPUComplex& src) ;
     const inline GPUComplex GPUComplex_conj(const GPUComplex& src) ;
     inline const GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) ;
@@ -131,6 +134,7 @@ void set_imag(double val)
     const inline GPUComplex doublePlusGPUComplex(double a, GPUComplex& src) ;
     inline double GPUComplex_real( const GPUComplex& src) ;
     double inline GPUComplex_imag( const GPUComplex& src) ;
+#pragma omp end declare target
 
 //Inline functions have to be defined in the same file as the declaration
 
