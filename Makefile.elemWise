@@ -1,0 +1,25 @@
+EXE = elemWise.ex
+SRC = elemWise.cpp 
+
+#CXX = xlc++
+CXX = g++
+
+LINK = ${CXX}
+
+
+#CXXFLAGS=-O3 -std=gnu++11 -g -qsmp=noauto:omp -qoffload -Xptxas -v
+#LINKFLAGS=-qsmp=noauto:omp -qoffload 
+
+CXXFLAGS= -g -foffload="-lm" -foffload=nvptx-none -O3 -std=c++11 -fopenmp -lineinfo 
+LINKFLAGS=-fopenmp
+
+OBJ = $(SRC:.cpp=.o)
+
+$(EXE): $(OBJ) 
+	$(CXX) $(OBJ) -o $(EXE) $(LINKFLAGS)
+
+$(OBJ): $(SRC) 
+	$(CXX) -c $(SRC) $(CXXFLAGS)
+
+clean: 
+	rm -f *.o $(EXE)
