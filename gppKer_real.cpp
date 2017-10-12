@@ -8,6 +8,8 @@
 #include <omp.h>
 #include <ctime>
 #include <chrono>
+#include <stdio.h>
+#include <string.h>
 
 using namespace std;
 int debug = 0;
@@ -67,7 +69,6 @@ void ssxt_scht_solver(double wxt, int igp, int my_igp, int ig, double wtilde, do
 void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, double *aqsmtemp_arr, double *aqsntemp_arr, double *I_eps_array_tmp, double& achstemp,  int* indinv, int ngpown, double* vcoul)
 {
     double to1 = 1e-6;
-    int igmax;
     double schstemp = 0.0;;
 //Variables to get around the inability to reduce complex variables && avoid critical.
     int numThreads = omp_get_thread_num();
@@ -91,15 +92,12 @@ void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, d
         double matngmatmgp = 0.0;
         double matngpmatmg = 0.0;
         double halfinvwtilde, delw, ssx, sch, wdiff, cden , eden, mygpvar1, mygpvar2;
-        int igmax;
         int indigp = inv_igp_index[my_igp];
         int igp = indinv[indigp];
         if(indigp == ncouls)
             igp = ncouls-1;
 
         if(!(igp > ncouls || igp < 0)){
-
-            igmax = ncouls;
 
             double mygpvar1 = (*aqsmtemp)[n1][igp];
             double mygpvar2 = (*aqsntemp)[n1][igp];
@@ -112,7 +110,7 @@ void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, d
         }
         else
         {
-            for(int ig=1; ig<igmax; ++ig)
+            for(int ig=1; ig<ncouls; ++ig)
                 schstemp = schstemp - (*aqsntemp)[n1][igp] * (*I_eps_array)[my_igp][ig] * mygpvar1;
         }
         achstemp_localArr[tid] += schstemp * vcoul[igp] *(double) 0.5;
@@ -127,7 +125,7 @@ void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, d
 
 }
 
-void flagOCC_solver(double wxt, double *wtilde_array_tmp, int my_igp, int n1, double *aqsmtemp_arr, double *aqsntemp_arr, double *I_eps_array_tmp, double &ssxt, double &scht, int igmax, int ncouls, int igp, int number_bands, int ngpown)
+void flagOCC_solver(double wxt, double *wtilde_array_tmp, int my_igp, int n1, double *aqsmtemp_arr, double *aqsntemp_arr, double *I_eps_array_tmp, double &ssxt, double &scht, int ncouls, int igp, int number_bands, int ngpown)
 {
     double matngmatmgp = 0.0;
     double matngpmatmg = 0.0;
@@ -142,7 +140,7 @@ void flagOCC_solver(double wxt, double *wtilde_array_tmp, int my_igp, int n1, do
     double (*wtilde_array)[ngpown][ncouls];
     wtilde_array = (double(*)[ngpown][ncouls]) (wtilde_array_tmp);
 
-    for(int ig=0; ig<igmax; ++ig)
+    for(int ig=0; ig<ncouls; ++ig)
     {
         double wtilde = (*wtilde_array)[my_igp][ig];
         double wtilde2 = std::pow(wtilde,2);
@@ -323,10 +321,8 @@ int main(int argc, char** argv)
             int igp = indinv[indigp];
             if(indigp == ncouls)
                 igp = ncouls-1;
-            int igmax;
 
             if(!(igp > ncouls || igp < 0)) {
-                igmax = ncouls;
 
             for(int i=0; i<3; i++)
             {
@@ -340,7 +336,7 @@ int main(int argc, char** argv)
                 {
                     scht = ssxt = expr0;
                     wxt = wx_array[iw];
-                    flagOCC_solver(wxt, wtilde_array_tmp, my_igp, n1, aqsmtemp_arr, aqsntemp_arr, I_eps_array_tmp, ssxt, scht, igmax, ncouls, igp, number_bands, ngpown);
+                    flagOCC_solver(wxt, wtilde_array_tmp, my_igp, n1, aqsmtemp_arr, aqsntemp_arr, I_eps_array_tmp, ssxt, scht, ncouls, igp, number_bands, ngpown);
 
                     ssx_array[iw] += ssxt;
                     sch_array[iw] +=(double) 0.5*scht;
@@ -348,38 +344,46 @@ int main(int argc, char** argv)
             }
             else
             {
-                int igblk = 512;
+                int igblk = 512, numBlocks = 0;
                 double mygpvar1 = (*aqsmtemp)[n1][igp];
-                double scha, cden, wdiff, delw;
+                double cden, wdiff, delw;
                 double delwr, wdiffr, rden; //rden
+                double *scha = new double[igblk];
+                memset(scha, 0, igblk*sizeof(double));
 
-                for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
+                for(int igbeg=0; igbeg<ncouls; igbeg+=igblk, numBlocks++)
                 {
-                    int igend = min(igbeg+igblk-1, igmax);
+//                    int igend = min(igbeg+igblk, ncouls);
+                    int igend = min(igblk, ncouls-igblk*numBlocks);
                     for(int iw=nstart; iw<nend; ++iw)
                     {
                         scht = ssxt = expr0;
                         wxt = wx_array[iw];
-#pragma ivdep
-                        for(int ig = igbeg; ig<min(igend,igmax); ++ig)
+//#pragma ivdep
+                        for(int ig = 0; ig<igend; ++ig)
                         { 
-                            wdiff = wxt - (*wtilde_array)[my_igp][ig];
+                            wdiff = wxt - (*wtilde_array)[my_igp][ig + numBlocks*igblk];
                             cden = wdiff;
                             rden = cden * (cden);
                             rden = 1/rden;
-                            delw = (*wtilde_array)[my_igp][ig] * conj(cden) * rden ; //*rden
+                            delw = (*wtilde_array)[my_igp][ig + numBlocks*igblk] * conj(cden) * rden ;
                             delwr = delw*(delw);
                             wdiffr = wdiff*(wdiff);
 
-                            scha = mygpvar1 * (*aqsntemp)[n1][ig] * delw * (*I_eps_array)[my_igp][ig];
+                            if ((wdiffr > limittwo) && (delwr < limitone))
+                                scha[ig] = mygpvar1 * (*aqsntemp)[n1][ig + numBlocks*igblk] * delw * (*I_eps_array)[my_igp][ig + numBlocks*igblk];
+//                                else 
+//                                    scha[sch_cntr++] = 0.00;
 
-//                            if ((wdiffr > limittwo) && (delwr < limitone))
-                                scht = scht + scha;
                         }
+                        for(int ig = 0; ig < igend; ++ig)
+                            scht += scha[ig];
 
                         sch_array[iw] +=(double) 0.5*scht;
 				    }
                 }
+
+                free(scha);
             }
 
             if(flag_occ)

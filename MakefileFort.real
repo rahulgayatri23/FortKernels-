@@ -1,10 +1,12 @@
-EXE = gppKerFortReal
+EXE = gppKerFortReal.ex
 SRC = gppKerFort_real.f90
 
 CXX = ftn
-
-CXXFLAGS = -O3 -qopt-report=5 -g -qopenmp -xCORE_AVX2 #  -xmic_avx512 #-no-vec
 LINK = ${CXX}
+
+CXXFLAGS = -O3 -qopt-report=5 -g -qopenmp 
+#CXXFLAGS+=-xCORE_AVX2 
+CXXFLAGS+=-xmic_avx512
 LINKFLAGS = -dynamic -O3 -qopenmp
 
 OBJ = $(SRC:.f90=.o)
@@ -16,4 +18,4 @@ $(OBJ): $(SRC)
 	$(CXX) -c $(SRC) $(CXXFLAGS)
 
 clean: 
-	rm -f gppkernel.deslippe.09.30.2014.o gppKerFort
+	rm -f $(OBJ) $(EXE)

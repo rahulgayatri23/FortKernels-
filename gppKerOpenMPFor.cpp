@@ -350,16 +350,18 @@ int main(int argc, char** argv)
             {
                 int igblk = 512;
                 std::complex<double> mygpvar1 = std::conj((*aqsmtemp)[n1][igp]);
-                std::complex<double> scha, cden, wdiff, delw;
+                std::complex<double> cden, wdiff, delw;
                 double delwr, wdiffr, rden; //rden
 
-                for(int igbeg=0; igbeg<igmax; igbeg+=igblk)
+                for(int igbeg=0; igbeg<ncouls; igbeg+=igblk)
                 {
                     int igend = min(igbeg+igblk, igmax);
                     for(int iw=nstart; iw<nend; ++iw)
                     {
                         scht = ssxt = expr0;
                         wxt = wx_array[iw];
+                        std::complex<double> *scha = new std::complex<double>[igblk];
+                        int sch_cntr = 0;
 #pragma ivdep
                         for(int ig = igbeg; ig<igend; ++ig)
                         { 
@@ -371,11 +373,15 @@ int main(int argc, char** argv)
                             delwr = std::real(delw*std::conj(delw));
                             wdiffr = std::real(wdiff*std::conj(wdiff));
 
-                            scha = mygpvar1 * (*aqsntemp)[n1][ig] * delw * (*I_eps_array)[my_igp][ig];
+//                            if ((wdiffr > limittwo) && (delwr < limitone))
+                                scha[sch_cntr++] = mygpvar1 * (*aqsntemp)[n1][ig] * delw * (*I_eps_array)[my_igp][ig];
+//                                else
+//                                    scha[sch_cntr++] = expr0;
 
-                            if ((wdiffr > limittwo) && (delwr < limitone))
-                                scht = scht + scha;
                         }
+                        for(int ig = 0; ig<igblk; ++ig)
+                            scht += scha[ig];
+
 
                         sch_array[iw] +=(double) 0.5*scht;
 				    }

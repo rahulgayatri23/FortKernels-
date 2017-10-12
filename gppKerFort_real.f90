@@ -343,8 +343,6 @@ program gppkernel
               ssxt=0D0
               wxt = wx_array(iw)
 
-
-! !dir$ no unroll
                 do ig = igbeg, min(igend,igmax)
                   wdiff = wxt - wtilde_array(ig,my_igp)
 
@@ -355,30 +353,15 @@ program gppkernel
                   delwr = delw*(delw)
                   wdiffr = wdiff*(wdiff)
 
-! JRD: Complex division is hard to vectorize. So, we help the compiler.
                   scha(ig) = mygpvar1 * aqsntemp(ig,n1) * delw * I_eps_array(ig,my_igp)
 
-! JRD: This if is OK for vectorization
-!                   if (wdiffr.gt.limittwo .and. delwr.lt.limitone) then
                      scht = scht + scha(ig)
-!                   endif
                 enddo ! loop over g
-
-!                do ig = igbeg, min(igend,igmax)
-!                     scht = scht + scha(ig)
-!                 enddo
 
               sch_array(iw) = sch_array(iw) + 0.5D0*scht
 
-!-----------------------
-! JRD: Compute GPP Error...
-! GPP Model Error Estimate
-
             enddo
             enddo
-!            call timget(endtime_noFlagOCC)
-!            totaltime_noFlagOCC = totaltime_noFlagOCC + (endtime_noFlagOCC - starttime_noFlagOCC)
-
           endif
 
 ! If a valence band, then accumulate SX contribution.
