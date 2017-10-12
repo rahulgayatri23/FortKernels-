@@ -11,7 +11,7 @@
 
 #include "Complex.h"
 
-#define N 800
+#define N 100
 
 #define c(x,y,z) c[x + ny* (y+nz*z)]
 #define a(x,y,z) a[x + ny* (y+nz*z)]
