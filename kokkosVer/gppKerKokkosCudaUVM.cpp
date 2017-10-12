@@ -220,7 +220,7 @@ int main(int argc, char** argv)
 //    for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
         const int n1 = teamMember.league_rank();
-//        reduce_achstemp(mygpvar1, schstemp, n1, inv_igp_index, ncouls, aqsmtemp, aqsntemp, I_eps_array, achstemp,  indinv, ngpown, vcoul);
+        reduce_achstemp(mygpvar1, schstemp, n1, inv_igp_index, ncouls, aqsmtemp, aqsntemp, I_eps_array, achstemp,  indinv, ngpown, vcoul);
 
         for(int iw=nstart; iw<nend; ++iw)
         {
