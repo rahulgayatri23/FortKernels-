@@ -49,7 +49,6 @@ program gppkernel
       logical :: flag_occ
       CHARACTER(len=32) :: arg
       integer npes,mype,ierr
-      include 'mpif.h'
 
 !      call mpi_init(ierr)
 
