@@ -1,13 +1,22 @@
 EXE = gppKerFortReal.ex
 SRC = gppKerFort_real.f90
 
-CXX = ftn
+#CXX = ftn
+CXX = gfortran
+
 LINK = ${CXX}
 
-CXXFLAGS = -O3 -qopt-report=5 -g -qopenmp 
+ifeq ($(CXX),gfortran)
+	CXXFLAGS= -g -O3 -fopenmp 
+	LINKFLAGS=-fopenmp
+endif 
+
+ifeq ($(CXX),CC)
+    CXXFLAGS = -O3 -qopt-report=5 -g -qopenmp 
 #CXXFLAGS+=-xCORE_AVX2 
-CXXFLAGS+=-xmic_avx512
-LINKFLAGS = -dynamic -O3 -qopenmp
+    CXXFLAGS+=-xmic_avx512
+    LINKFLAGS = -dynamic -O3 -qopenmp
+endif 
 
 OBJ = $(SRC:.f90=.o)
 

@@ -190,7 +190,7 @@ int main(int argc, char** argv)
     }
     std::cout << "Number of OpenMP Threads = " << numThreads << endl;
 
-    double to1 = 1e-6, \ 
+    double to1 = 1e-6, \
     gamma = 0.5, \
     sexcut = 4.0;
     double limitone = 1.0/(to1*4.0), \
@@ -221,7 +221,7 @@ int main(int argc, char** argv)
     double *acht_n1_loc_threadArr;
     acht_n1_loc_threadArr = new double [numThreads*number_bands];
     double (*acht_n1_loc_vla)[numThreads][number_bands];
-    acht_n1_loc_vla = (double(*)[numThreads][ncouls]) (acht_n1_loc_threadArr);
+    acht_n1_loc_vla = (double(*)[numThreads][number_bands]) (acht_n1_loc_threadArr);
 
     double achtemp[nend-nstart];
     double *achtemp_threadArr;

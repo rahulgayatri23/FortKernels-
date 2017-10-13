@@ -1,13 +1,21 @@
 EXE = gppKerCppReal.ex
 SRC = gppKer_real.cpp 
 
-CXX = CC
+#CXX = CC
+CXX = g++
 
-CXXFLAGS = -O3 -qopt-report=5 -g -std=c++11 -qopenmp
+ifeq ($(CXX),g++)
+	CXXFLAGS= -g -O3 -std=c++11 -fopenmp 
+	LINKFLAGS=-fopenmp
+endif 
+
+ifeq ($(CXX),CC)
+    CXXFLAGS = -O3 -qopt-report=5 -g -std=c++11 -qopenmp
 #CXXFLAGS += -xCORE_AVX2 
-CXXFLAGS += -xmic_avx512 
-LINK = ${CXX}
-LINKFLAGS = -dynamic -O3 -qopenmp
+    CXXFLAGS += -xmic_avx512 
+    LINK = ${CXX}
+    LINKFLAGS = -dynamic -O3 -qopenmp
+endif 
 
 OBJ = $(SRC:.cpp=.o)
 
