@@ -97,6 +97,6 @@ KOKKOS_INLINE_FUNCTION
 //Kokkos::complex<double> kokkos_square(Kokkos::complex<double> compl_num, int n);
 
 Kokkos::complex<double>  achtemp[3];
-achtempStruct achtempVar = {{achtemp[0],achtemp[1],achtemp[2]}}; 
+//achtempStruct achtempVar = {{achtemp[0],achtemp[1],achtemp[2]}}; 
 
 Kokkos::complex<double> achstemp(0.00, 0.00);
