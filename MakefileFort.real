@@ -19,7 +19,6 @@ ifeq ($(CXX),ftn)
 	LINKFLAGS = -dynamic -O3 -qopenmp
 endif 
 
-
 OBJ = $(SRC:.f90=.o)
 
 $(EXE): $(OBJ) 

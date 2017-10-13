@@ -4,7 +4,6 @@
 
 #include <iomanip>
 #include <cmath>
-#include <complex>
 #include <omp.h>
 #include <ctime>
 #include <chrono>
@@ -14,9 +13,6 @@
 using namespace std;
 int debug = 0;
 
-
-//#define CACHE_LINE 32
-//#define CACHE_ALIGN __declspec(align(CACHE_LINE))
 
 void ssxt_scht_solver(double wxt, int igp, int my_igp, int ig, double wtilde, double wtilde2, double Omega2, double matngmatmgp, double matngpmatmg, double mygpvar1, double mygpvar2, double& ssxa, double& scha, double I_eps_array_igp_myIgp)
 {
@@ -33,23 +29,23 @@ void ssxt_scht_solver(double wxt, int igp, int my_igp, int ig, double wtilde, do
 
     double cden = wdiff;
     double rden = 1/(cden * (cden));
-    double delw = wtilde * conj(cden) * rden;
-    double delwr = real(delw * conj(delw));
-    double wdiffr = real(wdiff * conj(wdiff));
+    double delw = wtilde * cden * rden;
+    double delwr = (delw * delw);
+    double wdiffr =(wdiff * wdiff);
 
     if((wdiffr > limittwo) && (delwr < limitone))
     {
         sch = delw * I_eps_array_igp_myIgp;
         cden = pow(wxt,2);
-        rden = real(cden * conj(cden));
+        rden = (cden * cden);
         rden = 1.00 / rden;
-        ssx = Omega2 * conj(cden) * rden;
+        ssx = Omega2 * cden * rden;
     }
     else if (delwr > to1)
     {
         sch = expr0;
         cden = (double) 4.00 * wtilde2 * (delw + (double)0.50);
-        rden = real(cden * conj(cden));
+        rden = (cden * (cden));
         rden = 1.00/rden;
         ssx = -Omega2 * (cden) * rden * delw;
     }
@@ -190,7 +186,7 @@ int main(int argc, char** argv)
     }
     std::cout << "Number of OpenMP Threads = " << numThreads << endl;
 
-    double to1 = 1e-6, \ 
+    double to1 = 1e-6, \
     gamma = 0.5, \
     sexcut = 4.0;
     double limitone = 1.0/(to1*4.0), \
@@ -221,7 +217,7 @@ int main(int argc, char** argv)
     double *acht_n1_loc_threadArr;
     acht_n1_loc_threadArr = new double [numThreads*number_bands];
     double (*acht_n1_loc_vla)[numThreads][number_bands];
-    acht_n1_loc_vla = (double(*)[numThreads][ncouls]) (acht_n1_loc_threadArr);
+    acht_n1_loc_vla = (double(*)[numThreads][number_bands]) (acht_n1_loc_threadArr);
 
     double achtemp[nend-nstart];
     double *achtemp_threadArr;
@@ -347,7 +343,7 @@ int main(int argc, char** argv)
                 int igblk = 512, numBlocks = 0;
                 double mygpvar1 = (*aqsmtemp)[n1][igp];
                 double cden, wdiff, delw;
-                double delwr, wdiffr, rden; //rden
+                double delwr, wdiffr, rden; 
                 double *scha = new double[igblk];
                 memset(scha, 0, igblk*sizeof(double));
 
@@ -366,7 +362,7 @@ int main(int argc, char** argv)
                             cden = wdiff;
                             rden = cden * (cden);
                             rden = 1/rden;
-                            delw = (*wtilde_array)[my_igp][ig + numBlocks*igblk] * conj(cden) * rden ;
+                            delw = (*wtilde_array)[my_igp][ig + numBlocks*igblk] * (cden) * rden ;
                             delwr = delw*(delw);
                             wdiffr = wdiff*(wdiff);
 

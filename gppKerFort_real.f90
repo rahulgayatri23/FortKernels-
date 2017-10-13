@@ -27,7 +27,8 @@ program gppkernel
       integer,parameter:: igblk=512
       !integer,parameter:: igblk=512000
       integer, allocatable :: indinv(:), inv_igp_index(:)
-      real(kind(1.0d0)) :: achstemp,achxtemp,matngmatmgp,matngpmatmg,wdiff,mygpvar1,mygpvar2,schstemp,schs,wx_array(3),sch,ssx,ssxt,scht
+      real(kind(1.0d0)) :: achstemp,achxtemp,matngmatmgp,matngpmatmg,wdiff
+      real(kind(1.0d0)) :: mygpvar1,mygpvar2,schstemp,schs,wx_array(3),sch,ssx,ssxt,scht
       real(kind(1.0d0)) :: wtilde,halfinvwtilde,wtilde2,Omega2
       real(kind(1.0d0)), allocatable :: aqsmtemp(:,:), aqsntemp(:,:), I_eps_array(:,:), acht_n1_loc(:)
       real(kind(1.0d0)), allocatable :: asxtemp(:),achtemp(:),ssx_array(:),sch_array(:),ssxa(:),scha(:),wtilde_array(:,:)
@@ -50,11 +51,7 @@ program gppkernel
       CHARACTER(len=32) :: arg
       integer npes,mype,ierr
 
-!      call mpi_init(ierr)
 
-      ! Initialize MPI on the node. npes is number of ranks per node
-!      call mpi_comm_size(mpi_comm_world,npes,ierr)
-!      call mpi_comm_rank(mpi_comm_world,mype,ierr)
 
       time_stat = 0D0
       time_dyn = 0D0
@@ -71,10 +68,6 @@ program gppkernel
       END IF
 !$OMP END PARALLEL
 
-! We start off in the body of loop over the various tasks. Each MPI task has communicated data it owns to everyone
-
-! These should be read in
-!      if(mype == 0)then
         CALL getarg(1, arg)
         READ(arg,*) number_bands
         CALL getarg(2, arg)
@@ -84,15 +77,7 @@ program gppkernel
         CALL getarg(4, arg)
         READ(arg,*) nodes_per_group
         CALL getarg(5, arg)
-!      endif
 
-!      call mpi_bcast(number_bands,1,mpi_integer,0,mpi_comm_world,ierr)
-!      call mpi_bcast(nvband,      1,mpi_integer,0,mpi_comm_world,ierr)
-!      call mpi_bcast(ncouls,      1,mpi_integer,0,mpi_comm_world,ierr)
-!      call mpi_bcast(ngpown,      1,mpi_integer,0,mpi_comm_world,ierr)
-!      call mpi_bcast(nodes_per_group,      1,mpi_integer,0,mpi_comm_world,ierr)
-
-      ! ngpown is number of gvectors per mpi task
       npes=1 !Rahul - 8 ranks per node
       ngpown = ncouls / ( nodes_per_group * npes )
 
@@ -141,15 +126,10 @@ program gppkernel
 
       ALLOCATE(acht_n1_loc(number_bands))
 
-!       do ig = 1, ngpown
-!         inv_igp_index(ig) = ig
-!       enddo
-      !  assumes a better mpi work distribution for gppsum=1 case
       do ig = 1, ngpown
         inv_igp_index(ig) = ig * ncouls / ngpown
       enddo
 
-! Try this identity and random
       do ig = 1, ncouls
         indinv(ig) = ig
       enddo
@@ -161,41 +141,23 @@ program gppkernel
       limittwo=0.5d0**2
 
 
-!      call mpi_barrier(mpi_comm_world,ierr)
       call timget(starttime)
 
       do n1=1,number_bands
 
-! n1true = "True" band index of the band n1 w.r.t. all bands
-
-        !!! n1true = peinf%indext_dist(n1,ipe)
-
-! energy of the |n1,k-q> state
 
         e_n1kq = ekq(n1,1)
 
-! occupation of the |n1,k-q> state
 
         flag_occ = (n1.le.nvband)
 
-        !!!tempval=abs(e_n1kq-sig%efermi)
-        !!!if (tempval .lt. tol) then
-        !!!  occ = 0.5d0 ! Fermi-Dirac distribution = 1/2 at Fermi level
-        !!!else
           occ = 1.0d0
-        !!!endif
 
-! JRD: compute the static CH for the static remainder
 
         call timget(starttime_stat)
 
-        !!!if (sig%exact_ch.eq.1) then
-!$OMP PARALLEL do private (my_igp,igp,indigp,igmax,mygpvar1,mygpvar2,ig,schs, &
-!$OMP                       matngmatmgp,matngpmatmg,schstemp) reduction(+:achstemp) &
-!$OMP          schedule(dynamic)
           do my_igp = 1, ngpown
 
-            ! This index could be bad
 
             indigp = inv_igp_index(my_igp)
             igp = indinv(indigp)
@@ -210,23 +172,13 @@ program gppkernel
 
             schstemp = 0D0
 
-! We do two loops here for performance. Don`t want to evaluate if statements inside loop
-! at every iteration
 
               do ig = 1, igmax
-                !schs=-I_eps_array(ig,my_igp)
-! JRD: Cycle bad for vectorization.
-! I_eps_array is already set to zero above for these ig,igp
-!             if (abs(schs).lt.tol) cycle
-                !matngmatmgp = aqsntemp(ig,n1) * mygpvar1
                 schstemp = schstemp - aqsntemp(ig,n1) * I_eps_array(ig,my_igp) * mygpvar1
-                !schstemp = schstemp + matngmatmgp * schs
               enddo
 
             achstemp = achstemp + schstemp*vcoul(igp)*0.5d0
           enddo
-!$OMP END PARALLEL DO
-        !!!endif ! sig%exact_ch.eq.1
 
         call timget(endtime_stat)
 
@@ -238,8 +190,6 @@ program gppkernel
         enddo
 
         call timget(starttime_dyn)
-
-! JRD: This Loop is Performance critical. Make Sure you don`t mess it up
 
         ALLOCATE(ssx_array(3))
         ALLOCATE(sch_array(3))
@@ -280,9 +230,6 @@ program gppkernel
                   wtilde2 = wtilde**2
                   Omega2 = wtilde2 * I_eps_array(ig,my_igp)
 
-! Cycle bad for vectorization. Not needed wtilde is zero
-                  !if (abs(Omega2) .lt. tol) cycle
-
                   matngmatmgp = aqsntemp(ig,n1) * mygpvar1
 
                   wdiff = wxt - wtilde
@@ -294,8 +241,6 @@ program gppkernel
                   delwr = delw*(delw)
                   wdiffr = wdiff*(wdiff)
 
-! This Practice is bad for vectorization and understanding of the output.
-! JRD: Complex division is hard to vectorize. So, we help the compiler.
                   if (wdiffr.gt.limittwo .and. delwr.lt.limitone) then
                     sch = delw * I_eps_array(ig,my_igp)
                     cden = wxt**2 - wtilde2
@@ -313,8 +258,6 @@ program gppkernel
                     ssx = 0.0d0
                   endif
 
-! JRD: Breaks vectorization. But, I will have to fix later because
-! leaving it out breaks GSM example.
                   ssxcutoff = sexcut*abs(I_eps_array(ig,my_igp))
                   if (abs(ssx) .gt. ssxcutoff .and. wxt .lt. 0.0d0) ssx=0.0d0
 
@@ -332,7 +275,6 @@ program gppkernel
             enddo
 
           else
-!            call timget(starttime_noFlagOCC)
 
             do igbeg = 1,igmax,igblk
             igend = min(igbeg+igblk-1,igmax)
@@ -363,7 +305,6 @@ program gppkernel
             enddo
           endif
 
-! If a valence band, then accumulate SX contribution.
 
           if (flag_occ) then
             do iw=nstart,nend
@@ -375,8 +316,6 @@ program gppkernel
 
             achtemp(iw) = achtemp(iw) + sch_array(iw) * vcoul(igp)
           enddo
-
-! Logging CH convergence.
 
           acht_n1_loc(n1) = acht_n1_loc(n1) + sch_array(2) * vcoul(igp)
 
@@ -394,7 +333,6 @@ program gppkernel
         time_dyn = time_dyn + endtime_dyn - starttime_dyn
 
       enddo ! over ipe bands (n1)
-!      call mpi_barrier(mpi_comm_world,ierr)
 
       call timget(endtime)
 
@@ -408,19 +346,15 @@ program gppkernel
       DEALLOCATE(wtilde_array)
       DEALLOCATE(ekq)
 
-!      if(mype==0)then
-!        write(6,*) "noflag_occ time:",totaltime_noFlagOCC 
         write(6,*) "Runtime:", endtime-starttime
         write(6,*) "Runtime Stat:", time_stat
         write(6,*) "Runtime Dyn:", time_dyn
         write(6,*) "Answer[1]:",achtemp(1)
         write(6,*) "Answer[2]:",achtemp(2)
         write(6,*) "Answer[3]:",achtemp(3)
-!      endif
 
       DEALLOCATE(achtemp)
       DEALLOCATE(asxtemp)
-!      call mpi_finalize(ierr)
 
 end program
 
