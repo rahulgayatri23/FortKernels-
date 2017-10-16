@@ -236,7 +236,6 @@ int main(int argc, char** argv)
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
 
-
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
         flag_occ = n1 < nvband;
@@ -307,7 +306,7 @@ int main(int argc, char** argv)
                            delwr = GPUComplex_real(GPUComplex_product(delw,GPUComplex_conj(delw)));
                            wdiffr = GPUComplex_real(GPUComplex_product(wdiff,GPUComplex_conj(wdiff)));
 
-                            if ((wdiffr > limittwo) && (delwr < limitone))
+//                            if ((wdiffr > limittwo) && (delwr < limitone))
                                 scha = GPUComplex_product(GPUComplex_product(mygpvar1 , aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig]));
 
                             scht += scha;
