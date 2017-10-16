@@ -1,5 +1,5 @@
-EXE = gppKerOpenMPFor2.ex
-SRC1 = gppKerOpenMPFor.cpp 
+EXE = gppKer.ex
+SRC = gppKer.cpp 
 
 #CXX = xlc++
 #CXX = g++
@@ -7,15 +7,10 @@ CXX = CC
 
 LINK = ${CXX}
 
-#CXXFLAGS=-O3 -qopenmp -std=c++11 -qopt-report=5
-#CXXFLAGS+=-xCORE_AVX2
-##CXXFLAGS+=-xMIC_AVX512
-#LINKFLAGS=-qopenmp -std=c++11
-
 ifeq ($(CXX),CC)
 	CXXFLAGS=-O3 -qopenmp -qopt-report=5 -std=c++11
-	#CXXFLAGS+=-xCORE_AVX2
-	CXXFLAGS+=-xMIC_AVX512
+	CXXFLAGS+=-xCORE_AVX2
+#	CXXFLAGS+=-xMIC_AVX512
 	LINKFLAGS=-qopenmp
 endif 
 
@@ -34,14 +29,14 @@ ifeq ($(CXX),clang++)
 	LINKFLAGS=-fopenmp -fopenmp-targets=nvptx64-nvidia-cuda --cuda-path=${CUDA_HOME}
 endif 
 
-OBJ1 = $(SRC1:.cpp=.o)
+OBJ = $(SRC:.cpp=.o)
 
-$(EXE): $(OBJ1)  
-	$(CXX) $(OBJ1) -o $(EXE) $(LINKFLAGS)
+$(EXE): $(OBJ)  
+	$(CXX) $(OBJ) -o $(EXE) $(LINKFLAGS)
 
-$(OBJ1): $(SRC1) 
-	$(CXX) -c $(SRC1) $(CXXFLAGS)
+$(OBJ1): $(SRC) 
+	$(CXX) -c $(SRC) $(CXXFLAGS)
 
 clean: 
-	rm -f $(OBJ1) $(EXE)
+	rm -f $(OBJ) $(EXE)
 
