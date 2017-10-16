@@ -1,5 +1,6 @@
-EXE = gppKerOpenMPFor2.ex
-SRC1 = gppKerOpenMPFor.cpp 
+EXE = gppKer_gpuComplexOpenMP3.ex
+SRC1 = gppKer_gpuComplexOpenMP3.cpp 
+#SRC1+=Complex.h
 
 #CXX = xlc++
 #CXX = g++
@@ -14,8 +15,8 @@ LINK = ${CXX}
 
 ifeq ($(CXX),CC)
 	CXXFLAGS=-O3 -qopenmp -qopt-report=5 -std=c++11
-	#CXXFLAGS+=-xCORE_AVX2
-	CXXFLAGS+=-xMIC_AVX512
+	CXXFLAGS+=-xCORE_AVX2
+#	CXXFLAGS+=-xMIC_AVX512
 	LINKFLAGS=-qopenmp
 endif 
 
