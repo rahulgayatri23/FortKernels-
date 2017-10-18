@@ -1,16 +1,11 @@
-EXE = gppKerOpenMPFor2.ex
-SRC1 = gppKerOpenMPFor.cpp 
+EXE = gppKer.ex
+SRC1 = gppKer.cpp 
 
-#CXX = xlc++
+CXX = xlc++
 #CXX = g++
-CXX = CC
+#CXX = CC
 
 LINK = ${CXX}
-
-#CXXFLAGS=-O3 -qopenmp -std=c++11 -qopt-report=5
-#CXXFLAGS+=-xCORE_AVX2
-##CXXFLAGS+=-xMIC_AVX512
-#LINKFLAGS=-qopenmp -std=c++11
 
 ifeq ($(CXX),CC)
 	CXXFLAGS=-O3 -qopenmp -qopt-report=5 -std=c++11
@@ -20,13 +15,13 @@ ifeq ($(CXX),CC)
 endif 
 
 ifeq ($(CXX),g++)
-	CXXFLAGS= -g -O3 -std=c++11 -fopenmp -foffload="-lm" -foffload=nvptx-none
+	CXXFLAGS= -g -O3 -std=c++11 -fopenmp
 	LINKFLAGS=-fopenmp
 endif 
 
 ifeq ($(CXX),xlc++)
-	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp=noauto:omp -qoffload #-Xptxas -v
-	LINKFLAGS=-qsmp=noauto:omp -qoffload 
+	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp 
+	LINKFLAGS=-qsmp 
 endif 
 
 ifeq ($(CXX),clang++)
