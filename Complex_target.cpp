@@ -13,6 +13,8 @@
 
 #include "/sw/summitdev/cuda/8.0.54/include/vector_types.h"
 
+//include "Complex_target.h"
+
 class GPUComplex : public double2{
 
     private : 
@@ -79,7 +81,8 @@ double abs(const GPUComplex& src) {
     double re_this = src.re * src.re;
     double im_this = src.im * src.im;
 
-    double result = sqrt(re_this+im_this);
+//    double result = sqrt(re_this+im_this);
+    double result = (re_this+im_this);
 
     return result;
 
@@ -183,7 +186,8 @@ const double GPUComplex_abs(const GPUComplex& src) {
     double re_this = src.re * src.re;
     double im_this = src.im * src.im;
 
-    double result = sqrt(re_this+im_this);
+    double result = (re_this+im_this);
+//    double result = sqrt(re_this+im_this);
     return result;
 }
 
