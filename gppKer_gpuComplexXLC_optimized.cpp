@@ -382,13 +382,13 @@ int main(int argc, char** argv)
 #pragma omp teams distribute shared(vcoul, aqsntemp, aqsmtemp, I_eps_array) firstprivate(achstemp) 
     for(int n1 = 0; n1<number_bands; ++n1) 
     {
-        GPUComplex sch_array[3];
 
         reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul, numThreads);
 
-#pragma omp parallel for firstprivate(wx_array,sch_array) schedule(static)
+#pragma omp parallel for schedule(static) firstprivate(wx_array) 
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
+            GPUComplex sch_array[3];
             int indigp = inv_igp_index[my_igp];
             int igp = indinv[indigp];
             if(indigp == ncouls)

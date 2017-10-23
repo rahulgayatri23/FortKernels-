@@ -235,25 +235,25 @@ int main(int argc, char** argv)
     }
     std::cout << "Number of OpenMP Threads = " << numThreads << endl;
 
-#pragma omp target enter data map(alloc: numTeams, numThreads)
-#pragma omp target map(tofrom: numTeams, numThreads)
-#pragma omp teams shared(numTeams) private(tid)
-    {
-        tid = omp_get_team_num();
-        if(tid == 0)
-        {
-            numTeams = omp_get_num_teams();
-#pragma omp parallel 
-            {
-                int ttid = omp_get_thread_num();
-                if(ttid == 0)
-                    numThreads = omp_get_num_threads();
-            }
-        }
-    }
-#pragma omp target exit data map(delete: numTeams, numThreads)
-    std::cout << "Number of OpenMP Teams = " << numTeams << std::endl;
-    std::cout << "Number of OpenMP DEVICE Threads = " << numThreads << std::endl;
+//#pragma omp target enter data map(alloc: numTeams, numThreads)
+//#pragma omp target map(tofrom: numTeams, numThreads)
+//#pragma omp teams shared(numTeams) private(tid)
+//    {
+//        tid = omp_get_team_num();
+//        if(tid == 0)
+//        {
+//            numTeams = omp_get_num_teams();
+//#pragma omp parallel 
+//            {
+//                int ttid = omp_get_thread_num();
+//                if(ttid == 0)
+//                    numThreads = omp_get_num_threads();
+//            }
+//        }
+//    }
+//#pragma omp target exit data map(delete: numTeams, numThreads)
+//    std::cout << "Number of OpenMP Teams = " << numTeams << std::endl;
+//    std::cout << "Number of OpenMP DEVICE Threads = " << numThreads << std::endl;
 
     double to1 = 1e-6, \
     gamma = 0.5, \
@@ -382,13 +382,13 @@ int main(int argc, char** argv)
 #pragma omp teams distribute shared(vcoul, aqsntemp, aqsmtemp, I_eps_array) firstprivate(achstemp) 
     for(int n1 = 0; n1<number_bands; ++n1) 
     {
-        GPUComplex sch_array[3];
 
         reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul, numThreads);
 
-#pragma omp parallel for firstprivate(wx_array,sch_array) schedule(static)
+#pragma omp parallel for schedule(static) firstprivate(wx_array) 
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
+            GPUComplex sch_array[3];
             int indigp = inv_igp_index[my_igp];
             int igp = indinv[indigp];
             if(indigp == ncouls)
