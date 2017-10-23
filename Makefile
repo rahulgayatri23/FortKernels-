@@ -2,9 +2,9 @@ EXE = gppKer_gpuComplexOpenMP3.ex
 SRC = gppKer_gpuComplexOpenMP3.cpp 
 SRC+=Complex.h
 
-CXX = g++
+#CXX = g++
 #CXX = xlc++
-#CXX = icc
+CXX = CC
 
 LINK = ${CXX}
 
@@ -18,11 +18,11 @@ ifeq ($(CXX),xlc++)
 	LINKFLAGS=-qsmp
 endif 
 
-ifeq ($(CXX),icc)
-	CXXFLAGS=-O3 -qopenmp -qopt-report=5
-	CXXFLAGS+=xCORE_AVX2
+ifeq ($(CXX),CC)
+	CXXFLAGS=-O3 -qopenmp -std=c++11 -qopt-report=5
+	CXXFLAGS+=-xCORE_AVX2
 #	CXXFLAGS+=-xMIC_AVX512
-	LINKFLAGS=-qopenmp
+	LINKFLAGS=-qopenmp -std=c++11
 endif 
 
 OBJ = $(SRC:.cpp=.o)

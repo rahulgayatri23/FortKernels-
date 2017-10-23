@@ -9,7 +9,9 @@
 #include <ctime>
 #include <chrono>
 
-#define N 800
+#include "Complex.h"
+
+#define N 100
 
 #define c(x,y,z) c[x + ny* (y+nz*z)]
 #define a(x,y,z) a[x + ny* (y+nz*z)]

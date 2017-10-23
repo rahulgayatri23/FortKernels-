@@ -1,4 +1,4 @@
-EXE = gppKer_gpuComplexOpenMP3.ex
+EXE = gppKer_gpuComplexOpenMP.ex
 SRC = gppKer_gpuComplexOpenMP3.cpp 
 
 #CXX = xlc++
@@ -8,14 +8,19 @@ CXX = g++
 
 LINK = ${CXX}
 
+#CXXFLAGS=-O3 -qopenmp -std=c++11 -qopt-report=5
+#CXXFLAGS+=-xCORE_AVX2
+##CXXFLAGS+=-xMIC_AVX512
+#LINKFLAGS=-qopenmp -std=c++11
+
 ifeq ($(CXX),g++)
-	CXXFLAGS= -g -O3 -std=c++11 -fopenmp 
+	CXXFLAGS= -g -O3 -std=c++11 -fopenmp -foffload="-lm" -foffload=nvptx-none
 	LINKFLAGS=-fopenmp
 endif 
 
 ifeq ($(CXX),xlc++)
-	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp
-	LINKFLAGS=-qsmp
+	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp=noauto:omp -qoffload #-Xptxas -v
+	LINKFLAGS=-qsmp=noauto:omp -qoffload 
 endif 
 
 ifeq ($(CXX),clang++)
@@ -23,9 +28,9 @@ ifeq ($(CXX),clang++)
 	LINKFLAGS=-fopenmp -fopenmp-targets=nvptx64-nvidia-cuda --cuda-path=${CUDA_HOME}
 endif 
 
-ifeq ($(CXX),icc)
+ifeq ($(CXX),CC)
 	CXXFLAGS=-O3 -qopenmp -qopt-report=5
-	CXXFLAGS+=xCORE_AVX2
+	CXXFLAGS+=-xCORE_AVX2
 #	CXXFLAGS+=-xMIC_AVX512
 	LINKFLAGS=-qopenmp
 endif 
@@ -35,7 +40,7 @@ OBJ = $(SRC:.cpp=.o)
 $(EXE): $(OBJ) 
 	$(CXX) $(OBJ) -o $(EXE) $(LINKFLAGS)
 
-$(OBJ1): $(SRC1) 
+$(OBJ1): $(SRC) 
 	$(CXX) -c $(SRC) $(CXXFLAGS)
 
 clean: 
