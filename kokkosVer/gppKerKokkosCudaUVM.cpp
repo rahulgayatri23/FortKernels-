@@ -36,8 +36,7 @@ KOKKOS_INLINE_FUNCTION
 void reduce_achstemp(ViewScalarTypeComplex mygpvar1, ViewScalarTypeComplex schstemp, int n1, ViewVectorTypeInt inv_igp_index, int ncouls, ViewMatrixTypeComplex aqsmtemp, ViewMatrixTypeComplex aqsntemp, ViewMatrixTypeComplex I_eps_array, Kokkos::complex<double>& achstemp, ViewVectorTypeInt indinv, int ngpown, Kokkos::View<double*> vcoul)
 {
     double to1 = 1e-6;
-//    Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, Kokkos::complex<double> &achstempUpdate)
-    for(int my_igp = 0; my_igp < ngpown; ++my_igp)
+    Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, Kokkos::complex<double> &achstempUpdate)
     {
         int indigp = inv_igp_index(my_igp);
         int igp = indinv(indigp);
@@ -57,9 +56,8 @@ void reduce_achstemp(ViewScalarTypeComplex mygpvar1, ViewScalarTypeComplex schst
                 schstemp() = schstemp() - aqsntemp(n1,igp) * I_eps_array(my_igp,ig) * mygpvar1();
         }
 
-        achstemp += 0.5 * vcoul(igp) * schstemp();
-//        achstempUpdate += 0.5 * vcoul(igp) * schstemp();
-    }//,achstemp);
+        achstempUpdate += 0.5 * vcoul(igp) * schstemp();
+    },achstemp);
 }
 
 KOKKOS_INLINE_FUNCTION
@@ -214,13 +212,9 @@ int main(int argc, char** argv)
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
 
-    Kokkos::complex<double> timePass = expr0;
-
-    Kokkos::parallel_reduce(team_policy(number_bands, Kokkos::AUTO, 32) , KOKKOS_LAMBDA (const member_type& teamMember, achtempStruct& achtempVarUpdate) 
-//    for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
+    for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
-        const int n1 = teamMember.league_rank();
-//        reduce_achstemp(mygpvar1, schstemp, n1, inv_igp_index, ncouls, aqsmtemp, aqsntemp, I_eps_array, achstemp,  indinv, ngpown, vcoul);
+        reduce_achstemp(mygpvar1, schstemp, n1, inv_igp_index, ncouls, aqsmtemp, aqsntemp, I_eps_array, achstemp,  indinv, ngpown, vcoul);
 
         for(int iw=nstart; iw<nend; ++iw)
         {
@@ -228,106 +222,83 @@ int main(int argc, char** argv)
             if(wx_array(iw) < to1) wx_array(iw) = to1;
         }
 
-//    Kokkos::parallel_reduce(Kokkos::TeamThreadRange(teamMember, ngpown), [&] (const int my_igp, achtempStruct& achtempVarUpdate)
-    Kokkos::parallel_for(Kokkos::TeamThreadRange(teamMember, ngpown), [&] (const int my_igp)
-//     for(int my_igp=0; my_igp<ngpown; ++my_igp)
-    {
-        bool flag_occ = n1 < nvband;
-        Kokkos::complex<double> ssx_array[3], sch_array[3];
-
-        Kokkos::complex<double> scht, ssxt;
-        int indigp = inv_igp_index(my_igp);
-        int igp = indinv(indigp);
-        if(indigp == ncouls)
-            igp = ncouls-1;
-
-        if(!(igp > ncouls || igp < 0)){
-        
-        for(int i=0; i<3; i++)
+      Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, achtempStruct& achtempVarUpdate)
+//          for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
-            ssx_array[i] = expr0;
-            sch_array[i] = expr0;
-        }
+            bool flag_occ = n1 < nvband;
+            Kokkos::complex<double> ssx_array[3], sch_array[3];
 
-        if(flag_occ)
-        {
-            for(int iw=nstart; iw<nend; ++iw)
+            Kokkos::complex<double> scht, ssxt;
+            int indigp = inv_igp_index(my_igp);
+            int igp = indinv(indigp);
+            if(indigp == ncouls)
+                igp = ncouls-1;
+
+            if(!(igp > ncouls || igp < 0)){
+            
+            for(int i=0; i<3; i++)
             {
-                scht = ssxt = expr0;
-                flagOCC_solver(mygpvar1, wx_array(iw), wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp);
-
-                ssx_array[iw] += ssxt;
-                sch_array[iw] += 0.5*scht;
+                ssx_array[i] = expr0;
+                sch_array[i] = expr0;
             }
-        }
-        else
-        {
-            mygpvar1() = Kokkos::conj(aqsmtemp(n1,igp));
-            Kokkos::complex<double> delw, wdiff;
 
-/*Non-Cache Blocking Version*/
-            for(int iw=nstart; iw<nend; ++iw)
+            if(flag_occ)
             {
-                scht = ssxt = expr0;
-//                Kokkos::parallel_reduce(Kokkos::TeamThreadRange(teamMember, ncouls), [&] (const int ig, Kokkos::complex<double>& schtUpdate)
-                for(int ig=0; ig<ncouls; ++ig)
+                for(int iw=nstart; iw<nend; ++iw)
                 {
-                    wdiff = doubleMinusKokkosComplex(wx_array[iw] , wtilde_array(my_igp, ig));
-                    double rden = Kokkos::real(wdiff * Kokkos::conj(wdiff));
-                    rden = 1.00/rden;
-                    delw = rden * wtilde_array(my_igp, ig) * Kokkos::conj(wdiff);
-                    scha(ig) = mygpvar1() * delw * aqsntemp(n1,ig) * I_eps_array(my_igp,ig);
-  //                  schtUpdate += scha(ig);
-                    scht += scha(ig);
-                }//, scht);
-                sch_array[iw] += 0.5*scht;
+                    scht = ssxt = expr0;
+                    flagOCC_solver(mygpvar1, wx_array(iw), wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp);
+
+                    ssx_array[iw] += ssxt;
+                    sch_array[iw] += 0.5*scht;
+                }
             }
+            else
+            {
+                int igblk = 512;
+                mygpvar1() = Kokkos::conj(aqsmtemp(n1,igp));
+                Kokkos::complex<double> delw, wdiff;
+                for(int igbeg=0; igbeg<ncouls; igbeg+=igblk)
+                {
+                    int igend = min(igbeg+igblk, ncouls);
+                    for(int iw=nstart; iw<nend; ++iw)
+                    {
+                        scht = ssxt = expr0;
 
+                        for(int ig = igbeg; ig<min(igend,ncouls); ++ig)
+                        {
+                            wdiff = doubleMinusKokkosComplex(wx_array[iw] , wtilde_array(my_igp, ig));
+                            double rden = Kokkos::real(wdiff * Kokkos::conj(wdiff));
+                            rden = 1.00/rden;
+                            delw = rden * wtilde_array(my_igp, ig) * Kokkos::conj(wdiff);
+                            scha(ig) = mygpvar1() * delw * aqsntemp(n1,ig) * I_eps_array(my_igp,ig);
+                            scht += scha(ig);
 
-/*Cache Blocking Version*/
-//            int igblk = 512;
-//            for(int igbeg=0; igbeg<ncouls; igbeg+=igblk)
-//            {
-//                int igend = min(igbeg+igblk, ncouls);
-//                for(int iw=nstart; iw<nend; ++iw)
-//                {
-//                    scht = ssxt = expr0;
-//
-//                    for(int ig = igbeg; ig<igend; ++ig)
-//                    {
-//                        wdiff = doubleMinusKokkosComplex(wx_array[iw] , wtilde_array(my_igp, ig));
-//                        double rden = Kokkos::real(wdiff * Kokkos::conj(wdiff));
-//                        rden = 1.00/rden;
-//                        delw = rden * wtilde_array(my_igp, ig) * Kokkos::conj(wdiff);
-//                        scha(ig) = mygpvar1() * delw * aqsntemp(n1,ig) * I_eps_array(my_igp,ig);
-//                        scht += scha(ig);
-//
-//                    } // for iw-blockSize
-//
-//                        sch_array[iw] += 0.5*scht;
-//
-//                } // for nstart - nend
-//            } //for - ig-Block
-        } //else-loop
+                        } // for iw-blockSize
+
+                            sch_array[iw] += 0.5*scht;
+
+                    } // for nstart - nend
+                } //for - ig-Block
+            } //else-loop
       } // if-condition
 
-        if(flag_occ)
-        {
+            if(flag_occ)
+            {
+                for(int iw=nstart; iw<nend; ++iw)
+                    asxtemp(iw) += occ * ssx_array[iw];
+            }
+
             for(int iw=nstart; iw<nend; ++iw)
-                asxtemp(iw) += occ * ssx_array[iw];
-        }
+                achtempVarUpdate.value[iw] += vcoul(igp) * sch_array[iw];
 
-       for(int iw=nstart; iw<nend; ++iw)
-           achtempVarUpdate.value[iw] += vcoul(igp) * sch_array[iw];
-
-//        acht_n1_loc(n1) += sch_array[2] * vcoul(igp);
-    }); // for - ngpown 
+            acht_n1_loc(n1) += sch_array[2] * vcoul(igp);
+        },achtempVar); // for - ngpown 
 
         //Rahul - have to copy it into a diff buffer not related to kokkos-views so that the value is not modified at the start of each iteration.
-    },achtempVar); // for - number_bands
-
-    for(int iw=nstart; iw<nend; ++iw)
-        achtemp[iw] = achtempVar.value[iw];
+        for(int iw=nstart; iw<nend; ++iw)
+            achtemp[iw] += achtempVar.value[iw];
+    } // for - number_bands
 
    
         auto end_chrono = std::chrono::high_resolution_clock::now();
