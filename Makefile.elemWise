@@ -38,4 +38,4 @@ $(OBJ): $(SRC)
 	$(CXX) -c $(SRC) $(CXXFLAGS)
 
 clean: 
-	rm -f *.o $(EXE)
+	rm -f $(OBJ) $(EXE)
