@@ -125,18 +125,18 @@ void set_imag(double val)
         
 };
 #pragma omp declare target
-    const inline GPUComplex GPUComplex_square(GPUComplex& src) ;
-    const inline GPUComplex GPUComplex_conj(const GPUComplex& src) ;
+    inline const GPUComplex GPUComplex_square(GPUComplex& src) ;
+    inline const GPUComplex GPUComplex_conj(const GPUComplex& src) ;
     inline const GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) ;
-    const inline double GPUComplex_abs(const GPUComplex& src) ;
-    const inline GPUComplex GPUComplex_mult(GPUComplex& a, double b, double c) ;
-    const inline GPUComplex GPUComplex_mult(const GPUComplex& a, double b) ;
-    const inline void GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
-    const inline void GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
+    inline const double GPUComplex_abs(const GPUComplex& src) ;
+    inline const GPUComplex GPUComplex_mult(GPUComplex& a, double b, double c) ;
+    inline const GPUComplex GPUComplex_mult(const GPUComplex& a, double b) ;
+    inline const void GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
+    inline const void GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
     inline GPUComplex doubleMinusGPUComplex(const double &a, GPUComplex& src) ;
-    const inline GPUComplex doublePlusGPUComplex(double a, GPUComplex& src) ;
+    inline const GPUComplex doublePlusGPUComplex(double a, GPUComplex& src) ;
     inline double GPUComplex_real( const GPUComplex& src) ;
-    double inline GPUComplex_imag( const GPUComplex& src) ;
+    inline double GPUComplex_imag( const GPUComplex& src) ;
 #pragma omp end declare target
 
 //Inline functions have to be defined in the same file as the declaration
@@ -170,7 +170,7 @@ return result;
 /*
  * Return the product of 2 complex numbers 
  */
-inline const GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) {
+const GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) {
 
     double re_this = a.re * b.re - a.im*b.im ;
     double im_this = a.re * b.im + a.im*b.re ;
