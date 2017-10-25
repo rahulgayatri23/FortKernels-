@@ -9,7 +9,7 @@ CXX = nvcc
 LINK = ${CXX}
 
 ifeq ($(CXX),nvcc)
-	CXXFLAGS= -O3 -std=c++11 -Wno-deprecated-gpu-targets 
+	CXXFLAGS= -g -O3 -std=c++11 -Wno-deprecated-gpu-targets 
 	LINKFLAGS=-Wno-deprecated-gpu-targets
 endif 
 
