@@ -1,6 +1,6 @@
 EXE = gppKer_gpuComplex.ex
 SRC1 = gppKer_gpuComplex.cpp 
-SRC2 = Complex_target.cpp
+SRC2 = GPUComplex.cu
 
 #CXX = xlc++
 #CXX = CC 
@@ -40,7 +40,7 @@ ifeq ($(CXX),icc)
 endif 
 
 OBJ1 = $(SRC1:.cpp=.o)
-OBJ2 = $(SRC2:.cpp=.o)
+OBJ2 = $(SRC2:.cu=.o)
 
 $(EXE): $(OBJ1) $(OBJ2) 
 	$(CXX) $(OBJ1) $(OBJ2) -o $(EXE) $(LINKFLAGS)
