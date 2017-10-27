@@ -2,16 +2,16 @@ EXE = gppKer_gpuComplexOpenMP.ex
 SRC = gppKer_gpuComplexOpenMP3.cpp 
 
 #CXX = xlc++
-#CXX = CC 
-CXX = g++
+CXX = CC 
+#CXX = g++
 #CXX = clang++
 
 LINK = ${CXX}
 
-#CXXFLAGS=-O3 -qopenmp -std=c++11 -qopt-report=5
+CXXFLAGS=-O3 -qopenmp -std=c++11 -qopt-report=5
 #CXXFLAGS+=-xCORE_AVX2
-##CXXFLAGS+=-xMIC_AVX512
-#LINKFLAGS=-qopenmp -std=c++11
+CXXFLAGS+=-xMIC_AVX512
+LINKFLAGS=-qopenmp -std=c++11
 
 ifeq ($(CXX),g++)
 	CXXFLAGS= -g -O3 -std=c++11 -fopenmp -foffload="-lm" -foffload=nvptx-none

@@ -187,17 +187,17 @@ int main(int argc, char** argv)
     GPUComplex expr(0.5, 0.5);
     
 
-    GPUComplex *acht_n1_loc = new GPUComplex[number_bands];
-    GPUComplex* acht_n1_loc_threadArr = new GPUComplex [numThreads*number_bands];
-    GPUComplex *achtemp = new GPUComplex[nend-nstart];
-    GPUComplex *achtemp_threadArr = new GPUComplex [numThreads*(nend-nstart)];
-    GPUComplex *asxtemp = new GPUComplex[nend-nstart];
-    GPUComplex *aqsmtemp = new GPUComplex[number_bands*ncouls];
-    GPUComplex *aqsntemp = new GPUComplex[number_bands*ncouls];
-    GPUComplex *I_eps_array = new GPUComplex[ngpown*ncouls];
-    GPUComplex *wtilde_array = new GPUComplex[ngpown*ncouls];
-    GPUComplex *ssx_array = new GPUComplex[3];
-    GPUComplex achstemp;
+    CACHE_ALIGN GPUComplex *acht_n1_loc = new GPUComplex[number_bands];
+    CACHE_ALIGN GPUComplex* acht_n1_loc_threadArr = new GPUComplex [numThreads*number_bands];
+    CACHE_ALIGN GPUComplex *achtemp = new GPUComplex[nend-nstart];
+    CACHE_ALIGN GPUComplex *achtemp_threadArr = new GPUComplex [numThreads*(nend-nstart)];
+    CACHE_ALIGN GPUComplex *asxtemp = new GPUComplex[nend-nstart];
+    CACHE_ALIGN GPUComplex *aqsmtemp = new GPUComplex[number_bands*ncouls];
+    CACHE_ALIGN GPUComplex *aqsntemp = new GPUComplex[number_bands*ncouls];
+    CACHE_ALIGN GPUComplex *I_eps_array = new GPUComplex[ngpown*ncouls];
+    CACHE_ALIGN GPUComplex *wtilde_array = new GPUComplex[ngpown*ncouls];
+    CACHE_ALIGN GPUComplex *ssx_array = new GPUComplex[3];
+    CACHE_ALIGN GPUComplex achstemp;
 
     double *vcoul = new double[ncouls];
     double wx_array[3];
