@@ -1,6 +1,6 @@
-EXE = gppKer_gpuComplexTarget.ex
-SRC1 = gppKer_gpuComplexGCCTarget.cpp 
-#SRC1 = gppKer_gpuComplexXLCTarget.cpp 
+EXE = gppKer_GPUComplexTarget.ex
+SRC1 = gppKer_GPUComplexGCCTarget.cpp 
+#SRC1 = gppKer_GPUComplexXLCTarget.cpp 
 SRC2 = GPUComplex_target.cpp
 
 #CXX = xlc++
