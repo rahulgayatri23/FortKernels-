@@ -294,6 +294,6 @@ double GPUComplex_imag( const GPUComplex& src) {
     return src.im;
 }
 
-void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex *I_eps_array, int ncouls, double wxt, double& achtemp_re_iw, double& achtemp_im_iw, int my_igp, GPUComplex mygpvar1, int n1, double vcoul_igp);
+void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex *I_eps_array, int ncouls, double wxt, double &achtemp_re_iw, double &achtemp_im_iw, int my_igp, GPUComplex mygpvar1, int n1, double vcoul_igp);
 
 #endif

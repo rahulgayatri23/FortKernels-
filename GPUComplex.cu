@@ -135,27 +135,26 @@ __global__  void cudaBGWKernel( GPUComplex *wtilde_array, GPUComplex *aqsntemp, 
 {
     int ig = threadIdx.x;
 
+    GPUComplex sch_array_iw(0.00, 0.00);
+    GPUComplex expr(0.50, 0.50);
+
     if(ig < ncouls)
     {
-        GPUComplex sch_array_iw(0.00, 0.00);
         GPUComplex wdiff = d_doubleMinusGPUComplex(wxt , wtilde_array[my_igp*ncouls+ig]);
         double rden = d_GPUComplex_real(d_GPUComplex_product(wdiff, d_GPUComplex_conj(wdiff)));
         rden = 1/rden;
-        GPUComplex delw = d_GPUComplex_mult(d_GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , d_GPUComplex_conj(wdiff)), rden); 
 
-        d_GPUComplex_plusEquals(sch_array_iw , d_GPUComplex_product(d_GPUComplex_product(mygpvar1 , aqsntemp[n1*ncouls+ig]), d_GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])));
-        
-        d_GPUComplex_Equals(sch_array_iw , d_GPUComplex_mult(sch_array_iw, 0.5));
+        d_GPUComplex_Equals(sch_array_iw, d_GPUComplex_mult(d_GPUComplex_product(d_GPUComplex_product(mygpvar1 , aqsntemp[n1*ncouls+ig]), d_GPUComplex_product(d_GPUComplex_mult(d_GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , d_GPUComplex_conj(wdiff)), rden), I_eps_array[my_igp*ncouls+ig])), 0.5));
 
-    //    atomicAdd(&achtemp_re_iw , d_GPUComplex_real( d_GPUComplex_mult(sch_array_iw , vcoul_igp)));
-    //    atomicAdd(&achtemp_im_iw , d_GPUComplex_real( d_GPUComplex_mult(sch_array_iw , vcoul_igp)));
+        atomicAdd(&achtemp_re_iw , d_GPUComplex_real( d_GPUComplex_mult(sch_array_iw , vcoul_igp)));
+        atomicAdd(&achtemp_im_iw , d_GPUComplex_imag( d_GPUComplex_mult(sch_array_iw , vcoul_igp)));
 
-        achtemp_re_iw += d_GPUComplex_real( d_GPUComplex_mult(sch_array_iw , vcoul_igp));
-        achtemp_im_iw += d_GPUComplex_imag( d_GPUComplex_mult(sch_array_iw , vcoul_igp));
+//        achtemp_re_iw = d_GPUComplex_real( d_GPUComplex_mult(sch_array_iw , vcoul_igp));
+//        achtemp_im_iw = d_GPUComplex_imag( d_GPUComplex_mult(sch_array_iw , vcoul_igp));
     }
 }
 
-void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex *I_eps_array, int ncouls, double wxt, double& achtemp_re_iw, double& achtemp_im_iw, int my_igp, GPUComplex mygpvar1, int n1, double vcoul_igp)
+void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex *I_eps_array, int ncouls, double wxt, double &achtemp_re_iw, double &achtemp_im_iw, int my_igp, GPUComplex mygpvar1, int n1, double vcoul_igp)
 {
     cudaBGWKernel <<< 1, ncouls>>> ( wtilde_array, aqsntemp, I_eps_array, ncouls, wxt, achtemp_re_iw, achtemp_im_iw, my_igp, mygpvar1, n1, vcoul_igp);
 }
