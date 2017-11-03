@@ -313,7 +313,6 @@ int main(int argc, char** argv)
         if(wx_array[iw] < to1) wx_array[iw] = to1;
     }
 
-    auto start_ompTiming = std::chrono::high_resolution_clock::now();
 #pragma omp parallel for collapse(3)
        for(int n1 = 0; n1 < nvband; n1++)
        {
@@ -334,11 +333,10 @@ int main(int argc, char** argv)
                   }
             }
        }
-    std::chrono::duration<double> elapsed_ompTiming = std::chrono::high_resolution_clock::now() - start_ompTiming;
-    cout << "********** OMP computation Timing **********= " << elapsed_ompTiming.count() << " secs" << endl;
 
     auto start_withDataMovement = std::chrono::high_resolution_clock::now();
 
+#if CudaKernel
     if(cudaMemcpy(d_wtilde_array, wtilde_array, ngpown*ncouls*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
     {
         cout << "Nope could not copy wtilde_array to device" << endl;
@@ -390,55 +388,52 @@ int main(int argc, char** argv)
         return 0;
     }
     std::chrono::duration<double> elapsed_memcpyToDevice = std::chrono::high_resolution_clock::now() - start_withDataMovement;
-    cout << "********** memcpyToDevice **********= " << elapsed_memcpyToDevice.count() << " secs" << endl;
 
 //    int numBlocks = ngpown;
 //    int numThreadsPerBlock = ncouls/ngpown;
 
-    int numThreadsPerBlock = 256;
+    int numThreadsPerBlock = 128;
     int numBlocks = ncouls/numThreadsPerBlock;
     numBlocks == 0 ? numBlocks = 1 : numBlocks = numBlocks;
 
     printf("Launching the cudaBGWKernel with blocks = %d\t threads-per-block = %d\n", numBlocks, numThreadsPerBlock);
+#endif
 
-//Start Kernel and Kernel timing
     auto start_kernelTiming = std::chrono::high_resolution_clock::now();
 
-    gppKernelGPU( d_wtilde_array, d_aqsntemp, d_aqsmtemp, d_I_eps_array, ncouls, ngpown, number_bands, d_wx_array, d_achtemp_re, d_achtemp_im, d_vcoul, numBlocks, numThreadsPerBlock, nstart, nend, d_indinv, d_inv_igp_index);
+    for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
+    {
+        reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul);
 
+        gppKernelGPU( d_wtilde_array, d_aqsntemp, d_aqsmtemp, d_I_eps_array, ncouls, ngpown, d_wx_array, d_achtemp_re, d_achtemp_im, n1, d_vcoul, numBlocks, numThreadsPerBlock, nstart, nend, d_indinv, d_inv_igp_index);
+
+    } // number-bands
+//    cudaDeviceSynchronize();
     std::chrono::duration<double> elapsed_kernelTiming = std::chrono::high_resolution_clock::now() - start_kernelTiming;
-    cout << "********** Kernel Time Taken **********= " << elapsed_kernelTiming.count() << " secs" << endl;
-// End Kernel and Kernel timing
 
-//Start Synch and  timing
-    auto start_synchTime = std::chrono::high_resolution_clock::now();
-    cudaDeviceSynchronize();
-    std::chrono::duration<double> elapsed_synchTime = std::chrono::high_resolution_clock::now() - start_synchTime;
-    cout << "********** synchTime **********= " << elapsed_synchTime.count() << " secs" << endl;
-//End Synch and  timing
-
-//Start memcpyToHost and  timing
     auto start_memcpyToHost = std::chrono::high_resolution_clock::now();
+#if CudaKernel
     if(cudaMemcpy(achtemp_re, d_achtemp_re, 3*sizeof(double), cudaMemcpyDeviceToHost) != cudaSuccess)
     {
         cout << "Could not copy back achtemp_re from device" << endl;
-    
+        return 0;
     }
     if(cudaMemcpy(achtemp_im, d_achtemp_im, 3*sizeof(double), cudaMemcpyDeviceToHost) != cudaSuccess)
     {
         cout << "Could not copy back achtemp_re from device" << endl;
         return 0;
     }
+#endif
 
     std::chrono::duration<double> elapsed_memcpyToHost = std::chrono::high_resolution_clock::now() - start_memcpyToHost;
-    cout << "********** memcpyToHost **********= " << elapsed_memcpyToHost.count() << " secs" << endl;
-//End memcpyToHost and  timing
 
     std::chrono::duration<double> elapsed_withDataMovement = std::chrono::high_resolution_clock::now() - start_withDataMovement;
-    cout << "********** Kernel+DataMov Time Taken **********= " << elapsed_withDataMovement.count() << " secs" << endl;
-//End dataMov + Kernel and  timing
 
+#if CudaKernel
     printf(" \n Cuda Kernel Final achtemp\n");
+#else
+    printf(" \n CPU Kernel Final achtemp\n");
+#endif
     for(int iw=nstart; iw<nend; ++iw)
     {
         achtemp[iw] = GPUComplex(achtemp_re[iw], achtemp_im[iw]);
@@ -447,6 +442,10 @@ int main(int argc, char** argv)
 
     std::chrono::duration<double> elapsed_totalTime = std::chrono::high_resolution_clock::now() - start_totalTime;
 
+    cout << "********** memcpyToDevice **********= " << elapsed_memcpyToDevice.count() << " secs" << endl;
+    cout << "********** memcpyToHost **********= " << elapsed_memcpyToHost.count() << " secs" << endl;
+    cout << "********** Kernel Time Taken **********= " << elapsed_kernelTiming.count() << " secs" << endl;
+    cout << "********** Kernel+DataMov Time Taken **********= " << elapsed_withDataMovement.count() << " secs" << endl;
     cout << "********** Total Time Taken **********= " << elapsed_totalTime.count() << " secs" << endl;
 
 #if CudaKernel

@@ -143,6 +143,7 @@ void set_imag(double val)
     friend __device__ void d_GPUComplex_plusEquals( GPUComplex& a, const GPUComplex & b); 
     friend __device__ void d_GPUComplex_Equals( GPUComplex& a, const GPUComplex & b); 
     friend __device__ void d_print( const GPUComplex& src) ;
+    friend __device__  void ncoulsKernel( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex *I_eps_array, int ncouls, double wxt, double& achtemp_re_iw, double& achtemp_im_iw, int my_igp, GPUComplex mygpvar1, int n1, double vcoul_igp);
 #endif
 };
     inline const GPUComplex GPUComplex_square(GPUComplex& src) ;
@@ -294,6 +295,8 @@ double GPUComplex_imag( const GPUComplex& src) {
     return src.im;
 }
 
-void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex *I_eps_array, int ncouls, double wxt, double &achtemp_re_iw, double &achtemp_im_iw, int my_igp, GPUComplex mygpvar1, int n1, double vcoul_igp, int numBlocks, int numThreadsPerBlock);
+//void gppKernelGPU( GPUComplex* , GPUComplex* , GPUComplex*, GPUComplex* , int , int, int, double* , double* , double* , double* , int , int , int , int, int*, int*);
+void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double *achtemp_re, double *achtemp_im, double *vcoul, int numBlocks, int numThreadsPerBlock, int nstart, int nend, int* indinv, int* inv_igp_index);
+
 
 #endif

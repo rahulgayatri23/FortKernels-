@@ -163,60 +163,58 @@ __device__  void ncoulsKernel( GPUComplex *wtilde_array, GPUComplex *aqsntemp, G
     }
 }
 
-__global__  void cudaBGWKernel( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double* achtemp_re, double* achtemp_im, double* vcoul, int nstart, int nend, int* indinv, int* inv_igp_index, int numBlocks, int numThreadsPerBlock)
+__global__  void cudaBGWKernel( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, double* wx_array, double* achtemp_re, double* achtemp_im, int n1, double* vcoul, int nstart, int nend, int* indinv, int* inv_igp_index, int numBlocks, int numThreadsPerBlock)
 {
-    int n1 = blockIdx.x*blockDim.x + threadIdx.x;
+    int my_igp= blockIdx.x*blockDim.x + threadIdx.x;
 
-    if(n1 < number_bands)
+    if(my_igp < ngpown)
     {
-        for(int my_igp = 0; my_igp < ngpown; ++my_igp)
+        int indigp = inv_igp_index[my_igp];
+        int igp = indinv[indigp];
+        if(indigp == ncouls)
+            igp = ncouls-1;
+
+        for(int iw = nstart; iw < nend; ++iw)
         {
-            int indigp = inv_igp_index[my_igp];
-            int igp = indinv[indigp];
-            if(indigp == ncouls)
-                igp = ncouls-1;
+            double achtemp_re_loc = 0.00, achtemp_im_loc = 0.00;
+  //          int ig = blockIdx.x * blockDim.x + threadIdx.x;
+  //          if(ig < numThreadsPerBlock*numBlocks)
+            for(int ig = 0; ig < ncouls; ++ig) 
+            { 
+                GPUComplex mygpvar1 = d_GPUComplex_conj(aqsmtemp[n1*ncouls+igp]);
+                GPUComplex wdiff = d_doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+                double rden = d_GPUComplex_real(d_GPUComplex_product(wdiff, d_GPUComplex_conj(wdiff)));
+                rden = 1/rden;
 
-            for(int iw = nstart; iw < nend; ++iw)
-            {
-                double achtemp_re_loc = 0.00, achtemp_im_loc = 0.00;
+                achtemp_re_loc += d_GPUComplex_real(\
+                    d_GPUComplex_mult(\
+                    d_GPUComplex_mult(\
+                    d_GPUComplex_product(d_GPUComplex_product(mygpvar1, aqsntemp[n1*ncouls+ig]),\
+                    d_GPUComplex_product(d_GPUComplex_mult(d_GPUComplex_product(wtilde_array[my_igp*ncouls+ig], d_GPUComplex_conj(wdiff)), rden), I_eps_array[my_igp*ncouls+ig])),\
+                    0.5), \ // mult = 0.5
+                    vcoul[igp])); // mult = vcoul[igp]
 
-                for(int ig = 0; ig < ncouls; ++ig) 
-                { 
-                    GPUComplex mygpvar1 = d_GPUComplex_conj(aqsmtemp[n1*ncouls+igp]);
-                    GPUComplex wdiff = d_doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
-                    double rden = d_GPUComplex_real(d_GPUComplex_product(wdiff, d_GPUComplex_conj(wdiff)));
-                    rden = 1/rden;
+                achtemp_im_loc += d_GPUComplex_imag(\
+                    d_GPUComplex_mult(\
+                    d_GPUComplex_mult(\
+                    d_GPUComplex_product(d_GPUComplex_product(mygpvar1, aqsntemp[n1*ncouls+ig]),\
+                    d_GPUComplex_product(d_GPUComplex_mult(d_GPUComplex_product(wtilde_array[my_igp*ncouls+ig], d_GPUComplex_conj(wdiff)), rden), I_eps_array[my_igp*ncouls+ig])),\
+                    0.5), \ // mult = 0.5
+                    vcoul[igp])); // mult = vcoul[igp]
 
-                    achtemp_re_loc += d_GPUComplex_real(\
-                        d_GPUComplex_mult(\
-                        d_GPUComplex_mult(\
-                        d_GPUComplex_product(d_GPUComplex_product(mygpvar1, aqsntemp[n1*ncouls+ig]),\
-                        d_GPUComplex_product(d_GPUComplex_mult(d_GPUComplex_product(wtilde_array[my_igp*ncouls+ig], d_GPUComplex_conj(wdiff)), rden), I_eps_array[my_igp*ncouls+ig])),\
-                        0.5), \ // mult = 0.5
-                        vcoul[igp])); // mult = vcoul[igp]
+            }
+                atomicAdd(&achtemp_re[iw] , achtemp_re_loc);
+                atomicAdd(&achtemp_im[iw] , achtemp_im_loc );
 
-                    achtemp_im_loc += d_GPUComplex_imag(\
-                        d_GPUComplex_mult(\
-                        d_GPUComplex_mult(\
-                        d_GPUComplex_product(d_GPUComplex_product(mygpvar1, aqsntemp[n1*ncouls+ig]),\
-                        d_GPUComplex_product(d_GPUComplex_mult(d_GPUComplex_product(wtilde_array[my_igp*ncouls+ig], d_GPUComplex_conj(wdiff)), rden), I_eps_array[my_igp*ncouls+ig])),\
-                        0.5), \ // mult = 0.5
-                        vcoul[igp])); // mult = vcoul[igp]
+//            ncoulsKernel( wtilde_array, aqsntemp, I_eps_array, ncouls, wx_array[iw], achtemp_re[iw], achtemp_im[iw], my_igp, d_GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), n1, vcoul[igp]);
 
-                } //ncouls
-//                    achtemp_re[iw] += achtemp_re_loc;
-//                    achtemp_im[iw] += achtemp_im_loc;
-
-                    atomicAdd(&achtemp_re[iw] , achtemp_re_loc);
-                    atomicAdd(&achtemp_im[iw] , achtemp_im_loc );
-            } // iw
-        } // ngpown
+        }
     }
 }
 
-void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double *achtemp_re, double *achtemp_im, double *vcoul, int numBlocks, int numThreadsPerBlock, int nstart, int nend, int* indinv, int* inv_igp_index)
+void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, double* wx_array, double *achtemp_re, double *achtemp_im, int n1, double *vcoul, int numBlocks, int numThreadsPerBlock, int nstart, int nend, int* indinv, int* inv_igp_index)
 {
-    cudaBGWKernel <<< numBlocks, numThreadsPerBlock>>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numBlocks, numThreadsPerBlock);
+    cudaBGWKernel <<< numBlocks, numThreadsPerBlock>>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, wx_array, achtemp_re, achtemp_im, n1, vcoul, nstart, nend, indinv, inv_igp_index, numBlocks, numThreadsPerBlock);
 }
 
 #endif
