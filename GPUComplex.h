@@ -143,7 +143,8 @@ void set_imag(double val)
     friend __device__ void d_GPUComplex_plusEquals( GPUComplex& a, const GPUComplex & b); 
     friend __device__ void d_GPUComplex_Equals( GPUComplex& a, const GPUComplex & b); 
     friend __device__ void d_print( const GPUComplex& src) ;
-    friend __device__  void ncoulsKernel( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex *I_eps_array, int ncouls, double wxt, double& achtemp_re_iw, double& achtemp_im_iw, int my_igp, GPUComplex mygpvar1, int n1, double vcoul_igp);
+    friend __device__ void ncoulsKernel(GPUComplex& mygpvar1, GPUComplex& wdiff, GPUComplex& aqsntemp_index, GPUComplex& wtilde_array_index, GPUComplex& I_eps_array_index, double vcoul_igp, double& achtemp_re_loc, double& achtemp_im_loc);
+//    friend __device__ void ncoulsKernel(GPUComplex& mygpvar1, double vcoul_igp, double& achtemp_re_loc, double& achtemp_im_loc);
 #endif
 };
     inline const GPUComplex GPUComplex_square(GPUComplex& src) ;
