@@ -11,7 +11,7 @@ LINK = ${CXX}
 
 ifeq ($(CXX),g++)
 	CXXFLAGS= -g -O3 -std=c++11 -fopenmp -foffload="-lm" -foffload=nvptx-none
-	LINKFLAGS=-fopenmp
+	LINKFLAGS=-fopenmp -foffload="-lm" -foffload=nvptx-none
 endif 
 
 ifeq ($(CXX),xlc++)
