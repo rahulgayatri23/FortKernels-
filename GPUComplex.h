@@ -18,6 +18,7 @@
 
 
 #define CudaKernel 1
+#define NcoulsKernel 1
 
 class GPUComplex : public double2{
 

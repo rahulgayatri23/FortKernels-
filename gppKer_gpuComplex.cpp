@@ -168,8 +168,8 @@ int main(int argc, char** argv)
     double dw = 1;
     int nstart = 0, nend = 3;
 
-    int inv_igp_index[ngpown];
-    int indinv[ncouls];
+    int *inv_igp_index = new int[ngpown];
+    int *indinv = new int[ncouls+1];
 
 
     double to1 = 1e-6, \
@@ -263,7 +263,7 @@ int main(int argc, char** argv)
         cout << "Nope could not allocate vcoul on device" << endl;
         return 0;
     }
-    if(cudaMalloc((void**) &d_indinv, ncouls*sizeof(int)) != cudaSuccess)
+    if(cudaMalloc((void**) &d_indinv, (ncouls+1)*sizeof(int)) != cudaSuccess)
     {
         cout << "Nope could not allocate indinv on device" << endl;
         return 0;
@@ -304,8 +304,9 @@ int main(int argc, char** argv)
         inv_igp_index[ig] = (ig+1) * ncouls / ngpown;
 
     //Do not know yet what this array represents
-    for(int ig=0, tmp=1; ig<ncouls; ++ig,tmp++)
+    for(int ig=0 ; ig<ncouls; ++ig)
         indinv[ig] = ig;
+        indinv[ncouls] = ncouls-1;
 
     for(int iw=nstart; iw<nend; ++iw)
     {
@@ -323,8 +324,6 @@ int main(int argc, char** argv)
                    {
                         int indigp = inv_igp_index[my_igp];
                         int igp = indinv[indigp];
-                        if(indigp == ncouls)
-                            igp = ncouls-1;
                         GPUComplex ssxt(0.00, 0.00);
                         GPUComplex scht(0.00, 0.00);
                         flagOCC_solver(wx_array[iw], wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
@@ -364,7 +363,7 @@ int main(int argc, char** argv)
         cout << "Nope could not copy vcoul to device" << endl;
         return 0;
     }
-    if(cudaMemcpy(d_indinv, indinv, ncouls*sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess)
+    if(cudaMemcpy(d_indinv, indinv, (ncouls+1)*sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess)
     {
         cout << "Nope could not copy indinv to device" << endl;
         return 0;
@@ -392,21 +391,23 @@ int main(int argc, char** argv)
     std::chrono::duration<double> elapsed_memcpyToDevice = std::chrono::high_resolution_clock::now() - start_withDataMovement;
 //    cout << "********** memcpyToDevice **********= " << elapsed_memcpyToDevice.count() << " secs" << endl;
 
-//    ngpown = 1300;
-    int numBlocks = number_bands;
-    int numThreadsPerBlock = ngpown;
 
-//    int numThreadsPerBlock = 256;
-//    int numBlocks = number_bands/numThreadsPerBlock;
-
-    numBlocks == 0 ? numBlocks = 1 : numBlocks = numBlocks;
+    int numBlocks = number_bands, numThreadsPerBlock = 1;
+#if NcoulsKernel
+    numThreadsPerBlock = ncouls;
+    numThreadsPerBlock > 1024 ? numThreadsPerBlock = 1024 : numThreadsPerBlock = ncouls;
+    printf("Launching the ncouls cudaBGWKernel with blocks = %d\t threads-per-block = %d\n", numBlocks, numThreadsPerBlock);
+#else
+    numThreadsPerBlock = ngpown;
     numThreadsPerBlock > 1024 ? numThreadsPerBlock = 1024 : numThreadsPerBlock = ngpown;
+    printf("Launching the ncouls cudaBGWKernel with blocks = %d\t threads-per-block = %d\n", numBlocks, numThreadsPerBlock);
+#endif
+
 
 
 //Start Kernel and Kernel timing
     auto start_kernelTiming = std::chrono::high_resolution_clock::now();
 
-    printf("Launching the cudaBGWKernel with blocks = %d\t threads-per-block = %d\n", numBlocks, numThreadsPerBlock);
     gppKernelGPU( d_wtilde_array, d_aqsntemp, d_aqsmtemp, d_I_eps_array, ncouls, ngpown, number_bands, d_wx_array, d_achtemp_re, d_achtemp_im, d_vcoul, numBlocks, numThreadsPerBlock, nstart, nend, d_indinv, d_inv_igp_index);
 
     std::chrono::duration<double> elapsed_kernelTiming = std::chrono::high_resolution_clock::now() - start_kernelTiming;

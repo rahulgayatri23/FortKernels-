@@ -153,7 +153,65 @@ __device__ void ncoulsKernel(GPUComplex& mygpvar1, GPUComplex& wdiff, GPUComplex
 
 }
 
-__global__  void cudaBGWKernel( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double* achtemp_re, double* achtemp_im, double* vcoul, int nstart, int nend, int* indinv, int* inv_igp_index, int numBlocks, int numThreadsPerBlock)
+
+__global__  void cudaBGWKernel_ncouls( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double* achtemp_re, double* achtemp_im, double* vcoul, int nstart, int nend, int* indinv, int* inv_igp_index, int numBlocks, int numThreadsPerBlock)
+{
+    int n1 = blockIdx.x ;
+
+    if(n1 < number_bands)
+    {
+        int loopOverncouls = 1, leftOverncouls = 0, \
+            loopCounter = 1024;
+
+        if(ncouls > loopCounter)
+        {
+            loopOverncouls = ncouls / loopCounter;
+            leftOverncouls = ncouls % loopCounter;
+        }
+
+        for(int my_igp = 0; my_igp < ngpown; ++my_igp)
+        {
+            int indigp = inv_igp_index[my_igp];
+            int igp = indinv[indigp];
+
+            for(int iw = nstart; iw < nend; ++iw)
+            {
+                double achtemp_re_loc = 0.00, achtemp_im_loc = 0.00;
+
+                for( int x = 0; x < loopOverncouls && threadIdx.x < loopCounter ; ++x)
+                {
+                    int ig = x*loopCounter + threadIdx.x;
+
+                    if(ig < ncouls)
+                    { 
+                        GPUComplex mygpvar1 = d_GPUComplex_conj(aqsmtemp[n1*ncouls+igp]);
+                        GPUComplex wdiff = d_doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+                        ncoulsKernel(mygpvar1, wdiff, aqsntemp[n1*ncouls+ig], wtilde_array[my_igp*ncouls+ig], I_eps_array[my_igp*ncouls+ig], vcoul[igp], achtemp_re_loc, achtemp_im_loc);
+                    } //ncouls
+
+
+                }
+
+                if(leftOverncouls)
+                {
+                    int ig = loopOverncouls*loopCounter + threadIdx.x;
+                    if(ig < ncouls)
+                    {
+                        GPUComplex mygpvar1 = d_GPUComplex_conj(aqsmtemp[n1*ncouls+igp]);
+                        GPUComplex wdiff = d_doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+                        ncoulsKernel(mygpvar1, wdiff, aqsntemp[n1*ncouls+ig], wtilde_array[my_igp*ncouls+ig], I_eps_array[my_igp*ncouls+ig], vcoul[igp], achtemp_re_loc, achtemp_im_loc);
+                    } //ncouls
+                }
+
+                atomicAdd(&achtemp_re[iw] , achtemp_re_loc);
+                atomicAdd(&achtemp_im[iw] , achtemp_im_loc );
+
+            } // iw
+        }
+    }
+}
+
+__global__  void cudaBGWKernel_ngpown( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double* achtemp_re, double* achtemp_im, double* vcoul, int nstart, int nend, int* indinv, int* inv_igp_index, int numBlocks, int numThreadsPerBlock)
 {
     int n1 = blockIdx.x ;
 
@@ -176,8 +234,6 @@ __global__  void cudaBGWKernel( GPUComplex *wtilde_array, GPUComplex *aqsntemp, 
             {
                 int indigp = inv_igp_index[my_igp];
                 int igp = indinv[indigp];
-                if(indigp == ncouls)
-                    igp = ncouls-1;
 
                 for(int iw = nstart; iw < nend; ++iw)
                 {
@@ -203,8 +259,6 @@ __global__  void cudaBGWKernel( GPUComplex *wtilde_array, GPUComplex *aqsntemp, 
             {
                 int indigp = inv_igp_index[my_igp];
                 int igp = indinv[indigp];
-                if(indigp == ncouls)
-                    igp = ncouls-1;
 
                 for(int iw = nstart; iw < nend; ++iw)
                 {
@@ -228,8 +282,11 @@ __global__  void cudaBGWKernel( GPUComplex *wtilde_array, GPUComplex *aqsntemp, 
 
 void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double *achtemp_re, double *achtemp_im, double *vcoul, int numBlocks, int numThreadsPerBlock, int nstart, int nend, int* indinv, int* inv_igp_index)
 {
-    dim3 block(32, 32);
-    cudaBGWKernel <<< numBlocks, block>>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numBlocks, numThreadsPerBlock);
+#if NcoulsKernel
+    cudaBGWKernel_ncouls <<< numBlocks, numThreadsPerBlock>>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numBlocks, numThreadsPerBlock);
+#else
+    cudaBGWKernel_ngpown <<< numBlocks, numThreadsPerBlock>>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numBlocks, numThreadsPerBlock);
+#endif
 }
 
 #endif
