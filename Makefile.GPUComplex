@@ -2,8 +2,8 @@ EXE = gppKer_gpuComplex.ex
 SRC1 = gppKer_gpuComplex.cpp 
 SRC2 = Complex_target.cpp
 
-CXX = xlc++
-#CXX = CC 
+#CXX = xlc++
+CXX = CC 
 #CXX = g++
 #CXX = clang++
 
@@ -27,10 +27,10 @@ ifeq ($(CXX),clang++)
 endif 
 
 ifeq ($(CXX),icc)
-	CXXFLAGS=-O3 -qopenmp -qopt-report=5
-	CXXFLAGS+=xCORE_AVX2
+	CXXFLAGS=-O3 -qopenmp -qopt-report=5 -g
+	CXXFLAGS+=-xCORE_AVX2
 #	CXXFLAGS+=-xMIC_AVX512
-	LINKFLAGS=-qopenmp
+	LINKFLAGS=-qopenmp -dynamic
 endif 
 
 OBJ1 = $(SRC1:.cpp=.o)
