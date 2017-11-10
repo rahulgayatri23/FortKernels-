@@ -18,15 +18,18 @@
 
 
 #define CudaKernel 1
-#define NcoulsKernel 1
+#define NcoulsKernel 0
+#define NgpownKernel 0
+#define NcoulsNgpownKernel 1
 
 class GPUComplex : public double2{
 
     private : 
+
+public:
     double re;
     double im;
 
-public:
 explicit GPUComplex () {
     re = 0.00;
     im = 0.00;
@@ -129,22 +132,22 @@ void set_imag(double val)
     
 #if CudaKernel
 //Device Functions 
-    friend __device__ const GPUComplex d_GPUComplex_square(GPUComplex& src) ;
-    friend __device__ const GPUComplex d_GPUComplex_conj(const GPUComplex& src) ;
-    friend __device__ const GPUComplex d_GPUComplex_product(const GPUComplex& a, const GPUComplex& b) ;
-    friend __device__ double d_GPUComplex_abs(const GPUComplex& src) ;
-    friend __device__ const GPUComplex d_GPUComplex_mult(GPUComplex& a, double b, double c) ;
-    friend __device__ const GPUComplex d_GPUComplex_mult(const GPUComplex& a, double b) ;
-    friend __device__ void d_GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
-    friend __device__ void d_GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
-    friend __device__ GPUComplex d_doubleMinusGPUComplex(const double &a, GPUComplex& src) ;
-    friend __device__ const GPUComplex d_doublePlusGPUComplex(double a, GPUComplex& src) ;
-    friend __device__ double d_GPUComplex_real( const GPUComplex& src) ;
-    friend __device__ double d_GPUComplex_imag( const GPUComplex& src) ;
-    friend __device__ void d_GPUComplex_plusEquals( GPUComplex& a, const GPUComplex & b); 
-    friend __device__ void d_GPUComplex_Equals( GPUComplex& a, const GPUComplex & b); 
-    friend __device__ void d_print( const GPUComplex& src) ;
-    friend __device__ void ncoulsKernel(GPUComplex& mygpvar1, GPUComplex& wdiff, GPUComplex& aqsntemp_index, GPUComplex& wtilde_array_index, GPUComplex& I_eps_array_index, double vcoul_igp, double& achtemp_re_loc, double& achtemp_im_loc);
+//    friend __device__ const GPUComplex d_GPUComplex_square(GPUComplex& src) ;
+//    friend __device__ const GPUComplex d_GPUComplex_conj(const GPUComplex& src) ;
+//    friend __device__ const GPUComplex d_GPUComplex_product(const GPUComplex& a, const GPUComplex& b) ;
+//    friend __device__ double d_GPUComplex_abs(const GPUComplex& src) ;
+//    friend __device__ const GPUComplex d_GPUComplex_mult(GPUComplex& a, double b, double c) ;
+//    friend __device__ const GPUComplex d_GPUComplex_mult(const GPUComplex& a, double b) ;
+//    friend __device__ void d_GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
+//    friend __device__ void d_GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
+//    friend __device__ GPUComplex d_doubleMinusGPUComplex(const double &a, GPUComplex& src) ;
+//    friend __device__ const GPUComplex d_doublePlusGPUComplex(double a, GPUComplex& src) ;
+//    friend __device__ double d_GPUComplex_real( const GPUComplex& src) ;
+//    friend __device__ double d_GPUComplex_imag( const GPUComplex& src) ;
+//    friend __device__ void d_GPUComplex_plusEquals( GPUComplex& a, const GPUComplex & b); 
+//    friend __device__ void d_GPUComplex_Equals( GPUComplex& a, const GPUComplex & b); 
+//    friend __device__ void d_print( const GPUComplex& src) ;
+//    friend __device__ void ncoulsKernel(GPUComplex& mygpvar1, GPUComplex& wdiff, GPUComplex& aqsntemp_index, GPUComplex& wtilde_array_index, GPUComplex& I_eps_array_index, double vcoul_igp, double& achtemp_re_loc, double& achtemp_im_loc);
 //    friend __device__ void ncoulsKernel(GPUComplex& mygpvar1, double vcoul_igp, double& achtemp_re_loc, double& achtemp_im_loc);
 #endif
 };
@@ -160,25 +163,6 @@ void set_imag(double val)
     inline const GPUComplex doublePlusGPUComplex(double a, GPUComplex& src) ;
     inline double GPUComplex_real( const GPUComplex& src) ;
     inline double GPUComplex_imag( const GPUComplex& src) ;
-
-//#if CudaKernel
-////Device Functions 
-//    __device__ const GPUComplex d_GPUComplex_square(GPUComplex& src) ;
-//    __device__ const GPUComplex d_GPUComplex_conj(const GPUComplex& src) ;
-//    __device__ const GPUComplex d_GPUComplex_product(const GPUComplex& a, const GPUComplex& b) ;
-//    __device__ double d_GPUComplex_abs(const GPUComplex& src) ;
-//    __device__ const GPUComplex d_GPUComplex_mult(GPUComplex& a, double b, double c) ;
-//    __device__ const GPUComplex d_GPUComplex_mult(const GPUComplex& a, double b) ;
-//    __device__ void d_GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
-//    __device__ void d_GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
-//    __device__ GPUComplex d_doubleMinusGPUComplex(const double &a, GPUComplex& src) ;
-//    __device__ const GPUComplex d_doublePlusGPUComplex(double a, GPUComplex& src) ;
-//    __device__ double d_GPUComplex_real( const GPUComplex& src) ;
-//    __device__ double d_GPUComplex_imag( const GPUComplex& src) ;
-//    __device__ void d_GPUComplex_plusEquals( GPUComplex& a, const GPUComplex & b); 
-//    __device__ void d_GPUComplex_Equals( GPUComplex& a, const GPUComplex & b); 
-//    __device__ void d_print( const GPUComplex& src) ;
-//#endif
 
 //Inline functions have to be defined in the same file as the declaration
 
@@ -298,7 +282,7 @@ double GPUComplex_imag( const GPUComplex& src) {
 }
 
 //void gppKernelGPU( GPUComplex* , GPUComplex* , GPUComplex*, GPUComplex* , int , int, int, double* , double* , double* , double* , int , int , int , int, int*, int*);
-void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double *achtemp_re, double *achtemp_im, double *vcoul, int numBlocks, int numThreadsPerBlock, int nstart, int nend, int* indinv, int* inv_igp_index);
+void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double *achtemp_re, double *achtemp_im, double *vcoul, int nstart, int nend, int* indinv, int* inv_igp_index);
 
 
 #endif

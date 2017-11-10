@@ -392,23 +392,11 @@ int main(int argc, char** argv)
 //    cout << "********** memcpyToDevice **********= " << elapsed_memcpyToDevice.count() << " secs" << endl;
 
 
-    int numBlocks = number_bands, numThreadsPerBlock = 1;
-#if NcoulsKernel
-    numThreadsPerBlock = ncouls;
-    numThreadsPerBlock > 1024 ? numThreadsPerBlock = 1024 : numThreadsPerBlock = ncouls;
-    printf("Launching the ncouls cudaBGWKernel with blocks = %d\t threads-per-block = %d\n", numBlocks, numThreadsPerBlock);
-#else
-    numThreadsPerBlock = ngpown;
-    numThreadsPerBlock > 1024 ? numThreadsPerBlock = 1024 : numThreadsPerBlock = ngpown;
-    printf("Launching the ncouls cudaBGWKernel with blocks = %d\t threads-per-block = %d\n", numBlocks, numThreadsPerBlock);
-#endif
-
-
 
 //Start Kernel and Kernel timing
     auto start_kernelTiming = std::chrono::high_resolution_clock::now();
 
-    gppKernelGPU( d_wtilde_array, d_aqsntemp, d_aqsmtemp, d_I_eps_array, ncouls, ngpown, number_bands, d_wx_array, d_achtemp_re, d_achtemp_im, d_vcoul, numBlocks, numThreadsPerBlock, nstart, nend, d_indinv, d_inv_igp_index);
+    gppKernelGPU( d_wtilde_array, d_aqsntemp, d_aqsmtemp, d_I_eps_array, ncouls, ngpown, number_bands, d_wx_array, d_achtemp_re, d_achtemp_im, d_vcoul, nstart, nend, d_indinv, d_inv_igp_index);
 
     std::chrono::duration<double> elapsed_kernelTiming = std::chrono::high_resolution_clock::now() - start_kernelTiming;
 //    cout << "********** Kernel Time Taken **********= " << elapsed_kernelTiming.count() << " secs" << endl;
