@@ -8,10 +8,10 @@ CXX = CC
 LINK = ${CXX}
 
 ifeq ($(CXX),CC)
-	CXXFLAGS=-O3 -qopenmp -qopt-report=5 -std=c++11
+	CXXFLAGS= -g -O3 -qopenmp -qopt-report=5 -std=c++11
 	CXXFLAGS+=-xCORE_AVX2
 #	CXXFLAGS+=-xMIC_AVX512
-	LINKFLAGS=-qopenmp
+	LINKFLAGS=-qopenmp -dynamic
 endif 
 
 ifeq ($(CXX),g++)
