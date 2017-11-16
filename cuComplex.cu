@@ -58,7 +58,7 @@ __device__ inline void d_cuDoubleComplex_fma(cuDoubleComplex& a, const cuDoubleC
 /*
  * Return the complex number a -= b * c  
  */
-__device__ inline void d_cuDoubleComplex(cuDoubleComplex& a, const cuDoubleComplex& b, const cuDoubleComplex& c) {
+__device__ inline void d_cuDoubleComplex_fms(cuDoubleComplex& a, const cuDoubleComplex& b, const cuDoubleComplex& c) {
     a.x -= b.x * c.x - b.y*c.y ;
     a.x -= b.x * c.y + b.y*c.x ;
 }
@@ -169,12 +169,108 @@ __global__  void cudaBGWKernel_ncouls_ngpown( cuDoubleComplex *wtilde_array, cuD
     }
 }
 
+__global__ void d_flagOCC_solver(double *wx_array, cuDoubleComplex *wtilde_array, cuDoubleComplex* asxtemp, cuDoubleComplex *aqsmtemp, cuDoubleComplex *aqsntemp, cuDoubleComplex *I_eps_array, int* inv_igp_index, int* indinv, int ncouls, int nvband, int ngpown, int nstart, int nend, double* vcoul)
+{
+    int n1 = blockIdx.x ;
+    int my_igp = blockIdx.y;
+
+    if(n1 < nvband && my_igp < ngpown)
+    {
+        int loopOverncouls = 1, leftOverncouls = 0, \
+            loopCounter = 1024;
+
+        if(ncouls > loopCounter)
+        {
+            loopOverncouls = ncouls / loopCounter;
+            leftOverncouls = ncouls % loopCounter;
+        }
+        for(int iw = nstart; iw < nend; ++iw)
+        {
+            double wxt = wx_array[iw];
+            for( int x = 0; x < loopOverncouls && threadIdx.x < loopCounter ; ++x)
+            {
+                int indigp = inv_igp_index[my_igp];
+                int igp = indinv[indigp];
+                cuDoubleComplex ssxt = make_cuDoubleComplex(0.00, 0.00);
+                cuDoubleComplex scht = make_cuDoubleComplex(0.00, 0.00);
+                        
+                cuDoubleComplex expr = make_cuDoubleComplex(0.50, 0.50);
+                cuDoubleComplex expr0 = make_cuDoubleComplex(0.00, 0.00);
+                cuDoubleComplex matngmatmgp = make_cuDoubleComplex(0.00, 0.00);
+                cuDoubleComplex matngpmatmg = make_cuDoubleComplex(0.00, 0.00);
+        
+                for(int ig=0; ig<ncouls; ++ig)
+                {
+                    cuDoubleComplex wtilde = wtilde_array[my_igp*ncouls+ig];
+                    cuDoubleComplex wtilde2 = d_cuDoubleComplex_square(wtilde);
+                    cuDoubleComplex Omega2 = d_cuDoubleComplex_product(wtilde2,I_eps_array[my_igp*ncouls+ig]);
+                    cuDoubleComplex mygpvar1 = d_cuDoubleComplex_conj(aqsmtemp[n1*ncouls+igp]);
+                    cuDoubleComplex mygpvar2 = aqsmtemp[n1*ncouls+igp];
+                    cuDoubleComplex matngmatmgp = d_cuDoubleComplex_product(aqsntemp[n1*ncouls+ig] , mygpvar1);
+                    if(ig != igp) matngpmatmg = d_cuDoubleComplex_product(d_cuDoubleComplex_conj(aqsmtemp[n1*ncouls+ig]) , mygpvar2);
+        
+                    double to1 = 1e-6;
+                    double sexcut = 4.0;
+                    double limitone = 1.0/(to1*4.0);
+                    double limittwo = pow(0.5,2);
+                    cuDoubleComplex ssx;
+                
+                    cuDoubleComplex wdiff = d_doubleMinuscuDoubleComplex(wxt , wtilde);
+                
+                    cuDoubleComplex cden = wdiff;
+                    double rden = 1/d_cuDoubleComplex_real(d_cuDoubleComplex_product(cden , d_cuDoubleComplex_conj(cden)));
+                    cuDoubleComplex delw = d_cuDoubleComplex_mult(d_cuDoubleComplex_product(wtilde , d_cuDoubleComplex_conj(cden)) , rden);
+                    double delwr = d_cuDoubleComplex_real(d_cuDoubleComplex_product(delw , d_cuDoubleComplex_conj(delw)));
+                    double wdiffr = d_cuDoubleComplex_real(d_cuDoubleComplex_product(wdiff , d_cuDoubleComplex_conj(wdiff)));
+                
+                    if((wdiffr > limittwo) && (delwr < limitone))
+                    {
+                       double cden = std::pow(wxt,2);
+                        rden = std::pow(cden,2);
+                        rden = 1.00 / rden;
+                        ssx = d_cuDoubleComplex_mult(Omega2 , cden , rden);
+                    }
+                    else if (delwr > to1)
+                    {
+                        cden = d_cuDoubleComplex_mult(d_cuDoubleComplex_product(wtilde2, d_doublePluscuComplex((double)0.50, delw)), 4.00);
+                       rden = d_cuDoubleComplex_real(d_cuDoubleComplex_product(cden , d_cuDoubleComplex_conj(cden)));
+                        rden = 1.00/rden;
+                        ssx = d_cuDoubleComplex_product(d_cuDoubleComplex_product(make_cuDoubleComplex(-Omega2.x, -Omega2.y) , d_cuDoubleComplex_conj(cden)), d_cuDoubleComplex_mult(delw, rden));
+                    }
+                    else
+                    {
+                        ssx = expr0;
+                    }
+                
+                    double ssxcutoff = d_cuDoubleComplex_abs(I_eps_array[my_igp*ngpown+ig]) * sexcut;
+                    if((d_cuDoubleComplex_abs(ssx) > ssxcutoff) && (wxt < 0.00)) ssx = expr0;
+        
+                    d_cuDoubleComplex_plusEquals(ssxt, d_cuDoubleComplex_product(matngmatmgp , ssxt));
+                    d_cuDoubleComplex_plusEquals(scht, d_cuDoubleComplex_product(matngmatmgp , scht));
+                }
+                        d_cuDoubleComplex_plusEquals(asxtemp[iw] , d_cuDoubleComplex_mult(ssxt , vcoul[igp]));
+            }
+        }
+    }
+}
+
 void gppKernelGPU( cuDoubleComplex *wtilde_array, cuDoubleComplex *aqsntemp, cuDoubleComplex* aqsmtemp, cuDoubleComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double *achtemp_re, double *achtemp_im, double *vcoul, int nstart, int nend, int* indinv, int* inv_igp_index)
 {
     printf("gppKernelGPU for cuComplex class\n");
     dim3 numBlocks(number_bands, ngpown);
     int numThreadsPerBlock = ncouls;
     numThreadsPerBlock > 1024 ? numThreadsPerBlock = 1024 : numThreadsPerBlock = ncouls;
-    printf("launching 2 dimension grid with (number_bands, ngpown) dime and then calling ncouls loop by threads inside ");
+    printf("launching 2 dimension grid with (number_bands, ngpown) dime and then calling ncouls loop by threads inside \n");
+
     cudaBGWKernel_ncouls_ngpown <<< numBlocks, numThreadsPerBlock>>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numThreadsPerBlock);
+}
+
+
+void till_nvbandKernel(cuDoubleComplex* aqsmtemp, cuDoubleComplex* aqsntemp, cuDoubleComplex* asxtemp, int *inv_igp_index, int *indinv, cuDoubleComplex *wtilde_array, double *wx_array, cuDoubleComplex *I_eps_array, int ncouls, int nvband, int ngpown, int nstart, int nend, double* vcoul)
+{
+    dim3 numBlocks(nvband, ngpown);
+    int numThreadsPerBlock = ncouls;
+
+    d_flagOCC_solver<<< numBlocks, numThreadsPerBlock>>>(wx_array, wtilde_array, asxtemp, aqsmtemp, aqsntemp, I_eps_array, inv_igp_index, indinv, ncouls, nvband, ngpown, nstart, nend, vcoul);
+
 }
