@@ -159,11 +159,8 @@ __global__  void cudaBGWKernel_ncouls_ngpown( cuDoubleComplex *wtilde_array, cuD
             }
 
 
-//        if(n1 == 0 && my_igp == 0)
-        {
             atomicAdd(&achtemp_re[iw] , achtemp_re_loc);
             atomicAdd(&achtemp_im[iw] , achtemp_im_loc );
-        }
 
         } // iw
     }
@@ -176,14 +173,12 @@ __global__ void d_flagOCC_solver(double *wx_array, cuDoubleComplex *wtilde_array
 
     if(n1 < nvband && my_igp < ngpown)
     {
-        int loopOverncouls = 1, leftOverncouls = 0, \
+        int loopOverncouls = 1, \
             loopCounter = 1024;
 
         if(ncouls > loopCounter)
-        {
             loopOverncouls = ncouls / loopCounter;
-            leftOverncouls = ncouls % loopCounter;
-        }
+
         for(int iw = nstart; iw < nend; ++iw)
         {
             double wxt = wx_array[iw];

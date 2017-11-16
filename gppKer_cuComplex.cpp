@@ -129,10 +129,10 @@ int main(int argc, char** argv)
         << "\t limitone = " << limitone \
         << "\t limittwo = " << limittwo << endl;
 
+    cout << "Size of wtilde_array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
+    cout << "Size of aqsntemp = " << (ncouls*number_bands*2.0*8) / pow(1024,2) << " Mbytes" << endl;
+    cout << "Size of I_eps_array array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
 
-    //ALLOCATE statements from fortran gppkernel.
-    
-   
     cuDoubleComplex expr0 = make_cuDoubleComplex(0.00, 0.00);
     cuDoubleComplex expr = make_cuDoubleComplex(0.5, 0.5);
 
@@ -154,72 +154,71 @@ int main(int argc, char** argv)
 
     printf("Executing CUDA version of the Kernel\n");
 //Data Structures on Device
-    cuDoubleComplex *d_wtilde_array, *d_aqsntemp, *d_aqsmtemp, *d_I_eps_array, *d_asxtemp;
-    double *d_achtemp_re, *d_achtemp_im, *d_vcoul, *d_wx_array;
+    cuDoubleComplex *d_wtilde_array, *d_aqsntemp, *d_aqsmtemp, *d_asxtemp;
+    __shared__ cuDoubleComplex* d_I_eps_array;
+    double *d_achtemp_re, *d_achtemp_im, *d_wx_array;
+    double* d_vcoul;
     int *d_inv_igp_index, *d_indinv;
 
     if(cudaMalloc((void**) &d_wtilde_array, ngpown*ncouls*sizeof(cuDoubleComplex)) != cudaSuccess)
     {
-        cout << "Nope could not allocate wtilde_array on device" << endl;
+        cout << "Nope could not allocate wtilde_array on device Memory needed = " << ngpown*ncouls*sizeof(cuDoubleComplex) << " bytes" << endl;
         return 0;
     }
     if(cudaMalloc((void**) &d_I_eps_array, ngpown*ncouls*sizeof(cuDoubleComplex)) != cudaSuccess)
     {
-        cout << "Nope could not allocate I_eps_array on device" << endl;
+        cout << "Nope could not allocate I_eps_array on device Memory needed = " << ngpown*ncouls*sizeof(cuDoubleComplex) << " bytes" << endl;
         return 0;
     }
     if(cudaMalloc((void**) &d_aqsntemp, number_bands*ncouls*sizeof(cuDoubleComplex)) != cudaSuccess)
     {
-        cout << "Nope could not allocate aqsntemp on device" << endl ;
+        cout << "Nope could not allocate aqsntemp on device Memory needed = " << number_bands*ncouls*sizeof(cuDoubleComplex) << " bytes" << endl;
         return 0;
     }
     if(cudaMalloc((void**) &d_aqsmtemp, number_bands*ncouls*sizeof(cuDoubleComplex)) != cudaSuccess)
     {
-        cout << "Nope could not allocate aqsmtemp on device" << endl ;
+        cout << "Nope could not allocate aqsmtemp on device Memory needed = " << number_bands*ncouls*sizeof(cuDoubleComplex) << " bytes" << endl;
         return 0;
     }
     if(cudaMalloc((void**) &d_achtemp_re, 3*sizeof(double)) != cudaSuccess)
     {
-        cout << "Nope could not allocate achtemp_re on device" << endl; 
+        cout << "Nope could not allocate achtemp_re on device Memory needed = " << 3*sizeof(double) << " bytes" << endl;
         return 0;
     }
     if(cudaMalloc((void**) &d_achtemp_im, 3*sizeof(double)) != cudaSuccess)
     {
-        cout << "Nope could not allocate achtemp_im on device" << endl;
+        cout << "Nope could not allocate achtemp_im on device Memory needed = " << 3*sizeof(double) << " bytes" << endl;
         return 0;
     }
     if(cudaMalloc((void**) &d_wx_array, 3*sizeof(double)) != cudaSuccess)
     {
-        cout << "Nope could not allocate achtemp_im on device" << endl;
+        cout << "Nope could not allocate wx_array on device Memory needed = " << 3*sizeof(double) << " bytes" << endl;
         return 0;
     }
     if(cudaMalloc((void**) &d_vcoul, ncouls*sizeof(double)) != cudaSuccess)
     {
-        cout << "Nope could not allocate vcoul on device" << endl;
+        cout << "Nope could not allocate vcoul on device Memory needed = " << ncouls*sizeof(double) << " bytes" << endl;
         return 0;
     }
     if(cudaMalloc((void**) &d_indinv, (ncouls+1)*sizeof(int)) != cudaSuccess)
     {
-        cout << "Nope could not allocate indinv on device" << endl;
+        cout << "Nope could not allocate indinv on device Memory needed = " << (ncouls+1)*sizeof(double) << " bytes" << endl;
         return 0;
     }
     if(cudaMalloc((void**) &d_inv_igp_index, ngpown*sizeof(int)) != cudaSuccess)
     {
-        cout << "Nope could not allocate inv_igp_index on device" << endl;
+        cout << "Nope could not allocate inv_igp_index on device Memory needed = " << ngpown*sizeof(double) << " bytes" << endl;
         return 0;
     }
     if(cudaMalloc((void**) &d_asxtemp, 3*sizeof(double)) != cudaSuccess)
     {
-        cout << "Nope could not allocate asxtemp on device" << endl;
+        cout << "Nope could not allocate asxtemp on device Memory needed = " << 3*sizeof(double) << " bytes" << endl;
         return 0;
     }
                         
     double occ=1.0;
     bool flag_occ;
     double achstemp_real = 0.00, achstemp_imag = 0.00;
-    cout << "Size of wtilde_array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
-    cout << "Size of aqsntemp = " << (ncouls*number_bands*2.0*8) / pow(1024,2) << " Mbytes" << endl;
-    cout << "Size of I_eps_array array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
 
    for(int i=0; i<number_bands; i++)
        for(int j=0; j<ncouls; j++)
@@ -252,31 +251,6 @@ int main(int argc, char** argv)
         wx_array[iw] = e_lk - e_n1kq + dw*((iw+1)-2);
         if(wx_array[iw] < to1) wx_array[iw] = to1;
     }
-
-    auto start_ompTiming = std::chrono::high_resolution_clock::now();
-
-
-
-//#pragma omp parallel for collapse(3) nowait
-//       for(int n1 = 0; n1 < nvband; n1++)
-//       {
-//            for(int my_igp=0; my_igp<ngpown; ++my_igp)
-//            {
-//                   for(int iw=nstart; iw<nend; iw++)
-//                   {
-//                        int indigp = inv_igp_index[my_igp];
-//                        int igp = indinv[indigp];
-//                        cuDoubleComplex ssxt = make_cuDoubleComplex(0.00, 0.00);
-//                        cuDoubleComplex scht = make_cuDoubleComplex(0.00, 0.00);
-//                        flagOCC_solver(wx_array[iw], wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
-//                        
-//                        cuDoubleComplex_plusEquals(asxtemp[iw] , cuDoubleComplex_mult(ssxt , occ , vcoul[igp]));
-//                  }
-//            }
-//       }
-//
-    std::chrono::duration<double> elapsed_ompTiming = std::chrono::high_resolution_clock::now() - start_ompTiming;
-    cout << "********** OMP computation Timing **********= " << elapsed_ompTiming.count() << " secs" << endl;
 
     auto start_withDataMovement = std::chrono::high_resolution_clock::now();
 
