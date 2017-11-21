@@ -3,8 +3,8 @@ SRC1 = gppKer_gpuComplex.cpp
 SRC2 = Complex_target.cpp
 
 #CXX = xlc++
-CXX = CC 
-#CXX = g++
+#CXX = CC 
+CXX = g++
 #CXX = clang++
 
 LINK = ${CXX}
