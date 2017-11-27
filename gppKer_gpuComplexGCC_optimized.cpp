@@ -9,8 +9,8 @@
 #include <ctime>
 #include <chrono>
 
-#include "Complex_target.cpp"
-//#include "Complex.h"
+//#include "Complex_target.cpp"
+#include "GPUComplex.h"
 
 using namespace std;
 int debug = 0;
@@ -334,7 +334,22 @@ int main(int argc, char** argv)
         if(wx_array[iw] < to1) wx_array[iw] = to1;
     }
 
-#pragma omp parallel for collapse(3)
+    auto start_chrono_withDataMovement = std::chrono::high_resolution_clock::now();
+
+   for(int iw=nstart; iw<nend; ++iw)
+   {
+       asxtemp[iw] = expr0;
+       achtemp_re[iw] = 0.00;
+       achtemp_im[iw] = 0.00;
+   }
+
+    auto start_chrono = std::chrono::high_resolution_clock::now();
+
+#pragma omp target enter data map(alloc:ssx_array[nstart:nend], acht_n1_loc[0:number_bands], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls+1], asxtemp[0:(nend-nstart)], achtemp_re[nstart:nend], achtemp_im[nstart:nend])
+
+#pragma omp target update to(aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[nstart:nend], asxtemp[nstart:nend], achtemp_re[nstart:nend], achtemp_im[nstart:nend])
+
+#pragma omp target teams distribute parallel for schedule(static) collapse(3)
        for(int n1 = 0; n1 < nvband; n1++)
        {
             for(int my_igp=0; my_igp<ngpown; ++my_igp)
@@ -352,25 +367,9 @@ int main(int argc, char** argv)
                   }
             }
        }
-#pragma omp parallel for 
+#pragma omp target teams distribute parallel for 
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
         reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul);
-
-
-    auto start_chrono_withDataMovement = std::chrono::high_resolution_clock::now();
-
-   for(int iw=nstart; iw<nend; ++iw)
-   {
-       asxtemp[iw] = expr0;
-       achtemp_re[iw] = 0.00;
-       achtemp_im[iw] = 0.00;
-   }
-
-#pragma omp target enter data map(alloc:acht_n1_loc[0:number_bands], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls+1], asxtemp[0:(nend-nstart)], achtemp_re[nstart:nend], achtemp_im[nstart:nend])
-
-#pragma omp target update to(aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[nstart:nend], asxtemp[nstart:nend], achtemp_re[nstart:nend], achtemp_im[nstart:nend])
-
-    auto start_chrono = std::chrono::high_resolution_clock::now();
 
 #pragma omp target teams distribute parallel for schedule(static) collapse(2)
     for(int n1 = 0; n1<number_bands; ++n1) 
