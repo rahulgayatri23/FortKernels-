@@ -2,9 +2,9 @@ EXE = gppKer_gpuComplexOpenMP3.ex
 SRC = gppKer_gpuComplexOpenMP3.cpp 
 SRC+=Complex.h
 
-#CXX = g++
+CXX = g++
 #CXX = xlc++
-CXX = CC
+#CXX = CC
 
 LINK = ${CXX}
 
