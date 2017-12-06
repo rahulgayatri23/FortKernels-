@@ -1,4 +1,4 @@
-#include "cuComplex.h"
+#include "cudaComplex.h"
 //#include "cuDoubleComplex_cuComplex.h"
 //
 //#if CudaKernel
@@ -120,12 +120,12 @@ __global__  void cudaBGWKernel_ncouls_ngpown( cuDoubleComplex *wtilde_array, cuD
     if(n1 < number_bands && my_igp < ngpown)
     {
         int loopOverncouls = 1, leftOverncouls = 0, \
-            loopCounter = 1024;
+            threadsPerBlock = 16;
 
-        if(ncouls > loopCounter)
+        if(ncouls > threadsPerBlock)
         {
-            loopOverncouls = ncouls / loopCounter;
-            leftOverncouls = ncouls % loopCounter;
+            loopOverncouls = ncouls / threadsPerBlock;
+            leftOverncouls = ncouls % threadsPerBlock;
         }
 
         int indigp = inv_igp_index[my_igp];
@@ -135,9 +135,9 @@ __global__  void cudaBGWKernel_ncouls_ngpown( cuDoubleComplex *wtilde_array, cuD
         {
             double achtemp_re_loc = 0.00, achtemp_im_loc = 0.00;
 
-            for( int x = 0; x < loopOverncouls && threadIdx.x < loopCounter ; ++x)
+            for( int x = 0; x < loopOverncouls && threadIdx.x < threadsPerBlock ; ++x)
             {
-                int ig = x*loopCounter + threadIdx.x;
+                int ig = x*threadsPerBlock + threadIdx.x;
 
                 if(ig < ncouls)
                 { 
@@ -149,7 +149,7 @@ __global__  void cudaBGWKernel_ncouls_ngpown( cuDoubleComplex *wtilde_array, cuD
 
             if(leftOverncouls)
             {
-                int ig = loopOverncouls*loopCounter + threadIdx.x;
+                int ig = loopOverncouls*threadsPerBlock + threadIdx.x;
                 if(ig < ncouls)
                 {
                     cuDoubleComplex mygpvar1 = d_cuDoubleComplex_conj(aqsmtemp[n1*ncouls +igp]);
@@ -158,10 +158,8 @@ __global__  void cudaBGWKernel_ncouls_ngpown( cuDoubleComplex *wtilde_array, cuD
                 } //ncouls
             }
 
-
             atomicAdd(&achtemp_re[iw] , achtemp_re_loc);
             atomicAdd(&achtemp_im[iw] , achtemp_im_loc );
-
         } // iw
     }
 }
@@ -174,15 +172,15 @@ __global__ void d_flagOCC_solver(double *wx_array, cuDoubleComplex *wtilde_array
     if(n1 < nvband && my_igp < ngpown)
     {
         int loopOverncouls = 1, \
-            loopCounter = 1024;
+            threadsPerBlock = 128;
 
-        if(ncouls > loopCounter)
-            loopOverncouls = ncouls / loopCounter;
+        if(ncouls > threadsPerBlock)
+            loopOverncouls = ncouls / threadsPerBlock;
 
         for(int iw = nstart; iw < nend; ++iw)
         {
             double wxt = wx_array[iw];
-            for( int x = 0; x < loopOverncouls && threadIdx.x < loopCounter ; ++x)
+            for( int x = 0; x < loopOverncouls && threadIdx.x < threadsPerBlock ; ++x)
             {
                 int indigp = inv_igp_index[my_igp];
                 int igp = indinv[indigp];
