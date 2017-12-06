@@ -1,5 +1,7 @@
 EXE = gppKer_gpuComplex.ex
 SRC = gppKer_gpuComplex.cpp 
+#EXE = tryOmMe.ex
+#SRC = tryOnMe.cpp 
 
 CXX = xlc++
 #CXX = CC 
