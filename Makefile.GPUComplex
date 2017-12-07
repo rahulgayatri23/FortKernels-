@@ -3,9 +3,9 @@ SRC = gppKer_gpuComplex.cpp
 #EXE = tryOmMe.ex
 #SRC = tryOnMe.cpp 
 
-CXX = xlc++
+#CXX = xlc++
 #CXX = CC 
-#CXX = g++
+CXX = g++
 #CXX = clang++
 
 LINK = ${CXX}
