@@ -3,21 +3,30 @@ KOKKOS_DEVICES = "OpenMP"
 EXE_NAME = "gppKerKokkosOpenMP"
 
 SRC = gppKerKokkosOpenMP.cpp
+CXX=CC
 
 default: build
 	echo "Start Build"
 
+ifeq ($(CXX),CC)
+	CXXFLAGS=-O3 #-std=c++11
+	CXXFLAGS+=-xCORE_AVX2
+	#CXXFLAGS+=-xMIC_AVX512
+#	LINKFLAGS=-qopenmp -dynamic
+    EXE = ${EXE_NAME}.host
+    KOKKOS_ARCH = "knl"
+endif 
 
-ifneq (,$(findstring Cuda,$(KOKKOS_DEVICES)))
-CXX = ${KOKKOS_PATH}/config/nvcc_wrapper
-EXE = ${EXE_NAME}.cuda
-KOKKOS_ARCH = "SNB,Kepler30"
-KOKKOS_CUDA_OPTIONS = "enable_lambda"
-else
-CXX =g++
-EXE = ${EXE_NAME}.host
-KOKKOS_ARCH = "Power8"
-endif
+#ifneq (,$(findstring Cuda,$(KOKKOS_DEVICES)))
+#CXX = ${KOKKOS_PATH}/config/nvcc_wrapper
+#EXE = ${EXE_NAME}.cuda
+#KOKKOS_ARCH = "SNB,Kepler30"
+#KOKKOS_CUDA_OPTIONS = "enable_lambda"
+#else
+#CXX =CC
+#EXE = ${EXE_NAME}.host
+#KOKKOS_ARCH = "knl"
+#endif
 
 #CXXFLAGS = -O3 -xCORE_AVX2 -qopt-report=5 
 LINK = ${CXX}
