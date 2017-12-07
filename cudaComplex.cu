@@ -120,7 +120,7 @@ __global__  void cudaBGWKernel_ncouls_ngpown( cuDoubleComplex *wtilde_array, cuD
     if(n1 < number_bands && my_igp < ngpown)
     {
         int loopOverncouls = 1, leftOverncouls = 0, \
-            threadsPerBlock = 16;
+            threadsPerBlock = numThreadsPerBlock;
 
         if(ncouls > threadsPerBlock)
         {
@@ -251,8 +251,8 @@ void gppKernelGPU( cuDoubleComplex *wtilde_array, cuDoubleComplex *aqsntemp, cuD
 {
     printf("gppKernelGPU for cuComplex class\n");
     dim3 numBlocks(number_bands, ngpown);
-    int numThreadsPerBlock = ncouls;
-    numThreadsPerBlock > 1024 ? numThreadsPerBlock = 1024 : numThreadsPerBlock = ncouls;
+    int numThreadsPerBlock = 32;
+//    numThreadsPerBlock > 1024 ? numThreadsPerBlock = 1024 : numThreadsPerBlock = ncouls;
     printf("launching 2 dimension grid with (number_bands, ngpown) dime and then calling ncouls loop by threads inside \n");
 
     cudaBGWKernel_ncouls_ngpown <<< numBlocks, numThreadsPerBlock>>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numThreadsPerBlock);
