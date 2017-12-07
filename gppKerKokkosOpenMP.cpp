@@ -277,10 +277,6 @@ int main(int argc, char** argv)
                    GPUComplex delw(GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), rden)); 
                    sch_array[iw] += GPUComplex_mult(GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5), vcoul[igp]);
                }
-            }
-
-            for(int iw=nstart; iw<nend; ++iw)
-            {
                 achtemp_re[iw] += GPUComplex_real( sch_array[iw] );
                 achtemp_im[iw] += GPUComplex_imag( sch_array[iw] );
             }
