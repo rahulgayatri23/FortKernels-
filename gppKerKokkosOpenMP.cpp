@@ -8,11 +8,17 @@
 #include <omp.h>
 #include <ctime>
 #include <chrono>
+#include "gppKerKokkos.h"
 
 #include "GPUComplex.h"
+#define igblk 512
 
 using namespace std;
 int debug = 0;
+
+inline void flagOCC_solver(double wxt, GPUComplex *wtilde_array, int my_igp, int n1, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex &ssxt, GPUComplex &scht,int ncouls, int igp, int number_bands, int ngpown);
+inline void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, GPUComplex  *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex achstemp,  int* indinv, int ngpown, double* vcoul);
+
 
 inline void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, GPUComplex  *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex achstemp,  int* indinv, int ngpown, double* vcoul)
 {
@@ -124,6 +130,8 @@ inline void flagOCC_solver(double wxt, GPUComplex *wtilde_array, int my_igp, int
 
 int main(int argc, char** argv)
 {
+    Kokkos::initialize(argc, argv);
+    {
 
     if (argc != 5)
     {
@@ -131,10 +139,13 @@ int main(int argc, char** argv)
         std::cout << " ./a.out <number_bands> <number_valence_bands> <number_plane_waves> <nodes_per_mpi_group> " << endl;
         exit (0);
     }
+    auto start_totalTime = std::chrono::high_resolution_clock::now();
+
     int number_bands = atoi(argv[1]);
     int nvband = atoi(argv[2]);
     int ncouls = atoi(argv[3]);
     int nodes_per_group = atoi(argv[4]);
+
 
     int npes = 1; //Represents the number of ranks per node
     int ngpown = ncouls / (nodes_per_group * npes); //Number of gvectors per mpi task
@@ -143,8 +154,21 @@ int main(int argc, char** argv)
     double dw = 1;
     int nstart = 0, nend = 3;
 
-    int inv_igp_index[ngpown];
-    int indinv[ncouls];
+//    int inv_igp_index[ngpown];
+//    int indinv[ncouls+1];
+    int *inv_igp_index = new int[ngpown];
+    int *indinv = new int[ncouls+1];
+
+    //OpenMP Printing of threads on Host and Device
+//    int tid, numThreads, numTeams;
+//#pragma omp parallel shared(numThreads) private(tid)
+//    {
+//        tid = omp_get_thread_num();
+//        if(tid == 0)
+//            numThreads = omp_get_num_threads();
+//    }
+//    std::cout << "Number of OpenMP Threads = " << numThreads << endl;
+
 
     double to1 = 1e-6, \
     gamma = 0.5, \
@@ -181,9 +205,9 @@ int main(int argc, char** argv)
     GPUComplex *aqsntemp = new GPUComplex[number_bands*ncouls];
     GPUComplex *I_eps_array = new GPUComplex[ngpown*ncouls];
     GPUComplex *wtilde_array = new GPUComplex[ngpown*ncouls];
-    GPUComplex *sch_array = new GPUComplex[3];
-    GPUComplex *scha = new GPUComplex[ncouls];
+    GPUComplex *ssx_array = new GPUComplex[3];
     GPUComplex *ssxa = new GPUComplex[ncouls];
+    GPUComplex *scha = new GPUComplex[igblk];
     GPUComplex achstemp;
 
     double *achtemp_re = new double[3];
@@ -225,73 +249,106 @@ int main(int argc, char** argv)
         indinv[ig] = ig;
         indinv[ncouls] = ncouls-1;
 
+       for(int iw=nstart; iw<nend; ++iw)
+       {
+           asxtemp[iw] = expr0;
+           achtemp_re[iw] = 0.00;
+           achtemp_im[iw] = 0.00;
+       }
+
+        for(int iw=nstart; iw<nend; ++iw)
+        {
+            wx_array[iw] = e_lk - e_n1kq + dw*((iw+1)-2);
+            if(wx_array[iw] < to1) wx_array[iw] = to1;
+        }
+
+#pragma omp parallel for collapse(3)
+       for(int n1 = 0; n1 < nvband; n1++)
+       {
+            for(int my_igp=0; my_igp<ngpown; ++my_igp)
+            {
+               for(int iw=nstart; iw<nend; iw++)
+               {
+                    int indigp = inv_igp_index[my_igp];
+                    int igp = indinv[indigp];
+                    GPUComplex ssxt(0.00, 0.00);
+                    GPUComplex scht(0.00, 0.00);
+                    flagOCC_solver(wx_array[iw], wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
+                    asxtemp[iw] += GPUComplex_mult(ssxt, occ , vcoul[igp]);
+              }
+            }
+       }
+
+
+    Kokkos::parallel_for(number_bands, KOKKOS_LAMBDA (int n1)
+    {
+        reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul);
+    });
+
     auto start_chrono = std::chrono::high_resolution_clock::now();
 
-   for(int iw=nstart; iw<nend; ++iw)
-   {
-       asxtemp[iw] = expr0;
-       achtemp_re[iw] = 0.00;
-       achtemp_im[iw] = 0.00;
-   }
+    achtempStruct achtempVar;
 
-    for(int iw=nstart; iw<nend; ++iw)
+    for(int n1 = 0; n1<number_bands; ++n1) 
     {
-        wx_array[iw] = e_lk - e_n1kq + dw*((iw+1)-2);
-        if(wx_array[iw] < to1) wx_array[iw] = to1;
-    }
-    for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
-        reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul );
-
-    for(int n1 = 0; n1 < nvband; n1++)
-    {
-        for(int my_igp=0; my_igp<ngpown; ++my_igp)
-        {
-           for(int iw=nstart; iw<nend; iw++)
-           {
-                int indigp = inv_igp_index[my_igp];
-                int igp = indinv[indigp];
-                GPUComplex ssxt(0.00, 0.00);
-                GPUComplex scht(0.00, 0.00);
-                flagOCC_solver(wx_array[iw], wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
-                
-                asxtemp[iw] += GPUComplex_mult(ssxt , occ , vcoul[igp]);
-            }
-        }
-    }
-
-    for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
-    {
-        for(int my_igp=0; my_igp<ngpown; ++my_igp)
+        Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, achtempStruct& achtempVarUpdate)
         {
             int indigp = inv_igp_index[my_igp];
             int igp = indinv[indigp];
 
-           for(int iw=nstart; iw<nend; ++iw)
-           {
-               sch_array[iw] = expr0;
+            GPUComplex wdiff, delw;
 
-               for(int ig = 0; ig<ncouls; ++ig)
-               { 
-                   GPUComplex wdiff(doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]));
-                   double rden = 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)));
-                   GPUComplex delw(GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), rden)); 
-                   sch_array[iw] += GPUComplex_mult(GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5), vcoul[igp]);
-               }
-                achtemp_re[iw] += GPUComplex_real( sch_array[iw] );
-                achtemp_im[iw] += GPUComplex_imag( sch_array[iw] );
+            double achtemp_re_loc[3], achtemp_im_loc[3];
+            for(int iw = nstart; iw < nend; ++iw) {achtemp_re_loc[iw] = 0.00; achtemp_im_loc[iw] = 0.00;}
+
+            for(int ig = 0; ig<ncouls; ++ig)
+            {
+                int iw = 0;
+                wdiff = doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+                delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
+                GPUComplex sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
+                achtemp_re_loc[iw] += GPUComplex_real(sch_array);
+                achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
+
+                iw++;
+                wdiff = doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+                delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
+                sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
+                achtemp_re_loc[iw] += GPUComplex_real(sch_array);
+                achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
+
+                iw++;
+                wdiff = doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+                delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
+                sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
+                achtemp_re_loc[iw] += GPUComplex_real(sch_array);
+                achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
+
             }
 
-            acht_n1_loc[n1] += GPUComplex_mult(sch_array[2] , vcoul[igp]);
 
-        } //ngpown
+            for(int iw = nstart; iw < nend; ++iw)
+            {
+                achtempVarUpdate.achtemp_re[iw] += achtemp_re_loc[iw];
+                achtempVarUpdate.achtemp_im[iw] += achtemp_im_loc[iw];
+            }
+
+        },achtempVar); //ngpown
+
+        for(int iw = nstart; iw < nend; ++iw)
+        {
+            achtemp_re[iw] += achtempVar.achtemp_re[iw];
+            achtemp_im[iw] += achtempVar.achtemp_im[iw];
+        }
     } // number-bands
 
+    std::chrono::duration<double> elapsed_chrono = std::chrono::high_resolution_clock::now() - start_chrono;
 
     printf(" \n Final achstemp\n");
     achstemp.print();
-    std::chrono::duration<double> elapsed_chrono = std::chrono::high_resolution_clock::now() - start_chrono;
 
     printf("\n Final achtemp\n");
+
     for(int iw=nstart; iw<nend; ++iw)
     {
         GPUComplex tmp(achtemp_re[iw], achtemp_im[iw]);
@@ -299,7 +356,8 @@ int main(int argc, char** argv)
         achtemp[iw].print();
     }
 
-    cout << "********** Chrono Time Taken **********= " << elapsed_chrono.count() << " secs" << endl;
+    std::chrono::duration<double> elapsed_totalTime = std::chrono::high_resolution_clock::now() - start_totalTime;
+    cout << "********** Total Time Taken **********= " << elapsed_totalTime.count() << " secs" << endl;
 
     free(acht_n1_loc);
     free(achtemp);
@@ -309,6 +367,10 @@ int main(int argc, char** argv)
     free(wtilde_array);
     free(asxtemp);
     free(vcoul);
+    free(ssx_array);
+
+    }
+    Kokkos::finalize();
 
     return 0;
 }
