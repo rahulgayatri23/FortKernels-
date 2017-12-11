@@ -4,6 +4,7 @@ EXE_NAME = "gppKerKokkosOpenMP"
 
 SRC = gppKerKokkosOpenMP.cpp
 CXX=CC
+CXX=g++
 
 default: build
 	echo "Start Build"
@@ -15,6 +16,12 @@ ifeq ($(CXX),CC)
 #	LINKFLAGS=-qopenmp -dynamic
     EXE = ${EXE_NAME}.host
     KOKKOS_ARCH = "knl"
+endif 
+
+ifeq ($(CXX),g++)
+	CXXFLAGS=-O3 #-std=c++11
+    EXE = ${EXE_NAME}.host
+    KOKKOS_ARCH = "power8"
 endif 
 
 #ifneq (,$(findstring Cuda,$(KOKKOS_DEVICES)))
