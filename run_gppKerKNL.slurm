@@ -16,9 +16,9 @@
 export OMP_PLACES=threads
 export OMP_PROC_BIND=spread
 
-EXEC=gppKerFort.ex
+#EXEC=gppKerFort.ex
 #EXEC=gppKer.ex
-#EXEC=gppKer_gpuComplex.ex
+EXEC=gppKer_gpuComplexOpenMP.ex
 Input="512 2 32768 20"
 
 num_mpi_ranks=1
