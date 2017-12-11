@@ -12,7 +12,7 @@ ifeq ($(CXX),g++)
 endif 
 
 ifeq ($(CXX),xlc++)
-	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp=noauto:omp -qoffload #-Xptxas -v
+	CXXFLAGS=-std=gnu++11 -g -O2 -qsmp=noauto:omp -qoffload -qnoipa -qstrict #-Xptxas -v
 	LINKFLAGS=-qsmp=noauto:omp -qoffload 
 endif 
 

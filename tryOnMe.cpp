@@ -34,17 +34,6 @@ int main(int argc, char** argv)
     std::cout << "Number of OpenMP Teams = " << numTeams << std::endl;
     std::cout << "Number of OpenMP DEVICE Threads = " << numThreads << std::endl;
 
-    int arr[10*10];
-
-
-#pragma om
-    for(int i = 0; i < 10; ++i)
-    {
-        for(int j = 0; j < 10; ++j)
-        {
-            arr[i*10 +j] = i*j;
-        }
-    }
     return 0;
 
 
