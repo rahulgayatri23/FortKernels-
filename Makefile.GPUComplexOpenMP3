@@ -9,8 +9,8 @@ CXX = CC
 LINK = ${CXX}
 
 CXXFLAGS=-O3 -qopenmp -std=c++11 -qopt-report=5
-#CXXFLAGS+=-xCORE_AVX2
-CXXFLAGS+=-xMIC-AVX512
+CXXFLAGS+=-xCORE_AVX2
+#CXXFLAGS+=-xMIC-AVX512
 LINKFLAGS=-qopenmp -std=c++11
 
 ifeq ($(CXX),g++)
