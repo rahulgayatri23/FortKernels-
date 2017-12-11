@@ -10,11 +10,12 @@ LINK = ${CXX}
 
 #CXXFLAGS=-O3 -qopenmp -std=c++11 -qopt-report=5
 #CXXFLAGS+=-xCORE_AVX2
+#CXXFLAGS+=-xCORE-AVX2
 ##CXXFLAGS+=-xMIC-AVX512
 #LINKFLAGS=-qopenmp -std=c++11
 
 ifeq ($(CXX),g++)
-	CXXFLAGS= -g -O3 -std=c++11 -fopenmp 
+	CXXFLAGS= -g -O3 -std=c++11 -fopenmp  -ffast-math -funroll-loops -ftree-vectorizer-verbose=2 
 	LINKFLAGS=-fopenmp
 endif 
 
