@@ -83,4 +83,4 @@ KOKKOS_INLINE_FUNCTION
             achtemp_im[i] += other.achtemp_im[i];
         }
     }
-}achtempVar;
+};

@@ -149,9 +149,6 @@ int main(int argc, char** argv)
     double dw = 1;
     int nstart = 0, nend = 3;
 
-//    int *inv_igp_index = new int[ngpown];
-//    int *indinv = new int[ncouls+1];
-
     double to1 = 1e-6, \
     gamma = 0.5, \
     sexcut = 4.0;
@@ -182,14 +179,6 @@ int main(int argc, char** argv)
 
     GPUComplex *acht_n1_loc = new GPUComplex[number_bands];
     GPUComplex *achtemp = new GPUComplex[nend-nstart];
-//    GPUComplex *asxtemp = new GPUComplex[nend-nstart];
-//    GPUComplex *aqsmtemp = new GPUComplex[number_bands*ncouls];
-//    GPUComplex *aqsntemp = new GPUComplex[number_bands*ncouls];
-//    GPUComplex *I_eps_array = new GPUComplex[ngpown*ncouls];
-//    GPUComplex *wtilde_array = new GPUComplex[ngpown*ncouls];
-//    double *vcoul = new double[ncouls];
-//    double wx_array[3];
-
     double *achtemp_re = new double[3];
     double *achtemp_im = new double[3];
     double occ=1.0;
@@ -206,6 +195,8 @@ int main(int argc, char** argv)
     //Doble views
     ViewVectorTypeDouble wx_array("wx_array",3);
     ViewVectorTypeDouble vcoul("vcoul",ncouls);
+//    ViewVectorTypeDouble achtemp_re_loc("achtemp_re_loc",3);
+//    ViewVectorTypeDouble achtemp_im_loc("achtemp_im_loc",3);
 
     //Int Views
     ViewVectorTypeInt inv_igp_index("inv_igp_index", ngpown);
@@ -279,44 +270,51 @@ int main(int argc, char** argv)
     auto start_chrono = std::chrono::high_resolution_clock::now();
 
     achtempStruct achtempVar;
+/************************************************************************************************************************************************************************************************************************************************************/
+//    for(int n1 = 0; n1<number_bands; ++n1) 
+//        for(int my_igp = 0; n1<ngpown; ++my_igp) 
+//            for(int ig = 0; ig<ncouls; ++ig)
+/************************************************************************************************************************************************************************************************************************************************************/
 
-    for(int n1 = 0; n1<number_bands; ++n1) 
+    Kokkos::parallel_reduce(team_policy(number_bands, Kokkos::AUTO, 32), KOKKOS_LAMBDA (const member_type &teamMember, achtempStruct& achtempVarUpdate)
     {
-        Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, achtempStruct& achtempVarUpdate)
+        const int n1 = teamMember.league_rank();
+
+        Kokkos::parallel_for(Kokkos::TeamThreadRange(teamMember, ngpown), [&] (const int my_igp)
         {
             int indigp = inv_igp_index(my_igp);
             int igp = indinv(indigp);
+            achtempStruct achtempVar_loc;
 
-
-            double achtemp_re_loc[3], achtemp_im_loc[3];
-            for(int iw = nstart; iw < nend; ++iw) {achtemp_re_loc[iw] = 0.00; achtemp_im_loc[iw] = 0.00;}
-
-            for(int ig = 0; ig<ncouls; ++ig)
+            Kokkos::parallel_reduce( Kokkos::ThreadVectorRange(teamMember, ncouls), [&] (const int ig, achtempStruct& achtempVar_locUpdate)
             {
                 for(int iw = 0; iw < 3; ++iw)
                 {
                     GPUComplex wdiff = doubleMinusGPUComplex(wx_array(iw), wtilde_array(my_igp*ncouls+ig));
                     GPUComplex delw = GPUComplex_mult(GPUComplex_product(wtilde_array(my_igp*ncouls+ig), GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
                     GPUComplex sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp(n1*ncouls+igp)), aqsntemp(n1*ncouls+ig)), GPUComplex_product(delw , I_eps_array(my_igp*ncouls+ig))), 0.5*vcoul(igp));
-                    achtemp_re_loc[iw] += GPUComplex_real(sch_array);
-                    achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
+                    achtempVar_locUpdate.achtemp_re[iw] += GPUComplex_real(sch_array);
+                    achtempVar_locUpdate.achtemp_im[iw] += GPUComplex_imag(sch_array);
                 }
-            }
+
+            }, achtempVar_loc);
 
             for(int iw = nstart; iw < nend; ++iw)
             {
-                achtempVarUpdate.achtemp_re[iw] += achtemp_re_loc[iw];
-                achtempVarUpdate.achtemp_im[iw] += achtemp_im_loc[iw];
+                achtempVarUpdate.achtemp_re[iw] += achtempVar_loc.achtemp_re[iw];
+                achtempVarUpdate.achtemp_im[iw] += achtempVar_loc.achtemp_im[iw];
             }
 
-        },achtempVar); //ngpown
+        }); //ngpown
 
-        for(int iw = nstart; iw < nend; ++iw)
-        {
-            achtemp_re[iw] += achtempVar.achtemp_re[iw];
-            achtemp_im[iw] += achtempVar.achtemp_im[iw];
-        }
-    } // number-bands
+
+    }, achtempVar); // number-bands
+
+    for(int iw = nstart; iw < nend; ++iw)
+    {
+        achtemp_re[iw] += achtempVar.achtemp_re[iw];
+        achtemp_im[iw] += achtempVar.achtemp_im[iw];
+    }
 
     std::chrono::duration<double> elapsed_chrono = std::chrono::high_resolution_clock::now() - start_chrono;
 
@@ -337,12 +335,6 @@ int main(int argc, char** argv)
 
     free(acht_n1_loc);
     free(achtemp);
-//    free(aqsmtemp);
-//    free(aqsntemp);
-//    free(I_eps_array);
-//    free(wtilde_array);
-//    free(asxtemp);
-//    free(vcoul);
 
     }
     Kokkos::finalize();
