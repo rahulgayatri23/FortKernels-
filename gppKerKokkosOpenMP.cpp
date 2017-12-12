@@ -11,7 +11,6 @@
 #include "gppKerKokkos.h"
 
 #include "GPUComplex.h"
-#define igblk 512
 
 using namespace std;
 int debug = 0;
@@ -194,7 +193,6 @@ int main(int argc, char** argv)
     GPUComplex *wtilde_array = new GPUComplex[ngpown*ncouls];
     GPUComplex *ssx_array = new GPUComplex[3];
     GPUComplex *ssxa = new GPUComplex[ncouls];
-    GPUComplex *scha = new GPUComplex[igblk];
     GPUComplex achstemp;
 
     double *achtemp_re = new double[3];
