@@ -1,19 +1,20 @@
-#include <iostream>
-#include <cstdlib>
-
-#include <iomanip>
-#include <cmath>
-#include <complex>
-#include <omp.h>
+//#include <iostream>
+//#include <cstdlib>
+//
+//#include <iomanip>
+//#include <cmath>
+//#include <complex>
+//#include <omp.h>
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Complex.hpp>
+#include "GPUComplex.h"
 using namespace std;
 
 
 #define CUDASPACE 0
-#define OPENMPSPACE 1
-#define CUDAUVM 0
+#define OPENMPSPACE 0
+#define CUDAUVM 1
 #define SERIAL 0
 #define THREADS 0
 
@@ -49,9 +50,9 @@ typedef Kokkos::RangePolicy<ExecSpace>  range_policy;
 typedef Kokkos::TeamPolicy<> team_policy;
 typedef Kokkos::TeamPolicy<>::member_type member_type;
 
-typedef Kokkos::View<Kokkos::complex<double>, Layout, MemSpace>   ViewScalarTypeComplex;
-typedef Kokkos::View<Kokkos::complex<double>*, Layout, MemSpace>   ViewVectorTypeComplex;
-typedef Kokkos::View<Kokkos::complex<double>**, Layout, MemSpace>  ViewMatrixTypeComplex;
+typedef Kokkos::View<GPUComplex, Layout, MemSpace>   ViewScalarTypeComplex;
+typedef Kokkos::View<GPUComplex*, Layout, MemSpace>   ViewVectorTypeComplex;
+typedef Kokkos::View<GPUComplex**, Layout, MemSpace>  ViewMatrixTypeComplex;
 
 typedef Kokkos::View<int*, Layout, MemSpace>   ViewVectorTypeInt;
 typedef Kokkos::View<double*, Layout, MemSpace>   ViewVectorTypeDouble;

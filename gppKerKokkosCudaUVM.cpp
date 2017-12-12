@@ -11,16 +11,12 @@
 #include "gppKerKokkos.h"
 
 #include "GPUComplex.h"
-#define igblk 512
 
 using namespace std;
-int debug = 0;
-
-inline void flagOCC_solver(double wxt, GPUComplex *wtilde_array, int my_igp, int n1, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex &ssxt, GPUComplex &scht,int ncouls, int igp, int number_bands, int ngpown);
-inline void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, GPUComplex  *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex achstemp,  int* indinv, int ngpown, double* vcoul);
 
 
-inline void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, GPUComplex  *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex achstemp,  int* indinv, int ngpown, double* vcoul)
+KOKKOS_INLINE_FUNCTION
+void reduce_achstemp(int n1, int number_bands, ViewVectorTypeInt inv_igp_index, int ncouls, ViewVectorTypeComplex aqsmtemp, ViewVectorTypeComplex aqsntemp, ViewVectorTypeComplex I_eps_array, GPUComplex achstemp,  ViewVectorTypeInt indinv, int ngpown, ViewVectorTypeDouble vcoul)
 {
     double to1 = 1e-6;
     GPUComplex schstemp(0.0, 0.0);;
@@ -30,22 +26,20 @@ inline void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int nc
         GPUComplex schs(0.0, 0.0);
         GPUComplex matngmatmgp(0.0, 0.0);
         GPUComplex matngpmatmg(0.0, 0.0);
-        GPUComplex halfinvwtilde, delw, ssx, sch, wdiff, cden , eden, mygpvar1, mygpvar2;
-        int indigp = inv_igp_index[my_igp];
-        int igp = indinv[indigp];
-        if(indigp == ncouls)
-            igp = ncouls-1;
+        GPUComplex mygpvar2(0.00, 0.00);
+        GPUComplex mygpvar1(0.00, 0.00);
+        int indigp = inv_igp_index(my_igp);
+        int igp = indinv(indigp);
 
         if(!(igp > ncouls || igp < 0)){
 
-            GPUComplex mygpvar2, mygpvar1;
-            mygpvar1 = GPUComplex_conj(aqsmtemp[n1*ncouls+igp]);
-            mygpvar2 = aqsntemp[n1*ncouls+igp];
+            mygpvar1 = GPUComplex_conj(aqsmtemp(n1*ncouls+igp));
+            mygpvar2 = aqsntemp(n1*ncouls+igp);
 
 
 
-            schs = I_eps_array[my_igp*ncouls+igp];
-            matngmatmgp = GPUComplex_product(mygpvar1, aqsntemp[n1*ncouls+igp]);
+            schs = I_eps_array(my_igp*ncouls+igp);
+            matngmatmgp = GPUComplex_product(mygpvar1, aqsntemp(n1*ncouls+igp));
 
 
             if(GPUComplex_abs(schs) > to1)
@@ -55,17 +49,18 @@ inline void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int nc
             {
                 for(int ig=1; ig<ncouls; ++ig)
                 {
-                    GPUComplex mult_result(GPUComplex_product(I_eps_array[my_igp*ncouls+ig] , mygpvar1));
-                    GPUComplex_fms(schstemp,aqsntemp[n1*ncouls+igp], mult_result); 
+                    GPUComplex mult_result(GPUComplex_product(I_eps_array(my_igp*ncouls+ig) , mygpvar1));
+                    GPUComplex_fms(schstemp,aqsntemp(n1*ncouls+igp), mult_result); 
                 }
             }
 
-        schstemp = GPUComplex_mult(schstemp, vcoul[igp], 0.5);
+        schstemp = GPUComplex_mult(schstemp, vcoul(igp), 0.5);
         achstemp += schstemp;
     }
 }
 
-inline void flagOCC_solver(double wxt, GPUComplex *wtilde_array, int my_igp, int n1, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex &ssxt, GPUComplex &scht,int ncouls, int igp, int number_bands, int ngpown)
+KOKKOS_INLINE_FUNCTION
+void flagOCC_solver(double wxt, ViewVectorTypeComplex wtilde_array, int my_igp, int n1, ViewVectorTypeComplex aqsmtemp, ViewVectorTypeComplex aqsntemp, ViewVectorTypeComplex I_eps_array, GPUComplex &ssxt, GPUComplex &scht,int ncouls, int igp, int number_bands, int ngpown)
 {
     GPUComplex expr0(0.00, 0.00);
     GPUComplex expr(0.5, 0.5);
@@ -74,21 +69,21 @@ inline void flagOCC_solver(double wxt, GPUComplex *wtilde_array, int my_igp, int
 
     for(int ig=0; ig<ncouls; ++ig)
     {
-        GPUComplex wtilde = wtilde_array[my_igp*ncouls+ig];
+        GPUComplex wtilde = wtilde_array(my_igp*ncouls+ig);
         GPUComplex wtilde2 = GPUComplex_square(wtilde);
-        GPUComplex Omega2 = GPUComplex_product(wtilde2,I_eps_array[my_igp*ncouls+ig]);
-        GPUComplex mygpvar1 = GPUComplex_conj(aqsmtemp[n1*ncouls+igp]);
-        GPUComplex mygpvar2 = aqsmtemp[n1*ncouls+igp];
-        GPUComplex matngmatmgp = GPUComplex_product(aqsntemp[n1*ncouls+ig] , mygpvar1);
-        if(ig != igp) matngpmatmg = GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+ig]) , mygpvar2);
+        GPUComplex Omega2 = GPUComplex_product(wtilde2,I_eps_array(my_igp*ncouls+ig));
+        GPUComplex mygpvar1 = GPUComplex_conj(aqsmtemp(n1*ncouls+igp));
+        GPUComplex mygpvar2 = aqsmtemp(n1*ncouls+igp);
+        GPUComplex matngmatmgp = GPUComplex_product(aqsntemp(n1*ncouls+ig) , mygpvar1);
+        if(ig != igp) matngpmatmg = GPUComplex_product(GPUComplex_conj(aqsmtemp(n1*ncouls+ig)) , mygpvar2);
 
-        double delw2, scha_mult, ssxcutoff;
+        double ssxcutoff;
         double to1 = 1e-6;
         double sexcut = 4.0;
-        double gamma = 0.5;
         double limitone = 1.0/(to1*4.0);
         double limittwo = pow(0.5,2);
-        GPUComplex sch, ssx;
+        GPUComplex sch(0.00, 0.00) ;
+        GPUComplex ssx(0.00, 0.00) ;
     
         GPUComplex wdiff = doubleMinusGPUComplex(wxt , wtilde);
     
@@ -120,7 +115,7 @@ inline void flagOCC_solver(double wxt, GPUComplex *wtilde_array, int my_igp, int
             ssx = expr0;
         }
     
-        ssxcutoff = GPUComplex_abs(I_eps_array[my_igp*ngpown+ig]) * sexcut;
+        ssxcutoff = GPUComplex_abs(I_eps_array(my_igp*ngpown+ig)) * sexcut;
         if((GPUComplex_abs(ssx) > ssxcutoff) && (wxt < 0.00)) ssx = expr0;
 
         ssxt += GPUComplex_product(matngmatmgp , ssx);
@@ -154,8 +149,8 @@ int main(int argc, char** argv)
     double dw = 1;
     int nstart = 0, nend = 3;
 
-    int *inv_igp_index = new int[ngpown];
-    int *indinv = new int[ncouls+1];
+//    int *inv_igp_index = new int[ngpown];
+//    int *indinv = new int[ncouls+1];
 
     double to1 = 1e-6, \
     gamma = 0.5, \
@@ -187,24 +182,35 @@ int main(int argc, char** argv)
 
     GPUComplex *acht_n1_loc = new GPUComplex[number_bands];
     GPUComplex *achtemp = new GPUComplex[nend-nstart];
-    GPUComplex *asxtemp = new GPUComplex[nend-nstart];
-    GPUComplex *aqsmtemp = new GPUComplex[number_bands*ncouls];
-    GPUComplex *aqsntemp = new GPUComplex[number_bands*ncouls];
-    GPUComplex *I_eps_array = new GPUComplex[ngpown*ncouls];
-    GPUComplex *wtilde_array = new GPUComplex[ngpown*ncouls];
-    GPUComplex *ssx_array = new GPUComplex[3];
-    GPUComplex *ssxa = new GPUComplex[ncouls];
-    GPUComplex *scha = new GPUComplex[igblk];
-    GPUComplex achstemp;
+//    GPUComplex *asxtemp = new GPUComplex[nend-nstart];
+//    GPUComplex *aqsmtemp = new GPUComplex[number_bands*ncouls];
+//    GPUComplex *aqsntemp = new GPUComplex[number_bands*ncouls];
+//    GPUComplex *I_eps_array = new GPUComplex[ngpown*ncouls];
+//    GPUComplex *wtilde_array = new GPUComplex[ngpown*ncouls];
+//    double *vcoul = new double[ncouls];
+//    double wx_array[3];
 
     double *achtemp_re = new double[3];
     double *achtemp_im = new double[3];
-                        
-    double *vcoul = new double[ncouls];
-    double wx_array[3];
     double occ=1.0;
-    bool flag_occ;
-    double achstemp_real = 0.00, achstemp_imag = 0.00;
+    GPUComplex achstemp;
+
+//Kokkos views Begin
+    //GPUComplex Views
+    ViewVectorTypeComplex wtilde_array("wtilde_array", ngpown*ncouls);
+    ViewVectorTypeComplex aqsmtemp("aqsmtemp", number_bands*ncouls);
+    ViewVectorTypeComplex aqsntemp("aqsntemp", number_bands*ncouls);
+    ViewVectorTypeComplex I_eps_array("I_eps_array", ngpown*ncouls);
+    ViewVectorTypeComplex asxtemp("asxtemp", nend-nstart);
+
+    //Doble views
+    ViewVectorTypeDouble wx_array("wx_array",3);
+    ViewVectorTypeDouble vcoul("vcoul",ncouls);
+
+    //Int Views
+    ViewVectorTypeInt inv_igp_index("inv_igp_index", ngpown);
+    ViewVectorTypeInt indinv("indinv", ncouls+1);
+
     cout << "Size of wtilde_array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of aqsntemp = " << (ncouls*number_bands*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of I_eps_array array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
@@ -213,59 +219,59 @@ int main(int argc, char** argv)
    for(int i=0; i<number_bands; i++)
        for(int j=0; j<ncouls; j++)
        {
-           aqsmtemp[i*ncouls+j] = expr;
-           aqsntemp[i*ncouls+j] = expr;
+           aqsmtemp(i*ncouls+j) = expr;
+           aqsntemp(i*ncouls+j) = expr;
        }
 
    for(int i=0; i<ngpown; i++)
        for(int j=0; j<ncouls; j++)
        {
-           I_eps_array[i*ncouls+j] = expr;
-           wtilde_array[i*ncouls+j] = expr;
+           I_eps_array(i*ncouls+j) = expr;
+           wtilde_array(i*ncouls+j) = expr;
        }
 
    for(int i=0; i<ncouls; i++)
-       vcoul[i] = 1.0;
+       vcoul(i) = 1.0;
 
 
-    for(int ig=0, tmp=1; ig < ngpown; ++ig,tmp++)
-        inv_igp_index[ig] = (ig+1) * ncouls / ngpown;
+    for(int ig=0; ig < ngpown; ++ig)
+        inv_igp_index(ig) = (ig+1) * ncouls / ngpown;
 
     //Do not know yet what this array represents
     for(int ig=0, tmp=1; ig<ncouls; ++ig,tmp++)
-        indinv[ig] = ig;
-        indinv[ncouls] = ncouls-1;
+        indinv(ig) = ig;
+        indinv(ncouls) = ncouls-1;
 
        for(int iw=nstart; iw<nend; ++iw)
        {
-           asxtemp[iw] = expr0;
+           asxtemp(iw) = expr0;
            achtemp_re[iw] = 0.00;
            achtemp_im[iw] = 0.00;
        }
 
         for(int iw=nstart; iw<nend; ++iw)
         {
-            wx_array[iw] = e_lk - e_n1kq + dw*((iw+1)-2);
-            if(wx_array[iw] < to1) wx_array[iw] = to1;
+            wx_array(iw) = e_lk - e_n1kq + dw*((iw+1)-2);
+            if(wx_array(iw) < to1) wx_array(iw) = to1;
         }
 
        for(int n1 = 0; n1 < nvband; n1++)
        {
-            Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::OpenMP>(0,ngpown),[=] (const int& my_igp)
+            Kokkos::parallel_for(ngpown,KOKKOS_LAMBDA (int my_igp)
             {
                for(int iw=nstart; iw<nend; iw++)
                {
-                    int indigp = inv_igp_index[my_igp];
-                    int igp = indinv[indigp];
+                    int indigp = inv_igp_index(my_igp);
+                    int igp = indinv(indigp);
                     GPUComplex ssxt(0.00, 0.00);
                     GPUComplex scht(0.00, 0.00);
-                    flagOCC_solver(wx_array[iw], wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
-                    asxtemp[iw] += GPUComplex_mult(ssxt, occ , vcoul[igp]);
+                    flagOCC_solver(wx_array(iw), wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
+                    asxtemp(iw) += GPUComplex_mult(ssxt, occ , vcoul(igp));
                 }
             });
        }
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::OpenMP>(0,number_bands),[=] (const int& n1)
+    Kokkos::parallel_for(number_bands, KOKKOS_LAMBDA (int n1)
     {
         reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul);
     });
@@ -276,10 +282,10 @@ int main(int argc, char** argv)
 
     for(int n1 = 0; n1<number_bands; ++n1) 
     {
-        Kokkos::parallel_reduce(Kokkos::RangePolicy<Kokkos::OpenMP>(0, ngpown), KOKKOS_LAMBDA (int my_igp, achtempStruct& achtempVarUpdate)
+        Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, achtempStruct& achtempVarUpdate)
         {
-            int indigp = inv_igp_index[my_igp];
-            int igp = indinv[indigp];
+            int indigp = inv_igp_index(my_igp);
+            int igp = indinv(indigp);
 
 
             double achtemp_re_loc[3], achtemp_im_loc[3];
@@ -289,9 +295,9 @@ int main(int argc, char** argv)
             {
                 for(int iw = 0; iw < 3; ++iw)
                 {
-                    GPUComplex wdiff = doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
-                    GPUComplex delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
-                    GPUComplex sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
+                    GPUComplex wdiff = doubleMinusGPUComplex(wx_array(iw), wtilde_array(my_igp*ncouls+ig));
+                    GPUComplex delw = GPUComplex_mult(GPUComplex_product(wtilde_array(my_igp*ncouls+ig), GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
+                    GPUComplex sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp(n1*ncouls+igp)), aqsntemp(n1*ncouls+ig)), GPUComplex_product(delw , I_eps_array(my_igp*ncouls+ig))), 0.5*vcoul(igp));
                     achtemp_re_loc[iw] += GPUComplex_real(sch_array);
                     achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
                 }
@@ -331,13 +337,12 @@ int main(int argc, char** argv)
 
     free(acht_n1_loc);
     free(achtemp);
-    free(aqsmtemp);
-    free(aqsntemp);
-    free(I_eps_array);
-    free(wtilde_array);
-    free(asxtemp);
-    free(vcoul);
-    free(ssx_array);
+//    free(aqsmtemp);
+//    free(aqsntemp);
+//    free(I_eps_array);
+//    free(wtilde_array);
+//    free(asxtemp);
+//    free(vcoul);
 
     }
     Kokkos::finalize();

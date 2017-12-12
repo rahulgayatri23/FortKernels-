@@ -27,16 +27,19 @@ explicit GPUComplex () {
 }
 
 
+KOKKOS_INLINE_FUNCTION
 explicit GPUComplex(const double& x, const double& y) {
     re = x;
     im = y;
 }
 
+KOKKOS_INLINE_FUNCTION
 GPUComplex(const GPUComplex& src) {
     re = src.re;
     im = src.im;
 }
 
+KOKKOS_INLINE_FUNCTION
 GPUComplex& operator =(const GPUComplex& src) {
     re = src.re;
     im = src.im;
@@ -44,6 +47,7 @@ GPUComplex& operator =(const GPUComplex& src) {
     return *this;
 }
 
+KOKKOS_INLINE_FUNCTION
 GPUComplex& operator +=(const GPUComplex& src) {
     re = src.re + this->re;
     im = src.im + this->im;
@@ -51,6 +55,7 @@ GPUComplex& operator +=(const GPUComplex& src) {
     return *this;
 }
 
+KOKKOS_INLINE_FUNCTION
 GPUComplex& operator -=(const GPUComplex& src) {
     re = src.re - this->re;
     im = src.im - this->im;
@@ -58,6 +63,7 @@ GPUComplex& operator -=(const GPUComplex& src) {
     return *this;
 }
 
+KOKKOS_INLINE_FUNCTION
 GPUComplex& operator -() {
     re = -this->re;
     im = -this->im;
@@ -65,15 +71,18 @@ GPUComplex& operator -() {
     return *this;
 }
 
+KOKKOS_INLINE_FUNCTION
 GPUComplex& operator ~() {
     return *this;
 }
 
+KOKKOS_INLINE_FUNCTION
 void print() const {
-    printf("\( %f, %f) ", this->re, this->im);
+    printf("( %f, %f) ", this->re, this->im);
     printf("\n");
 }
 
+KOKKOS_INLINE_FUNCTION
 double abs(const GPUComplex& src) {
 
     double re_this = src.re * src.re;
@@ -86,53 +95,69 @@ double abs(const GPUComplex& src) {
 
 }
 
+KOKKOS_INLINE_FUNCTION
 double get_real() const
 {
     return this->re;
 }
 
+KOKKOS_INLINE_FUNCTION
 double get_imag() const
 {
     return this->im;
 }
 
+KOKKOS_INLINE_FUNCTION
 void set_real(double val)
 {
     this->re = val;
 }
 
+KOKKOS_INLINE_FUNCTION
 void set_imag(double val) 
 {
     this->im = val;
 }
 
 
-    friend inline GPUComplex GPUComplex_square(GPUComplex& src) ;
-    friend inline GPUComplex GPUComplex_conj(const GPUComplex& src) ;
-    friend inline GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) ;
-    friend inline double GPUComplex_abs(const GPUComplex& src) ;
-    friend inline GPUComplex GPUComplex_mult(GPUComplex& a, double b, double c) ;
-    friend inline GPUComplex GPUComplex_mult(const GPUComplex& a, double b) ;
-    friend inline void GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
-    friend inline void GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
-    friend inline GPUComplex doubleMinusGPUComplex(const double &a, GPUComplex& src) ;
-    friend inline GPUComplex doublePlusGPUComplex(double a, GPUComplex& src) ;
-    friend inline double GPUComplex_real( const GPUComplex& src) ;
-    friend inline double GPUComplex_imag( const GPUComplex& src) ;
+//    friend GPUComplex GPUComplex_square(GPUComplex& src) ;
+//    friend GPUComplex GPUComplex_conj(const GPUComplex& src) ;
+//    friend GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) ;
+//    friend double GPUComplex_abs(const GPUComplex& src) ;
+//    friend GPUComplex GPUComplex_mult(GPUComplex& a, double b, double c) ;
+//    friend GPUComplex GPUComplex_mult(const GPUComplex& a, double b) ;
+//    friend void GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
+//    friend void GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
+//    friend GPUComplex doubleMinusGPUComplex(const double &a, GPUComplex& src) ;
+//    friend GPUComplex doublePlusGPUComplex(double a, GPUComplex& src) ;
+//    friend double GPUComplex_real( const GPUComplex& src) ;
+//    friend double GPUComplex_imag( const GPUComplex& src) ;
         
 };
-    inline GPUComplex GPUComplex_square(GPUComplex& src) ;
-    inline GPUComplex GPUComplex_conj(const GPUComplex& src) ;
-    inline GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) ;
-    inline double GPUComplex_abs(const GPUComplex& src) ;
-    inline GPUComplex GPUComplex_mult(GPUComplex& a, double b, double c) ;
-    inline GPUComplex GPUComplex_mult(const GPUComplex& a, double b) ;
-    inline void GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
-    inline void GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
-    inline GPUComplex doubleMinusGPUComplex(const double &a, GPUComplex& src) ;
-    inline GPUComplex doublePlusGPUComplex(double a, GPUComplex& src) ;
-    inline double GPUComplex_real( const GPUComplex& src) ;
-    inline double GPUComplex_imag( const GPUComplex& src) ;
+    KOKKOS_INLINE_FUNCTION
+    GPUComplex GPUComplex_square(GPUComplex& src) ;
+    KOKKOS_INLINE_FUNCTION
+    GPUComplex GPUComplex_conj(const GPUComplex& src) ;
+    KOKKOS_INLINE_FUNCTION
+    GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) ;
+    KOKKOS_INLINE_FUNCTION
+    double GPUComplex_abs(const GPUComplex& src) ;
+    KOKKOS_INLINE_FUNCTION
+    GPUComplex GPUComplex_mult(GPUComplex& a, double b, double c) ;
+    KOKKOS_INLINE_FUNCTION
+    GPUComplex GPUComplex_mult(const GPUComplex& a, double b) ;
+    KOKKOS_INLINE_FUNCTION
+    void GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
+    KOKKOS_INLINE_FUNCTION
+    void GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
+    KOKKOS_INLINE_FUNCTION
+    GPUComplex doubleMinusGPUComplex(const double &a, GPUComplex& src) ;
+    KOKKOS_INLINE_FUNCTION
+    GPUComplex doublePlusGPUComplex(double a, GPUComplex& src) ;
+    KOKKOS_INLINE_FUNCTION
+    double GPUComplex_real( const GPUComplex& src) ;
+    KOKKOS_INLINE_FUNCTION
+    double GPUComplex_imag( const GPUComplex& src) ;
 
 //Inline functions have to be defined in the same file as the declaration
 
