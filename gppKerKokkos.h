@@ -12,9 +12,9 @@
 using namespace std;
 
 
-#define CUDASPACE 0
+#define CUDASPACE 1
 #define OPENMPSPACE 0
-#define CUDAUVM 1
+#define CUDAUVM 0
 #define SERIAL 0
 #define THREADS 0
 
@@ -30,6 +30,12 @@ using namespace std;
         typedef Kokkos::LayoutLeft   Layout;
 #endif
 
+#if CUDAUVM
+        typedef Kokkos::Cuda     ExecSpace;
+        typedef Kokkos::CudaUVMSpace  MemSpace;
+        typedef Kokkos::LayoutLeft   Layout;
+#endif
+
 #if SERIAL
         typedef Kokkos::Serial   ExecSpace;
         typedef Kokkos::HostSpace     MemSpace;
@@ -38,12 +44,6 @@ using namespace std;
 #if THREADS
         typedef Kokkos::Threads  ExecSpace;
         typedef Kokkos::HostSpace     MemSpace;
-#endif
-
-#if CUDAUVM
-        typedef Kokkos::Cuda     ExecSpace;
-        typedef Kokkos::CudaUVMSpace  MemSpace;
-        typedef Kokkos::LayoutLeft   Layout;
 #endif
 
 typedef Kokkos::RangePolicy<ExecSpace>  range_policy;
