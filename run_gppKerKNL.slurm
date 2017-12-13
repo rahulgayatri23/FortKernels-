@@ -18,7 +18,8 @@ export OMP_PROC_BIND=spread
 
 #EXEC=gppKerFort.ex
 #EXEC=gppKer.ex
-EXEC=gppKer_gpuComplexOpenMP.ex
+#EXEC=gppKer_gpuComplexOpenMP.ex
+EXEC=gppKer_gpuComplexRaja.ex
 Input="512 2 32768 20"
 
 num_mpi_ranks=1
