@@ -147,8 +147,8 @@ int main(int argc, char** argv)
     double dw = 1;
     int nstart = 0, nend = 3;
 
-    int inv_igp_index[ngpown];
-    int indinv[ncouls+1];
+    int *inv_igp_index = new int [ngpown];
+    int *indinv = new int[ncouls+1];
 
     //OpenMP Printing of threads on Host and Device
     int tid, numThreads, numTeams;
@@ -258,7 +258,9 @@ int main(int argc, char** argv)
 
     auto startKernelTimer = std::chrono::high_resolution_clock::now();
 
-#pragma omp parallel for collapse(3)
+#pragma omp parallel 
+{
+#pragma omp for nowait collapse(3)
        for(int n1 = 0; n1 < nvband; n1++)
        {
             for(int my_igp=0; my_igp<ngpown; ++my_igp)
@@ -274,6 +276,7 @@ int main(int argc, char** argv)
               }
             }
        }
+}
 
 #pragma omp parallel for 
     for(int n1 = 0; n1<number_bands; ++n1) 
@@ -312,6 +315,7 @@ int main(int argc, char** argv)
 //            }
 
             //Non-Cache Blocked Version
+#pragma omp simd
             for(int ig = 0; ig<ncouls; ++ig)
             {
                 for(int iw = 0; iw < 3; ++iw)
