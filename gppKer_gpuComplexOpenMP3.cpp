@@ -293,6 +293,25 @@ int main(int argc, char** argv)
             double achtemp_re_loc[3], achtemp_im_loc[3];
             for(int iw = nstart; iw < nend; ++iw) {achtemp_re_loc[iw] = 0.00; achtemp_im_loc[iw] = 0.00;}
 
+
+            //Cache Blocked Version
+//            for(int igbeg = 0; igbeg < ncouls; igbeg += igblk)
+//            {
+//                for(int iw = 0; iw < 3; ++iw)
+//                {
+//                    int igend = min(igbeg+igblk, ncouls);
+//                    for(int ig = igbeg; ig<igend; ++ig)
+//                    {
+//                        wdiff = doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+//                        delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
+//                        GPUComplex sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
+//                        achtemp_re_loc[iw] += GPUComplex_real(sch_array);
+//                        achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
+//                    }
+//                }
+//            }
+
+            //Non-Cache Blocked Version
             for(int ig = 0; ig<ncouls; ++ig)
             {
                 for(int iw = 0; iw < 3; ++iw)
