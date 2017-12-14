@@ -10,6 +10,6 @@
 #cd $MEMBERWORK/
 export OMP_NUM_THREADS=20; export OMP_PROC_BIND=spread; export OMP_PLACES=threads;
 cd /ccs/home/rgayatri/FortKernels-
-jsrun -n1 -a1 -r1 -c20 -E LD_LIBRARY_PATH -E OMP_NUM_THREADS ./gppKerKokkosOpenMP.host 512 2 32768 20
+#jsrun -n1 -a1 -r1 -c20 -E LD_LIBRARY_PATH -E OMP_NUM_THREADS ./gppKerKokkosOpenMP.host 512 2 32768 20
 #jsrun -n1 -a1 -r1 -c20 -g1 -E LD_LIBRARY_PATH -E OMP_NUM_THREADS ./gppKerKokkosCudaUVM.cuda 512 2 32768 20
-#jsrun -n1 -a1 -r1 -c20 -g1 -E LD_LIBRARY_PATH -E OMP_NUM_THREADS ./gppKerKokkosCuda.cuda 512 2 32768 20
+jsrun -n1 -a1 -r1 -c20 -g1 -E LD_LIBRARY_PATH -E OMP_NUM_THREADS ./gppKerKokkosCuda.cuda 512 2 32768 20
