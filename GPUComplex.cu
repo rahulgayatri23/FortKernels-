@@ -105,6 +105,94 @@ __device__ void ncoulsKernel(GPUComplex& mygpvar1, GPUComplex& wdiff, GPUComplex
         d_GPUComplex_product(d_GPUComplex_mult(d_GPUComplex_product(wtilde_array_index, d_GPUComplex_conj(wdiff)), rden), I_eps_array_index)).im * 0.5 * vcoul_igp;
 }
 
+__global__ void d_flagOCC_solver(double *wx_array, GPUComplex *wtilde_array, GPUComplex* asxtemp, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, int* inv_igp_index, int* indinv, int ncouls, int nvband, int ngpown, int nstart, int nend, double* vcoul)
+{
+    int n1 = blockIdx.x ;
+    int my_igp = blockIdx.y;
+
+    if(n1 < nvband && my_igp < ngpown)
+    {
+        int loopOverncouls = 1, \
+            threadsPerBlock = 128;
+
+        if(ncouls > threadsPerBlock)
+            loopOverncouls = ncouls / threadsPerBlock;
+
+        for(int iw = nstart; iw < nend; ++iw)
+        {
+            double wxt = wx_array[iw];
+            for( int x = 0; x < loopOverncouls && threadIdx.x < threadsPerBlock ; ++x)
+            {
+                int indigp = inv_igp_index[my_igp];
+                int igp = indinv[indigp];
+                GPUComplex ssxt = GPUComplex(0.00, 0.00);
+                GPUComplex scht = GPUComplex(0.00, 0.00);
+                        
+                GPUComplex expr = GPUComplex(0.50, 0.50);
+                GPUComplex expr0 = GPUComplex(0.00, 0.00);
+                GPUComplex matngmatmgp = GPUComplex(0.00, 0.00);
+                GPUComplex matngpmatmg = GPUComplex(0.00, 0.00);
+                GPUComplex wtilde(0.00, 0.00);
+                GPUComplex wtilde2(0.00, 0.00);
+                GPUComplex Omega2(0.00, 0.00);
+                GPUComplex mygpvar1(0.00, 0.00);
+                GPUComplex mygpvar2(0.00, 0.00);
+                GPUComplex ssx(0.00, 0.00);
+        
+                for(int ig=0; ig<ncouls; ++ig)
+                {
+                    d_GPUComplex_Equals( wtilde , wtilde_array[my_igp*ncouls+ig]);
+                    d_GPUComplex_Equals( wtilde2 , d_GPUComplex_square(wtilde));
+                    d_GPUComplex_Equals( Omega2 , d_GPUComplex_product(wtilde2,I_eps_array[my_igp*ncouls+ig]));
+                    d_GPUComplex_Equals( mygpvar1 , d_GPUComplex_conj(aqsmtemp[n1*ncouls+igp]));
+                    d_GPUComplex_Equals( mygpvar2 , aqsmtemp[n1*ncouls+igp]);
+                    d_GPUComplex_Equals( matngmatmgp , d_GPUComplex_product(aqsntemp[n1*ncouls+ig] , mygpvar1));
+                    if(ig != igp) d_GPUComplex_Equals( matngpmatmg , d_GPUComplex_product(d_GPUComplex_conj(aqsmtemp[n1*ncouls+ig]) , mygpvar2));
+        
+                    double to1 = 1e-6;
+                    double sexcut = 4.0;
+                    double limitone = 1.0/(to1*4.0);
+                    double limittwo = pow(0.5,2);
+                
+                    GPUComplex wdiff = d_doubleMinusGPUComplex(wxt , wtilde);
+                
+                    double rden = 1/d_GPUComplex_real(d_GPUComplex_product(d_doubleMinusGPUComplex(wxt , wtilde), d_GPUComplex_conj(d_doubleMinusGPUComplex(wxt , wtilde))));
+                    GPUComplex delw = d_GPUComplex_mult(d_GPUComplex_product(wtilde , d_GPUComplex_conj(d_doubleMinusGPUComplex(wxt , wtilde))) , rden);
+                    double delwr = d_GPUComplex_real(d_GPUComplex_product(delw , d_GPUComplex_conj(delw)));
+                    double wdiffr = d_GPUComplex_real(d_GPUComplex_product(d_doubleMinusGPUComplex(wxt , wtilde), d_GPUComplex_conj(d_doubleMinusGPUComplex(wxt , wtilde))));
+                
+                    if((wdiffr > limittwo) && (delwr < limitone))
+                    {
+                       double cden = std::pow(wxt,2);
+                        rden = std::pow(cden,2);
+                        rden = 1.00 / rden;
+                        d_GPUComplex_Equals(ssx , d_GPUComplex_mult(Omega2 , cden , rden));
+                    }
+                    else if (delwr > to1)
+                    {
+                        GPUComplex cden(0.00, 0.00);
+                        d_GPUComplex_Equals(cden , d_GPUComplex_mult(d_GPUComplex_product(wtilde2, d_doublePlusGPUComplex((double)0.50, delw)), 4.00));
+                       rden = d_GPUComplex_real(d_GPUComplex_product(cden , d_GPUComplex_conj(cden)));
+                        rden = 1.00/rden;
+                        d_GPUComplex_Equals(ssx , d_GPUComplex_product(d_GPUComplex_product(GPUComplex(-Omega2.x, -Omega2.y) , d_GPUComplex_conj(cden)), d_GPUComplex_mult(delw, rden)));
+                    }
+                    else
+                    {
+                        d_GPUComplex_Equals(ssx , expr0);
+                    }
+                
+                    double ssxcutoff = d_GPUComplex_abs(I_eps_array[my_igp*ngpown+ig]) * sexcut;
+                    if((d_GPUComplex_abs(ssx) > ssxcutoff) && (wxt < 0.00)) d_GPUComplex_Equals(ssx , expr0);
+        
+                    d_GPUComplex_plusEquals(ssxt, d_GPUComplex_product(matngmatmgp , ssxt));
+                    d_GPUComplex_plusEquals(scht, d_GPUComplex_product(matngmatmgp , scht));
+                }
+                        d_GPUComplex_plusEquals(asxtemp[iw] , d_GPUComplex_mult(ssxt , vcoul[igp]));
+            }
+        }
+    }
+}
+
 __global__  void cudaBGWKernel_ncouls_ngpown( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double* achtemp_re, double* achtemp_im, double* vcoul, int nstart, int nend, int* indinv, int* inv_igp_index, int numThreadsPerBlock)
 {
     int n1 = blockIdx.x ;
@@ -113,7 +201,7 @@ __global__  void cudaBGWKernel_ncouls_ngpown( GPUComplex *wtilde_array, GPUCompl
     if(n1 < number_bands && my_igp < ngpown)
     {
         int loopOverncouls = 1, leftOverncouls = 0, \
-            loopCounter = 1024;
+            loopCounter = numThreadsPerBlock;
 
         if(ncouls > loopCounter)
         {
@@ -304,13 +392,19 @@ void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* a
 #endif
 
 #if NcoulsNgpownKernel
-//    int numBlocks = number_bands;
     dim3 numBlocks(number_bands, ngpown);
-    int numThreadsPerBlock = ncouls;
-    numThreadsPerBlock > 1024 ? numThreadsPerBlock = 1024 : numThreadsPerBlock = ncouls;
+    int numThreadsPerBlock = 32;
     printf("launching 2 dimension grid with (number_bands, ngpown) dime and then calling ncouls loop by threads inside ");
     cudaBGWKernel_ncouls_ngpown <<< numBlocks, numThreadsPerBlock>>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numThreadsPerBlock);
 #endif
+}
+
+void till_nvbandKernel(GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *asxtemp, int *inv_igp_index, int *indinv, GPUComplex *wtilde_array, double *wx_array, GPUComplex *I_eps_array, int ncouls, int nvband, int ngpown, int nstart, int nend, double *vcoul)
+{
+    dim3 numBlocks(nvband, ngpown);
+    int numThreadsPerBlock = ncouls;
+
+    d_flagOCC_solver<<< numBlocks, numThreadsPerBlock>>>(wx_array, wtilde_array, asxtemp, aqsmtemp, aqsntemp, I_eps_array, inv_igp_index, indinv, ncouls, nvband, ngpown, nstart, nend, vcoul);
 }
 
 #endif

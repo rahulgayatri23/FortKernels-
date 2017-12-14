@@ -12,7 +12,6 @@
 #include "GPUComplex.h"
 
 using namespace std;
-int debug = 0;
 
 inline void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, GPUComplex  *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex achstemp,  int* indinv, int ngpown, double* vcoul)
 {
@@ -219,7 +218,7 @@ int main(int argc, char** argv)
 #if CudaKernel
     printf("Executing CUDA version of the Kernel\n");
 //Data Structures on Device
-    GPUComplex *d_wtilde_array, *d_aqsntemp, *d_aqsmtemp, *d_I_eps_array;
+    GPUComplex *d_wtilde_array, *d_aqsntemp, *d_aqsmtemp, *d_I_eps_array, *d_asxtemp;
     double *d_achtemp_re, *d_achtemp_im, *d_vcoul, *d_wx_array;
     int *d_inv_igp_index, *d_indinv;
 
@@ -241,6 +240,11 @@ int main(int argc, char** argv)
     if(cudaMalloc((void**) &d_aqsmtemp, number_bands*ncouls*sizeof(GPUComplex)) != cudaSuccess)
     {
         cout << "Nope could not allocate aqsmtemp on device" << endl ;
+        return 0;
+    }
+    if(cudaMalloc((void**) &d_asxtemp, 3*sizeof(GPUComplex)) != cudaSuccess)
+    {
+        cout << "Nope could not allocate asxtemp on device" << endl ;
         return 0;
     }
     if(cudaMalloc((void**) &d_achtemp_re, 3*sizeof(double)) != cudaSuccess)
@@ -314,28 +318,6 @@ int main(int argc, char** argv)
         if(wx_array[iw] < to1) wx_array[iw] = to1;
     }
 
-    auto start_ompTiming = std::chrono::high_resolution_clock::now();
-#pragma omp parallel for collapse(3)
-       for(int n1 = 0; n1 < nvband; n1++)
-       {
-            for(int my_igp=0; my_igp<ngpown; ++my_igp)
-            {
-                   for(int iw=nstart; iw<nend; iw++)
-                   {
-                        int indigp = inv_igp_index[my_igp];
-                        int igp = indinv[indigp];
-                        GPUComplex ssxt(0.00, 0.00);
-                        GPUComplex scht(0.00, 0.00);
-                        flagOCC_solver(wx_array[iw], wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
-                        
-                        ssx_array[iw] += ssxt;
-                        asxtemp[iw] += GPUComplex_mult(ssx_array[iw] , occ , vcoul[igp]);
-                  }
-            }
-       }
-    std::chrono::duration<double> elapsed_ompTiming = std::chrono::high_resolution_clock::now() - start_ompTiming;
-    cout << "********** OMP computation Timing **********= " << elapsed_ompTiming.count() << " secs" << endl;
-
     auto start_withDataMovement = std::chrono::high_resolution_clock::now();
 
     if(cudaMemcpy(d_wtilde_array, wtilde_array, ngpown*ncouls*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
@@ -356,6 +338,11 @@ int main(int argc, char** argv)
     if(cudaMemcpy(d_aqsmtemp, aqsmtemp, number_bands*ncouls*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
     {
         cout << "Nope could not copy aqsmtemp to device" << endl;
+        return 0;
+    }
+    if(cudaMemcpy(d_asxtemp, asxtemp, 3*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
+    {
+        cout << "Nope could not copy asxtemp to device" << endl;
         return 0;
     }
     if(cudaMemcpy(d_vcoul, vcoul, ncouls*sizeof(double), cudaMemcpyHostToDevice) != cudaSuccess)
@@ -396,6 +383,7 @@ int main(int argc, char** argv)
 //Start Kernel and Kernel timing
     auto start_kernelTiming = std::chrono::high_resolution_clock::now();
 
+    till_nvbandKernel(d_aqsmtemp, d_aqsntemp, d_asxtemp, d_inv_igp_index, d_indinv, d_wtilde_array, d_wx_array, d_I_eps_array, ncouls, nvband, ngpown, nstart, nend, d_vcoul);
     gppKernelGPU( d_wtilde_array, d_aqsntemp, d_aqsmtemp, d_I_eps_array, ncouls, ngpown, number_bands, d_wx_array, d_achtemp_re, d_achtemp_im, d_vcoul, nstart, nend, d_indinv, d_inv_igp_index);
 
     std::chrono::duration<double> elapsed_kernelTiming = std::chrono::high_resolution_clock::now() - start_kernelTiming;
@@ -445,6 +433,7 @@ int main(int argc, char** argv)
     cudaFree(d_wtilde_array);
     cudaFree(d_aqsntemp);
     cudaFree(d_aqsntemp);
+    cudaFree(d_asxtemp);
     cudaFree(d_I_eps_array);
     cudaFree(d_achtemp_re);
     cudaFree(d_achtemp_im);

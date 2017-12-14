@@ -284,5 +284,6 @@ double GPUComplex_imag( const GPUComplex& src) {
 //void gppKernelGPU( GPUComplex* , GPUComplex* , GPUComplex*, GPUComplex* , int , int, int, double* , double* , double* , double* , int , int , int , int, int*, int*);
 void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double *achtemp_re, double *achtemp_im, double *vcoul, int nstart, int nend, int* indinv, int* inv_igp_index);
 
+void till_nvbandKernel(GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *asxtemp, int *inv_igp_index, int *indinv, GPUComplex *wtilde_array, double *wx_array, GPUComplex *I_eps_array, int ncouls, int nvband, int ngpown, int nstart, int nend, double *d_vcoul);
 
 #endif
