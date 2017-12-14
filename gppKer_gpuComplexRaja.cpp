@@ -11,7 +11,6 @@
 #include "RAJA/RAJA.hxx"
 
 #include "Complex.h"
-#define igblk 512
 
 using namespace std;
 using namespace RAJA;
@@ -25,6 +24,16 @@ typedef RAJA::NestedPolicy<RAJA::ExecList<
     RAJA::omp_collapse_nowait_exec,
     RAJA::omp_collapse_nowait_exec>,
     RAJA::OMP_Parallel<> > collapse3_exec_policy;
+
+typedef RAJA::NestedPolicy<RAJA::ExecList<
+    RAJA::omp_collapse_nowait_exec,
+    RAJA::omp_collapse_nowait_exec>,
+    RAJA::OMP_Parallel<> > collapse2_exec_policy;
+
+typedef RAJA::NestedPolicy<RAJA::ExecList<
+    cuda_threadblock_z_exec<1>,
+    cuda_threadblock_y_exec<1>,
+    cuda_threadblock_x_exec<32>>> cuda_exec_policy;
 
 
 inline void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, GPUComplex  *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex achstemp,  int* indinv, int ngpown, double* vcoul, int numThreads)
@@ -211,7 +220,6 @@ int main(int argc, char** argv)
     GPUComplex *wtilde_array = new GPUComplex[ngpown*ncouls];
     GPUComplex *ssx_array = new GPUComplex[3];
     GPUComplex *ssxa = new GPUComplex[ncouls];
-    GPUComplex *scha = new GPUComplex[igblk];
     GPUComplex achstemp;
 
     double *achtemp_re = new double[3];
@@ -296,18 +304,17 @@ int main(int argc, char** argv)
         reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul, numThreads);
     });
 
-    RAJA::forall<seq_exec_policy>(0, number_bands, [=] (int n1)
-    {
-        RAJA::forall<omp_parallel_for_exec_policy>(0, ngpown, [=] (int my_igp)
+    RAJA::forallN<collapse2_exec_policy, int, int>(
+        RangeSegment(0,number_bands),
+        RangeSegment(0, ngpown),
+        [=] RAJA_DEVICE(int n1, int my_igp)
         {
             int indigp = inv_igp_index[my_igp];
             int igp = indinv[indigp];
-
             GPUComplex wdiff, delw;
 
             double achtemp_re_loc[3], achtemp_im_loc[3];
             for(int iw = nstart; iw < nend; ++iw) {achtemp_re_loc[iw] = 0.00; achtemp_im_loc[iw] = 0.00;}
-
 
             //Non-Cache Blocked Version
             for(int ig = 0; ig<ncouls; ++ig)
@@ -330,7 +337,6 @@ int main(int argc, char** argv)
             achtemp_im2 += achtemp_im_loc[2];
 
         }); //ngpown
-    }); // number-bands
 
     std::chrono::duration<double> elapsedKernelTime = std::chrono::high_resolution_clock::now() - startKernelTimer;
 
