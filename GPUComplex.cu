@@ -1,7 +1,5 @@
-//#include "GPUComplex.h"
 #include "GPUComplex.h"
 
-#if CudaKernel
 /*
  * Return the square of a complex number 
  */
@@ -189,6 +187,77 @@ __global__ void d_flagOCC_solver(double *wx_array, GPUComplex *wtilde_array, GPU
                 }
                         d_GPUComplex_plusEquals(asxtemp[iw] , d_GPUComplex_mult(ssxt , vcoul[igp]));
             }
+        }
+    }
+}
+
+__global__  void cudaNumberBands_kernel( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double* achtemp_re, double* achtemp_im, double* vcoul, int nstart, int nend, int* indinv, int* inv_igp_index, int numThreadsPerBlock)
+{
+    int n1 = blockIdx.x ;
+
+    if(n1 < number_bands)
+    {
+        int loopOverngpown = 1, leftOverngpown = 0, \
+            loopCounter = numThreadsPerBlock;
+
+        if(ngpown > loopCounter)
+        {
+            loopOverngpown = ngpown / loopCounter;
+            leftOverngpown = ngpown % loopCounter;
+        }
+
+        double achtemp_re_loc[3];
+        double achtemp_im_loc[3];
+
+        for( int x = 0; x < loopOverngpown && threadIdx.x < loopCounter; ++x)
+        {
+            int my_igp = x*loopCounter + threadIdx.x;
+        
+            if(my_igp < ngpown)
+            {
+                int indigp = inv_igp_index[my_igp];
+                int igp = indinv[indigp];
+
+                for(int iw = nstart; iw < nend; ++iw)
+                {
+
+                    for(int ig = 0; ig < ncouls; ++ig) 
+                    { 
+                        GPUComplex mygpvar1 = d_GPUComplex_conj(aqsmtemp[n1*ncouls+igp]);
+                        GPUComplex wdiff = d_doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+                        ncoulsKernel(mygpvar1, wdiff, aqsntemp[n1*ncouls+ig], wtilde_array[my_igp*ncouls+ig], I_eps_array[my_igp*ncouls+ig], vcoul[igp], achtemp_re_loc[iw], achtemp_im_loc[iw]);
+                    } //ncouls
+                } // iw
+            } // ngpown
+        }
+
+        if(leftOverngpown)
+        {
+            int my_igp = loopOverngpown*loopCounter + threadIdx.x;
+            if(my_igp < ngpown)
+            {
+                int indigp = inv_igp_index[my_igp];
+                int igp = indinv[indigp];
+
+                for(int iw = nstart; iw < nend; ++iw)
+                {
+
+                    for(int ig = 0; ig < ncouls; ++ig) 
+                    { 
+                        GPUComplex mygpvar1 = d_GPUComplex_conj(aqsmtemp[n1*ncouls+igp]);
+                        GPUComplex wdiff = d_doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+                        ncoulsKernel(mygpvar1, wdiff, aqsntemp[n1*ncouls+ig], wtilde_array[my_igp*ncouls+ig], I_eps_array[my_igp*ncouls+ig], vcoul[igp], achtemp_re_loc[iw], achtemp_im_loc[iw]);
+
+                    } //ncouls
+
+                } // iw
+            } // ngpown
+        }
+
+        for(int iw = nstart; iw < nend; ++iw)
+        {
+            atomicAdd(&achtemp_re[iw] , achtemp_re_loc[iw] );
+            atomicAdd(&achtemp_im[iw] , achtemp_im_loc[iw] );
         }
     }
 }
@@ -395,16 +464,25 @@ void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* a
     dim3 numBlocks(number_bands, ngpown);
     int numThreadsPerBlock = 32;
     printf("launching 2 dimension grid with (number_bands, ngpown) dime and then calling ncouls loop by threads inside ");
+
     cudaBGWKernel_ncouls_ngpown <<< numBlocks, numThreadsPerBlock>>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numThreadsPerBlock);
+#endif
+
+#if NumberBandsKernel
+    int numBlocks = number_bands;
+    int numThreadsPerBlock = 32;
+
+    cudaNumberBands_kernel <<< numBlocks, numThreadsPerBlock >>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numThreadsPerBlock);
+
 #endif
 }
 
 void till_nvbandKernel(GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *asxtemp, int *inv_igp_index, int *indinv, GPUComplex *wtilde_array, double *wx_array, GPUComplex *I_eps_array, int ncouls, int nvband, int ngpown, int nstart, int nend, double *vcoul)
 {
+#if NcoulsNgpownKernel
     dim3 numBlocks(nvband, ngpown);
     int numThreadsPerBlock = ncouls;
 
     d_flagOCC_solver<<< numBlocks, numThreadsPerBlock>>>(wx_array, wtilde_array, asxtemp, aqsmtemp, aqsntemp, I_eps_array, inv_igp_index, indinv, ncouls, nvband, ngpown, nstart, nend, vcoul);
-}
-
 #endif
+}

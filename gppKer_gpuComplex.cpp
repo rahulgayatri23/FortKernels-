@@ -148,11 +148,7 @@ int main(int argc, char** argv)
         exit (0);
     }
 
-#if CudaKernel
     printf("********Executing Cuda version of the Kernel*********\n");
-#else
-    printf("********Executing CPU+OpenMP version of the Kernel*********\n");
-#endif
 
     auto start_totalTime = std::chrono::high_resolution_clock::now();
     int number_bands = atoi(argv[1]);
@@ -215,7 +211,6 @@ int main(int argc, char** argv)
     double *achtemp_im = new double[3];
     double *vcoul = new double[ncouls];
 
-#if CudaKernel
     printf("Executing CUDA version of the Kernel\n");
 //Data Structures on Device
     GPUComplex *d_wtilde_array, *d_aqsntemp, *d_aqsmtemp, *d_I_eps_array, *d_asxtemp;
@@ -277,7 +272,7 @@ int main(int argc, char** argv)
         cout << "Nope could not allocate inv_igp_index on device" << endl;
         return 0;
     }
-#endif
+//#endif
                         
     double occ=1.0;
     bool flag_occ;
@@ -429,7 +424,6 @@ int main(int argc, char** argv)
 
     cout << "********** Total Time Taken **********= " << elapsed_totalTime.count() << " secs" << endl;
 
-#if CudaKernel
     cudaFree(d_wtilde_array);
     cudaFree(d_aqsntemp);
     cudaFree(d_aqsntemp);
@@ -440,7 +434,6 @@ int main(int argc, char** argv)
     cudaFree(d_vcoul);
     cudaFree(d_inv_igp_index);
     cudaFree(d_indinv);
-#endif
 
     free(acht_n1_loc);
     free(achtemp);
