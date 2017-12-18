@@ -208,6 +208,7 @@ __global__  void cudaNumberBands_kernel( GPUComplex *wtilde_array, GPUComplex *a
 
         double achtemp_re_loc[3];
         double achtemp_im_loc[3];
+        for(int iw = nstart; iw < nend; ++iw) {achtemp_re_loc[iw] = 0.00; achtemp_im_loc[iw] = 0.00;}
 
         for( int x = 0; x < loopOverngpown && threadIdx.x < loopCounter; ++x)
         {
@@ -473,7 +474,6 @@ void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* a
     int numThreadsPerBlock = 32;
 
     cudaNumberBands_kernel <<< numBlocks, numThreadsPerBlock >>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numThreadsPerBlock);
-
 #endif
 }
 
