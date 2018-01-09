@@ -2,7 +2,9 @@ EXE = gppKerFort.ex
 SRC = gppKernel_fort.f90
 
 #CXX = ftn
-CXX = gfortran
+#CXX = gfortran
+CXX = xlf_r
+
 LINK = ${CXX}
 
 ifeq ($(CXX),ftn)
@@ -17,6 +19,10 @@ ifeq ($(CXX),gfortran)
 	LINKFLAGS=-fopenmp
 endif 
 
+ifeq ($(CXX),xlf_r)
+	CXXFLAGS= -g -O3 -qsmp=omp
+	LINKFLAGS=-qsmp=omp
+endif 
 
 OBJ = $(SRC:.f90=.o)
 

@@ -1,7 +1,7 @@
 EXE = gppKer_gpuComplexOpenMP.ex
 SRC = gppKer_gpuComplexOpenMP3.cpp 
 
-CXX = xlc++
+CXX = xlc_r++
 #CXX = CC 
 #CXX = g++
 #CXX = clang++
