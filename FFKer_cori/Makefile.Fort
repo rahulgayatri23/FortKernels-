@@ -1,0 +1,30 @@
+EXE = ffKernelFort.ex
+SRC = ffKernel.f90
+
+CXX = ftn
+#CXX = gfortran
+LINK = ${CXX}
+
+ifeq ($(CXX),ftn)
+	CXXFLAGS = -O3 -qopt-report=5 -g -qopenmp 
+	CXXFLAGS+=-xCORE-AVX2 
+	#CXXFLAGS+=-xMIC-AVX512 
+	LINKFLAGS = -dynamic -O3 -qopenmp
+endif 
+
+ifeq ($(CXX),gfortran)
+	CXXFLAGS= -g -O3  -fopenmp 
+	LINKFLAGS=-fopenmp
+endif 
+
+
+OBJ = $(SRC:.f90=.o)
+
+$(EXE): $(OBJ) 
+	$(CXX) $(OBJ) -o $(EXE) $(LINKFLAGS)
+
+$(OBJ): $(SRC) 
+	$(CXX) -c $(SRC) $(CXXFLAGS)
+
+clean: 
+	rm -f $(OBJ) $(EXE)
