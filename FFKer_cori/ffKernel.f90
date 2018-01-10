@@ -40,7 +40,7 @@ real(kind(1.0d0)) :: cedifft_zb,intfact,cedifft_zb_left,cedifft_zb_right
 real(kind(1.0d0)) :: e_n1kq, e_lk, dw, pref_zb
 real(kind(1.0d0)) :: tol,fact1,fact2
 real(kind(1.0d0)) :: wx,occ,occfact
-real(kind(1.0d0)), allocatable :: ekq(:,:), vcoul(:), wxi(:), dFreqGrid(:), pref(:)
+real(kind(1.0d0)), allocatable :: ekq(:), vcoul(:), wxi(:), dFreqGrid(:), pref(:)
 real(kind(1.0d0)) :: limitone,limittwo
 real(kind(1.0d0)) :: starttime, endtime
 real(kind(1.0d0)) :: starttime_stat, endtime_stat
@@ -99,10 +99,10 @@ time_chc = 0D0
       ALLOCATE(vcoul(ncouls))
       vcoul = 1D0
 
-      ALLOCATE(ekq(number_bands,1))
+      ALLOCATE(ekq(number_bands))
       dw = -10D0
       do ijk = 1, number_bands
-        ekq(ijk,1) = dw 
+        ekq(ijk) = dw 
         dw = dw + 1D0
       enddo
 
@@ -190,7 +190,7 @@ time_chc = 0D0
 
       do n1=1,number_bands
 
-        e_n1kq = ekq(n1,1)
+        e_n1kq = ekq(n1)
 
         flag_occ = (n1.le.nvband)
 
@@ -227,7 +227,7 @@ time_chc = 0D0
 
         do iw=1,nfreqeval
             
-          wx = freqevalmin - ekq(n1,1) + (iw-1)*freqevalstep
+          wx = freqevalmin - ekq(n1) + (iw-1)*freqevalstep
 
           if (flag_occ) then
 
@@ -329,6 +329,7 @@ time_chc = 0D0
 
         call timget(endtime_sx)
         time_sx = time_sx + endtime_sx - starttime_sx
+
       enddo
 
          schDt_matrix(:,:) = 0D0
@@ -339,6 +340,9 @@ time_chc = 0D0
         call timget(endtime_ch)
         time_cha = time_cha + endtime_ch - starttime_ch
 
+
+
+!!!End Of First Loop
       do n1=1,number_bands
         flag_occ = (n1.le.nvband)
         occ = 1.0d0
@@ -377,26 +381,26 @@ time_chc = 0D0
 
             if (ifreq .ne. nFreq) then
               do iw = 1, nfreqeval
-                wx = freqevalmin - ekq(n1,1) + (iw-1)*freqevalstep
+                wx = freqevalmin - ekq(n1) + (iw-1)*freqevalstep
                 schDi(iw) = schDi(iw) - CMPLX(0.d0,pref(ifreq)) * schDt / ( wx-cedifft_coh)
                 schDi_corb(iw) = schDi_corb(iw) - CMPLX(0.d0,pref(ifreq)) * schDt / ( wx-cedifft_cor)
               enddo
             endif
             if (ifreq .ne. 1) then
               do iw = 1, nfreqeval
-                intfact=abs((freqevalmin - ekq(n1,1) + (iw-1)*freqevalstep-cedifft_zb_right)/(freqevalmin - ekq(n1,1) + (iw-1)*freqevalstep-cedifft_zb_left))
+                intfact=abs((freqevalmin - ekq(n1) + (iw-1)*freqevalstep-cedifft_zb_right)/(freqevalmin - ekq(n1) + (iw-1)*freqevalstep-cedifft_zb_left))
                 if (intfact .lt. 1d-4) intfact = 1d-4
                 if (intfact .gt. 1d4) intfact = 1d4
                 intfact = -log(intfact)
                 sch2Di(iw) = sch2Di(iw) - CMPLX(0.d0,pref_zb) * schDt_avg * intfact
                 if (flag_occ) then
-                  intfact=abs((freqevalmin - ekq(n1,1) + (iw-1)*freqevalstep+cedifft_zb_right)/(freqevalmin - ekq(n1,1) + (iw-1)*freqevalstep+cedifft_zb_left))
+                  intfact=abs((freqevalmin - ekq(n1) + (iw-1)*freqevalstep+cedifft_zb_right)/(freqevalmin - ekq(n1) + (iw-1)*freqevalstep+cedifft_zb_left))
                   if (intfact .lt. 1d-4) intfact = 1d-4
                   if (intfact .gt. 1d4) intfact = 1d4
                   intfact = log(intfact)
-                  schDt_lin3 = (schDt_left + schDt_lin2*(-freqevalmin - ekq(n1,1) + (iw-1)*freqevalstep-cedifft_zb_left))*intfact
+                  schDt_lin3 = (schDt_left + schDt_lin2*(-freqevalmin - ekq(n1) + (iw-1)*freqevalstep-cedifft_zb_left))*intfact
                 else 
-                  schDt_lin3 = (schDt_left + schDt_lin2*(freqevalmin - ekq(n1,1) + (iw-1)*freqevalstep-cedifft_zb_left))*intfact
+                  schDt_lin3 = (schDt_left + schDt_lin2*(freqevalmin - ekq(n1) + (iw-1)*freqevalstep-cedifft_zb_left))*intfact
                 endif
                 schDt_lin3 = schDt_lin3 + schDt_lin
                 schDi_cor(iw) = schDi_cor(iw) - CMPLX(0.d0,pref_zb) * schDt_lin3
@@ -410,7 +414,7 @@ time_chc = 0D0
         call timget(starttime_ch)
 
         do iw = 1, nfreqeval
-          wx = freqevalmin - ekq(n1,1) + (iw-1)*freqevalstep
+          wx = freqevalmin - ekq(n1) + (iw-1)*freqevalstep
           if(wx .ge. 0.0d0) then
             ifreq=0
             do ijk = 1, nFreq-1
@@ -508,6 +512,10 @@ time_chc = 0D0
 
       enddo ! over ipe bands (n1)
 
+      write(6,*) "achsDtemp:",achsDtemp 
+      write(6,*) "asxDtemp:",asxDtemp(1) 
+!      write(6,*) "achDtemp:",achDtemp(1) 
+      write(6,*) "achDtemp_cor:",achDtemp_cor(1) 
       call timget(endtime)
 
       DEALLOCATE(vcoul)
@@ -533,10 +541,10 @@ time_chc = 0D0
       DEALLOCATE(schDt_matrix)
       
       write(6,*) "Runtime:", endtime-starttime
-      write(6,*) "Runtime STAT:", time_stat
-      write(6,*) "Runtime SX:", time_sx
-      write(6,*) "Runtime CH:", time_cha, time_chb, time_chc
-      write(6,*) "Answer:", achDtemp_cor(1), achDtemp(1), asxDtemp(1)
+!      write(6,*) "Runtime STAT:", time_stat
+!      write(6,*) "Runtime SX:", time_sx
+!      write(6,*) "Runtime CH:", time_cha, time_chb, time_chc
+!      write(6,*) "Answer:", achDtemp_cor(1), achDtemp(1), asxDtemp(1)
 
       DEALLOCATE(asxDtemp)
       DEALLOCATE(achDtemp)
