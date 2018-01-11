@@ -62,10 +62,26 @@ int main(int argc, char** argv)
     double *dFreqGrid = new double[nFreq];
     double *pref = new double[nFreq];
 
-    std::complex<double> aqsntemp[number_bands][ncouls];
-    std::complex<double> aqsmtemp[number_bands][number_bands];
-    std::complex<double> I_epsR_array[nFreq][ngpown][ncouls];
-    std::complex<double> I_epsA_array[nFreq][ngpown][ncouls];
+//    std::complex<double> aqsntemp[number_bands][ncouls];
+    std::complex<double> *aqsntemp_arr = new std::complex<double>[number_bands * ncouls];
+    std::complex<double> (*aqsntemp)[number_bands][ncouls];
+    aqsntemp = (std::complex<double>(*)[number_bands][ncouls]) (aqsntemp_arr);
+
+//    std::complex<double> aqsmtemp[number_bands][number_bands];
+    std::complex<double> *aqsmtemp_arr = new std::complex<double>[number_bands * ncouls];
+    std::complex<double> (*aqsmtemp)[number_bands][ncouls];
+    aqsmtemp = (std::complex<double>(*)[number_bands][ncouls]) (aqsmtemp_arr);
+
+//    std::complex<double> I_epsR_array[nFreq][ngpown][ncouls];
+    std::complex<double> *I_epsR_array_vla = new std::complex<double>[nFreq * ngpown * ncouls];
+    std::complex<double> (*I_epsR_array)[nFreq][ngpown][ncouls];
+    I_epsR_array = (std::complex<double>(*)[nFreq][ngpown][ncouls]) (I_epsR_array_vla);
+
+//    std::complex<double> I_epsA_array[nFreq][ngpown][ncouls];
+    std::complex<double> *I_epsA_array_vla = new std::complex<double>[nFreq * ngpown * ncouls];
+    std::complex<double> (*I_epsA_array)[nFreq][ngpown][ncouls];
+    I_epsA_array = (std::complex<double>(*)[nFreq][ngpown][ncouls]) (I_epsA_array_vla);
+
     std::complex<double> ssxDi[nfreqeval];
     std::complex<double> schDi[nfreqeval];
     std::complex<double> sch2Di[nfreqeval];
@@ -77,7 +93,11 @@ int main(int argc, char** argv)
     std::complex<double> achDtemp_corb[nfreqeval];
     std::complex<double> asxDtemp[nfreqeval];
     std::complex<double> dFreqBrd[nFreq];
-    std::complex<double> schDt_matrix[number_bands][nFreq];
+
+//    std::complex<double> schDt_matrix[number_bands][nFreq];
+    std::complex<double> *schDt_matrix_arr = new std::complex<double>[number_bands * nFreq];
+    std::complex<double> (*schDt_matrix)[number_bands][nFreq];
+    schDt_matrix = (std::complex<double>(*)[number_bands][nFreq]) (schDt_matrix_arr);
 
 
     //Variables used : 
@@ -100,12 +120,12 @@ int main(int argc, char** argv)
 
         for(int j=0; j<ncouls; ++j)
         {
-            aqsmtemp[i][j] = expr;
-            aqsntemp[i][j] = expr;
+            (*aqsmtemp)[i][j] = expr;
+            (*aqsntemp)[i][j] = expr;
         }
 
         for(int j=0; j<nFreq; ++j)
-            schDt_matrix[i][j] = expr0;
+            (*schDt_matrix)[i][j] = expr0;
     }
 
     for(int i=0; i<ncouls; ++i)
@@ -117,8 +137,8 @@ int main(int argc, char** argv)
         {
             for(int k=0; k<ncouls; ++k)
             {
-                I_epsR_array[i][j][k] = expR;
-                I_epsA_array[i][j][k] = expA;
+                (*I_epsR_array)[i][j][k] = expR;
+                (*I_epsA_array)[i][j][k] = expA;
             }
         }
     }
@@ -155,12 +175,16 @@ int main(int argc, char** argv)
         achDtemp_corb[i] = expr0;
     }
 
+    std::chrono::duration<double> elapsedTime_preloop = std::chrono::high_resolution_clock::now() - startTimer;
+
     cout << "starting loop" << endl;
+    auto startTimer_firstloop = std::chrono::high_resolution_clock::now();
     for(int n1 = 0; n1 < number_bands; ++n1)
     {
         bool flag_occ = n1 < nvband;
         double occ = 1.00;
 
+#pragma omp parallel for default(shared)
         for(int my_igp = 0; my_igp < ngpown; ++my_igp)
         {
             int indigp = inv_igp_index[my_igp];
@@ -172,14 +196,14 @@ int main(int argc, char** argv)
                 std::complex<double> schsDtemp = expr0;
 
                 for(int ig = 0; ig < igmax; ++ig)
-                    schsDtemp -= aqsntemp[n1][ig] * std::conj(aqsmtemp[n1][igp]) * I_epsR_array[1][my_igp][ig];
+                    schsDtemp -= (*aqsntemp)[n1][ig] * std::conj((*aqsmtemp)[n1][igp]) * (*I_epsR_array)[1][my_igp][ig];
 
+#pragma omp critical
                 achsDtemp += schsDtemp * vcoul[igp] * 0.5;
             }
         }
 
         std::complex<double> ssxDit = expr0;
-        std::complex<double> ssxDitt = expr0;
         std::complex<double> ssxDittt = expr0;
 
         for(int iw = 0; iw < nfreqeval; ++iw)
@@ -216,22 +240,24 @@ int main(int argc, char** argv)
 
                     ssxDittt = expr0;
 
+#pragma omp parallel for default(shared)
                     for(int my_igp = 0; my_igp < ngpown; ++my_igp)
                     {
                         int indigp = inv_igp_index[my_igp];
                         int igp = indinv[indigp];
                         int igmax = ncouls;
-                        ssxDitt = expr0;
+                        std::complex<double> ssxDitt = expr0;
 
                         if(igp < ncouls && igp >= 0)
                         {
                             for(int ig = 0; ig < igmax; ++ig)
                             {
-                                ssxDit = I_epsR_array[ifreq][my_igp][ig] * fact1 + \
-                                                             I_epsR_array[ifreq+1][my_igp][ig] * fact2;
+                                ssxDit = (*I_epsR_array)[ifreq][my_igp][ig] * fact1 + \
+                                                             (*I_epsR_array)[ifreq+1][my_igp][ig] * fact2;
             
-                                ssxDitt += aqsntemp[n1][ig] * std::conj(aqsmtemp[n1][igp]) * ssxDit;
+                                ssxDitt += (*aqsntemp)[n1][ig] * std::conj((*aqsmtemp)[n1][igp]) * ssxDit;
                             }
+#pragma omp critical
                             ssxDittt += ssxDitt * vcoul[igp];
                         }
                     }
@@ -243,21 +269,23 @@ int main(int argc, char** argv)
 
                     ssxDittt = expr0;
 
+#pragma omp parallel for default(shared)
                     for(int my_igp = 0; my_igp < ngpown; ++my_igp)
                     {
                         int indigp = inv_igp_index[my_igp];
                         int igp = indinv[indigp];
                         int igmax = ncouls;
-                        ssxDitt = expr0;
+                        std::complex<double> ssxDitt = expr0;
 
                         if(igp < ncouls && igp >= 0)
                         {
                             for(int ig = 0; ig < igmax; ++ig)
                             {
-                                ssxDit = I_epsR_array[ifreq][my_igp][ig] * fact1 + \
-                                                             I_epsR_array[ifreq+1][my_igp][ig] * fact2;
+                                ssxDit = (*I_epsR_array)[ifreq][my_igp][ig] * fact1 + \
+                                                             (*I_epsR_array)[ifreq+1][my_igp][ig] * fact2;
             
-                                ssxDitt += aqsntemp[n1][ig] * std::conj(aqsmtemp[n1][igp]) * ssxDit;
+#pragma omp critical
+                                ssxDitt += (*aqsntemp)[n1][ig] * std::conj((*aqsmtemp)[n1][igp]) * ssxDit;
                             }
                         }
                     }
@@ -269,8 +297,11 @@ int main(int argc, char** argv)
         } // iw
     } //n1
 
+    std::chrono::duration<double> elapsedTime_firstloop = std::chrono::high_resolution_clock::now() - startTimer_firstloop;
+
 //    /******************************Done with the First Part of the Code*****************************************************************************/
 
+    auto startTimer_secondloop = std::chrono::high_resolution_clock::now();
 
     for(int n1 = 0; n1 < number_bands; ++n1)
     {
@@ -284,9 +315,10 @@ int main(int argc, char** argv)
             schDi_cor[iw] = expr0;
         }
 
+#pragma omp parallel for default(shared)
         for(int ifreq = 0; ifreq < nFreq; ++ifreq)
         {
-            std::complex<double> schDt = schDt_matrix[n1][ifreq];
+            std::complex<double> schDt = (*schDt_matrix)[n1][ifreq];
             double cedifft_zb = dFreqGrid[ifreq];
             double cedifft_zb_right, cedifft_zb_left;
             std::complex<double> schDt_right, schDt_left, schDt_avg, schDt_lin, schDt_lin2, schDt_lin3;
@@ -304,7 +336,7 @@ int main(int argc, char** argv)
                 cedifft_zb_right = cedifft_zb;
                 cedifft_zb_left = dFreqGrid[ifreq-1];
                 schDt_right = schDt;
-                schDt_left = schDt_matrix[n1][ifreq-1];
+                schDt_left = (*schDt_matrix)[n1][ifreq-1];
                 schDt_avg = (schDt_right + schDt_left) * 0.5;
                 schDt_lin = schDt_right - schDt_left;
                 schDt_lin2 = schDt_lin / (cedifft_zb_right - cedifft_zb_left);
@@ -343,6 +375,7 @@ int main(int argc, char** argv)
                         schDt_lin3 = (schDt_left + schDt_lin2 * (freqevalmin - ekq[n1] + (iw-1)*freqevalstep - cedifft_zb_left)) * intfact;
 
                     schDt_lin3 += schDt_lin;
+//#pragma omp critical
                     schDi_cor[iw] -= pref_zb_compl * schDt_lin3;
                 }
             }
@@ -368,6 +401,7 @@ int main(int argc, char** argv)
                 std::complex<double> schDttt = expr0;
                 std::complex<double> schDttt_cor = expr0;
 
+#pragma omp parallel for default(shared)
                 for(int my_igp = 0; my_igp < ngpown; ++my_igp)
                 {
                     int indigp = inv_igp_index[my_igp] ;
@@ -379,14 +413,17 @@ int main(int argc, char** argv)
                     {
                         for(int ig = 0; ig < igmax; ++ig)
                         {
-                            std::complex<double> sch2Dt = (I_epsR_array[ifreq][my_igp][ig] - I_epsA_array[ifreq][my_igp][ig]) * fact1 + \
-                                                        (I_epsR_array[ifreq+1][my_igp][ig] - I_epsA_array[ifreq+1][my_igp][ig]) * fact2;
-                            sch2Dtt += aqsntemp[n1][ig] * std::conj(aqsmtemp[n1][igp]) * sch2Dt;
+                            std::complex<double> sch2Dt = ((*I_epsR_array)[ifreq][my_igp][ig] - (*I_epsA_array)[ifreq][my_igp][ig]) * fact1 + \
+                                                        ((*I_epsR_array)[ifreq+1][my_igp][ig] - (*I_epsA_array)[ifreq+1][my_igp][ig]) * fact2;
+                            sch2Dtt += (*aqsntemp)[n1][ig] * std::conj((*aqsmtemp)[n1][igp]) * sch2Dt;
                         }
                         schDttt += sch2Dtt * vcoul[igp];
                         if(flag_occ){}
                         else
+                        {
+#pragma omp critical
                             schDttt_cor += sch2Dtt * vcoul[igp];
+                        }
                     }
                 }
 
@@ -407,6 +444,7 @@ int main(int argc, char** argv)
                 double fact2 = (wx - dFreqGrid[ifreq]) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]); 
 
                 std::complex<double> schDttt_cor = expr0;
+#pragma omp parallel for default(shared)
                 for(int my_igp = 0; my_igp < ngpown; ++my_igp)
                 {
                     int indigp = inv_igp_index[my_igp] ;
@@ -418,33 +456,34 @@ int main(int argc, char** argv)
                     {
                         for(int ig = 0; ig < igmax; ++ig)
                         {
-                            std::complex<double> sch2Dt = -0.5*((I_epsR_array[ifreq][my_igp][ig] - I_epsA_array[ifreq][my_igp][ig]) * fact1 + \
-                                                        (I_epsR_array[ifreq+1][my_igp][ig] - I_epsA_array[ifreq+1][my_igp][ig]) * fact2);
-                            sch2Dtt += aqsntemp[n1][ig] * std::conj(aqsmtemp[n1][igp]) * sch2Dt;
+                            std::complex<double> sch2Dt = -0.5*(((*I_epsR_array)[ifreq][my_igp][ig] - (*I_epsA_array)[ifreq][my_igp][ig]) * fact1 + \
+                                                        ((*I_epsR_array)[ifreq+1][my_igp][ig] - (*I_epsA_array)[ifreq+1][my_igp][ig]) * fact2);
+                            sch2Dtt += (*aqsntemp)[n1][ig] * std::conj((*aqsmtemp)[n1][igp]) * sch2Dt;
                         }
+#pragma omp critical
                         schDttt_cor += sch2Dtt * vcoul[igp];
                     }
                 }
                 schDi_cor[iw] += schDttt_cor;
             }
-        }
-
 
 //Summing up at the end of iw loop
-        for(int iw = 0; iw < nfreqeval; ++iw)
-        {
             achDtemp[iw] += schDi[iw];
             ach2Dtemp[iw] += sch2Di[iw];
             achDtemp_cor[iw] += schDi_cor[iw];
             achDtemp_corb[iw] += schDi_corb[iw];
         }// iw
     } //n1
+    std::chrono::duration<double> elapsedTime_secondloop = std::chrono::high_resolution_clock::now() - startTimer_secondloop;
 
     cout << "achsDtemp = " << achsDtemp << endl;
     cout << "asxDtemp = " << asxDtemp[0] << endl;
     cout << "achDtemp_cor = " << achDtemp_cor[0] << endl;
 
     std::chrono::duration<double> elapsedTime = std::chrono::high_resolution_clock::now() - startTimer;
+    cout << "********** PreLoop **********= " << elapsedTime_preloop.count() << " secs" << endl;
+    cout << "********** FirtLoop **********= " << elapsedTime_firstloop.count() << " secs" << endl;
+    cout << "********** SecondLoop  **********= " << elapsedTime_secondloop.count() << " secs" << endl;
     cout << "********** Total Time Taken **********= " << elapsedTime.count() << " secs" << endl;
 
 //Free the allocated memory since you are a good programmer :D
