@@ -487,12 +487,28 @@ int main(int argc, char** argv)
     cout << "********** Total Time Taken **********= " << elapsedTime.count() << " secs" << endl;
 
 //Free the allocated memory since you are a good programmer :D
+    free(aqsntemp_arr);
+    free(aqsmtemp_arr);
+    free(I_epsA_array_vla);
+    free(I_epsR_array_vla);
     free(inv_igp_index);
     free(indinv);
     free(vcoul);
     free(ekq);
     free(dFreqGrid);
     free(pref);
+    free(ssxDi);
+    free(schDi);
+    free(sch2Di);
+    free(schDi_cor);
+    free(schDi_corb);
+    free(achDtemp);
+    free(ach2Dtemp);
+    free(achDtemp_cor);
+    free(achDtemp_corb);
+    free(asxDtemp);
+    free(dFreqBrd);
+    free(schDt_matrix_arr);
 
     return 0;
 }

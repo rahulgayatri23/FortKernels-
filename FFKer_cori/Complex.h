@@ -131,6 +131,7 @@ void set_imag(double val)
     friend inline GPUComplex GPUComplex_square(GPUComplex& src) ;
     friend inline GPUComplex GPUComplex_conj(const GPUComplex& src) ;
     friend inline GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) ;
+    friend inline GPUComplex GPUComplex_divide(const GPUComplex& a, const GPUComplex& b) ;
     friend inline double GPUComplex_abs(const GPUComplex& src) ;
     friend inline GPUComplex GPUComplex_mult(GPUComplex& a, double b, double c) ;
     friend inline GPUComplex GPUComplex_mult(const GPUComplex& a, double b) ;
@@ -141,17 +142,20 @@ void set_imag(double val)
     friend inline GPUComplex doublePlusGPUComplex(double a, GPUComplex& src) ;
     friend inline double GPUComplex_real( const GPUComplex& src) ;
     friend inline double GPUComplex_imag( const GPUComplex& src) ;
+    friend inline GPUComplex GPUComplex_minus( const GPUComplex& a, const GPUComplex& b) ;
 };
 
     inline GPUComplex GPUComplex_square(GPUComplex& src) ;
     inline GPUComplex GPUComplex_conj(const GPUComplex& src) ;
     inline GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) ;
+    inline GPUComplex GPUComplex_divide(const GPUComplex& a, const GPUComplex& b) ;
     inline double GPUComplex_abs(const GPUComplex& src) ;
     inline GPUComplex GPUComplex_mult(GPUComplex& a, double b, double c) ;
     inline GPUComplex GPUComplex_mult(const GPUComplex& a, double b) ;
     inline GPUComplex GPUComplex_divide(const GPUComplex& a, double b) ;
     inline void GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
     inline void GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
+    inline GPUComplex GPUComplex_minus( const GPUComplex& a, const GPUComplex& b) ;
 
 //Inline functions have to be defined in the same file as the declaration
 
@@ -188,6 +192,22 @@ inline GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) {
 
     double re_this = a.re * b.re - a.im*b.im ;
     double im_this = a.re * b.im + a.im*b.re ;
+
+    GPUComplex result(re_this, im_this);
+    return result;
+}
+
+/*
+ * Return the division of 2 complex numbers 
+ */
+inline GPUComplex GPUComplex_divide(const GPUComplex& a, const GPUComplex& b) {
+
+    GPUComplex b_conj = GPUComplex_conj(b);
+    GPUComplex numerator = GPUComplex_product(a, b_conj);
+    GPUComplex denominator = GPUComplex_product(b, b_conj);
+
+    double re_this = numerator.re / denominator.re;
+    double im_this = numerator.im / denominator.re;
 
     GPUComplex result(re_this, im_this);
     return result;
@@ -279,4 +299,9 @@ double GPUComplex_imag( const GPUComplex& src) {
     return src.im;
 }
 
+GPUComplex GPUComplex_minus( const GPUComplex& a, const GPUComplex& b)
+{
+    GPUComplex result(a.re - b.re, a.im - b.im);
+    return result;
+}
 #endif
