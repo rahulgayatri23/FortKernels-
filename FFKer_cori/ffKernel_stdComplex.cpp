@@ -62,42 +62,53 @@ int main(int argc, char** argv)
     double *dFreqGrid = new double[nFreq];
     double *pref = new double[nFreq];
 
+    long double mem_alloc = 0.00;
+
 //    std::complex<double> aqsntemp[number_bands][ncouls];
     std::complex<double> *aqsntemp_arr = new std::complex<double>[number_bands * ncouls];
     std::complex<double> (*aqsntemp)[number_bands][ncouls];
     aqsntemp = (std::complex<double>(*)[number_bands][ncouls]) (aqsntemp_arr);
+    mem_alloc += (number_bands * ncouls * sizeof(std::complex<double>));
 
 //    std::complex<double> aqsmtemp[number_bands][number_bands];
     std::complex<double> *aqsmtemp_arr = new std::complex<double>[number_bands * ncouls];
     std::complex<double> (*aqsmtemp)[number_bands][ncouls];
     aqsmtemp = (std::complex<double>(*)[number_bands][ncouls]) (aqsmtemp_arr);
+    mem_alloc += (number_bands * ncouls * sizeof(std::complex<double>));
 
 //    std::complex<double> I_epsR_array[nFreq][ngpown][ncouls];
     std::complex<double> *I_epsR_array_vla = new std::complex<double>[nFreq * ngpown * ncouls];
     std::complex<double> (*I_epsR_array)[nFreq][ngpown][ncouls];
     I_epsR_array = (std::complex<double>(*)[nFreq][ngpown][ncouls]) (I_epsR_array_vla);
+    mem_alloc += (nFreq * ngpown * ncouls * sizeof(std::complex<double>));
 
 //    std::complex<double> I_epsA_array[nFreq][ngpown][ncouls];
     std::complex<double> *I_epsA_array_vla = new std::complex<double>[nFreq * ngpown * ncouls];
     std::complex<double> (*I_epsA_array)[nFreq][ngpown][ncouls];
     I_epsA_array = (std::complex<double>(*)[nFreq][ngpown][ncouls]) (I_epsA_array_vla);
+    mem_alloc += (nFreq * ngpown * ncouls * sizeof(std::complex<double>));
 
-    std::complex<double> ssxDi[nfreqeval];
-    std::complex<double> schDi[nfreqeval];
-    std::complex<double> sch2Di[nfreqeval];
-    std::complex<double> schDi_cor[nfreqeval];
-    std::complex<double> schDi_corb[nfreqeval];
-    std::complex<double> achDtemp[nfreqeval];
-    std::complex<double> ach2Dtemp[nfreqeval];
-    std::complex<double> achDtemp_cor[nfreqeval];
-    std::complex<double> achDtemp_corb[nfreqeval];
-    std::complex<double> asxDtemp[nfreqeval];
-    std::complex<double> dFreqBrd[nFreq];
+
+
+    std::complex<double> *ssxDi = new std::complex<double>[nfreqeval];
+    std::complex<double> *schDi = new std::complex<double>[nfreqeval];
+    std::complex<double> *sch2Di = new std::complex<double>[nfreqeval];
+    std::complex<double> *schDi_cor = new std::complex<double>[nfreqeval];
+    std::complex<double> *schDi_corb = new std::complex<double>[nfreqeval];
+    std::complex<double> *ach2Dtemp = new std::complex<double>[nfreqeval];
+    std::complex<double> *achDtemp = new std::complex<double>[nfreqeval];
+    std::complex<double> *achDtemp_cor = new std::complex<double>[nfreqeval];
+    std::complex<double> *achDtemp_corb = new std::complex<double>[nfreqeval];
+    std::complex<double> *asxDtemp = new std::complex<double>[nfreqeval];
+    std::complex<double> *dFreqBrd = new std::complex<double>[nFreq];
+    mem_alloc += (nfreqeval * 10 * sizeof(std::complex<double>));
+    mem_alloc += (nFreq * sizeof(std::complex<double>)) ;
 
 //    std::complex<double> schDt_matrix[number_bands][nFreq];
     std::complex<double> *schDt_matrix_arr = new std::complex<double>[number_bands * nFreq];
     std::complex<double> (*schDt_matrix)[number_bands][nFreq];
     schDt_matrix = (std::complex<double>(*)[number_bands][nFreq]) (schDt_matrix_arr);
+    mem_alloc += (nFreq * number_bands * sizeof(std::complex<double>));
 
 
     //Variables used : 
@@ -175,6 +186,7 @@ int main(int argc, char** argv)
         achDtemp_corb[i] = expr0;
     }
 
+    cout << "Memory Used = " << mem_alloc/(1024 * 1024 * 1024) << " GB" << endl;
     std::chrono::duration<double> elapsedTime_preloop = std::chrono::high_resolution_clock::now() - startTimer;
 
     cout << "starting loop" << endl;
