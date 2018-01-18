@@ -455,7 +455,7 @@ int main(int argc, char** argv)
                     if(wx > dFreqGrid[ijk] && wx < dFreqGrid[ijk+1])
                         ifreq = ijk;
                 }
-                if(ifreq == 0) ifreq = nFreq-1;
+                if(ifreq == 0) ifreq = nFreq-2;
 
                 double fact1 = (dFreqGrid[ifreq+1] - wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]); 
                 double fact2 = (wx - dFreqGrid[ifreq]) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]); 
@@ -463,13 +463,14 @@ int main(int argc, char** argv)
 #pragma omp parallel for default(shared)
                 for(int my_igp = 0; my_igp < ngpown; ++my_igp)
                 {
+                    int tid = omp_get_thread_num();
                     int indigp = inv_igp_index[my_igp] ;
                     int igp = indinv[indigp];
                     int igmax = ncouls;
-                    GPUComplex sch2Dtt(0.00, 0.00);
 
                     if(igp < ncouls && igp >= 0)
                     {
+                        GPUComplex sch2Dtt(0.00, 0.00);
                         for(int ig = 0; ig < igmax; ++ig)
                         {
                             GPUComplex sch2Dt = GPUComplex_mult(GPUComplex_mult((GPUComplex_minus((*I_epsR_array)[ifreq][my_igp][ig] , (*I_epsA_array)[ifreq][my_igp][ig])) , fact1) + \

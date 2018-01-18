@@ -191,6 +191,7 @@ int main(int argc, char** argv)
 
     cout << "starting loop" << endl;
     auto startTimer_firstloop = std::chrono::high_resolution_clock::now();
+    auto startTimer_kernel = std::chrono::high_resolution_clock::now();
     for(int n1 = 0; n1 < number_bands; ++n1)
     {
         bool flag_occ = n1 < nvband;
@@ -296,7 +297,9 @@ int main(int argc, char** argv)
                                 ssxDit = (*I_epsR_array)[ifreq][my_igp][ig] * fact1 + \
                                                              (*I_epsR_array)[ifreq+1][my_igp][ig] * fact2;
             
-#pragma omp critical
+//Fix this, This critical takes way too long .....
+//#pragma omp critical 
+                                
                                 ssxDitt += (*aqsntemp)[n1][ig] * std::conj((*aqsmtemp)[n1][igp]) * ssxDit;
                             }
                         }
@@ -450,7 +453,7 @@ int main(int argc, char** argv)
                     if(wx > dFreqGrid[ijk] && wx < dFreqGrid[ijk+1])
                         ifreq = ijk;
                 }
-                if(ifreq == 0) ifreq = nFreq-1;
+                if(ifreq == 0) ifreq = nFreq-2;
 
                 double fact1 = (dFreqGrid[ifreq+1] - wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]); 
                 double fact2 = (wx - dFreqGrid[ifreq]) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]); 
@@ -493,9 +496,11 @@ int main(int argc, char** argv)
     cout << "achDtemp_cor = " << achDtemp_cor[0] << endl;
 
     std::chrono::duration<double> elapsedTime = std::chrono::high_resolution_clock::now() - startTimer;
+    std::chrono::duration<double> elapsedKernelTime = std::chrono::high_resolution_clock::now() - startTimer_kernel;
     cout << "********** PreLoop **********= " << elapsedTime_preloop.count() << " secs" << endl;
-    cout << "********** FirtLoop **********= " << elapsedTime_firstloop.count() << " secs" << endl;
-    cout << "********** SecondLoop  **********= " << elapsedTime_secondloop.count() << " secs" << endl;
+    cout << "********** Kenel Time **********= " << elapsedKernelTime.count() << " secs" << endl;
+//    cout << "********** FirtLoop **********= " << elapsedTime_firstloop.count() << " secs" << endl;
+//    cout << "********** SecondLoop  **********= " << elapsedTime_secondloop.count() << " secs" << endl;
     cout << "********** Total Time Taken **********= " << elapsedTime.count() << " secs" << endl;
 
 //Free the allocated memory since you are a good programmer :D
