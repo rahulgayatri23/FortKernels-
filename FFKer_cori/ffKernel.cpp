@@ -64,24 +64,16 @@ int main(int argc, char** argv)
     double *pref = new double[nFreq];
     long double mem_alloc = 0.00;
 
-    GPUComplex *aqsntemp_arr = new GPUComplex[number_bands * ncouls];
-    GPUComplex (*aqsntemp)[number_bands][ncouls];
-    aqsntemp = (GPUComplex(*)[number_bands][ncouls]) (aqsntemp_arr);
+    GPUComplex *aqsntemp = new GPUComplex[number_bands * ncouls];
     mem_alloc += (number_bands * ncouls * sizeof(GPUComplex));
 
-    GPUComplex *aqsmtemp_arr = new GPUComplex[number_bands * ncouls];
-    GPUComplex (*aqsmtemp)[number_bands][ncouls];
-    aqsmtemp = (GPUComplex(*)[number_bands][ncouls]) (aqsmtemp_arr);
+    GPUComplex *aqsmtemp= new GPUComplex[number_bands * ncouls];
     mem_alloc += (number_bands * ncouls * sizeof(GPUComplex));
 
-    GPUComplex *I_epsR_array_vla = new GPUComplex[nFreq * ngpown * ncouls];
-    GPUComplex (*I_epsR_array)[nFreq][ngpown][ncouls];
-    I_epsR_array = (GPUComplex(*)[nFreq][ngpown][ncouls]) (I_epsR_array_vla);
+    GPUComplex *I_epsR_array = new GPUComplex[nFreq * ngpown * ncouls];
     mem_alloc += (nFreq * ngpown * ncouls * sizeof(GPUComplex));
 
-    GPUComplex *I_epsA_array_vla = new GPUComplex[nFreq * ngpown * ncouls];
-    GPUComplex (*I_epsA_array)[nFreq][ngpown][ncouls];
-    I_epsA_array = (GPUComplex(*)[nFreq][ngpown][ncouls]) (I_epsA_array_vla);
+    GPUComplex *I_epsA_array = new GPUComplex[nFreq * ngpown * ncouls];
     mem_alloc += (nFreq * ngpown * ncouls * sizeof(GPUComplex));
 
     GPUComplex *ssxDi = new GPUComplex[nfreqeval];
@@ -98,9 +90,7 @@ int main(int argc, char** argv)
     mem_alloc += (nfreqeval * 10 * sizeof(GPUComplex));
     mem_alloc += (nFreq * sizeof(GPUComplex)) ;
 
-    GPUComplex *schDt_matrix_arr = new GPUComplex[number_bands * nFreq];
-    GPUComplex (*schDt_matrix)[number_bands][nFreq];
-    schDt_matrix = (GPUComplex(*)[number_bands][nFreq]) (schDt_matrix_arr);
+    GPUComplex *schDt_matrix = new GPUComplex[number_bands * nFreq];
     mem_alloc += (nFreq * number_bands * sizeof(GPUComplex));
 
     //Variables used : 
@@ -132,12 +122,12 @@ int main(int argc, char** argv)
 
         for(int j=0; j<ncouls; ++j)
         {
-            (*aqsmtemp)[i][j] = expr;
-            (*aqsntemp)[i][j] = expr;
+            aqsmtemp[i*ncouls+j] = expr;
+            aqsntemp[i*ncouls+j] = expr;
         }
 
         for(int j=0; j<nFreq; ++j)
-            (*schDt_matrix)[i][j] = expr0;
+            schDt_matrix[i*nFreq + j] = expr0;
     }
 
     for(int i=0; i<ncouls; ++i)
@@ -149,8 +139,8 @@ int main(int argc, char** argv)
         {
             for(int k=0; k<ncouls; ++k)
             {
-                (*I_epsR_array)[i][j][k] = expR;
-                (*I_epsA_array)[i][j][k] = expA;
+                I_epsR_array[i*ngpown*ncouls + j * ncouls + k] = expR;
+                I_epsA_array[i*ngpown*ncouls + j * ncouls + k] = expA;
             }
         }
     }
@@ -244,10 +234,10 @@ int main(int argc, char** argv)
                     {
                         for(int ig = 0; ig < igmax; ++ig)
                         {
-                            ssxDit = GPUComplex_mult((*I_epsR_array)[ifreq][my_igp][ig] , fact1) + \
-                                                         GPUComplex_mult((*I_epsR_array)[ifreq+1][my_igp][ig] , fact2);
+                            ssxDit = GPUComplex_mult(I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig], fact1) + \
+                                                         GPUComplex_mult(I_epsR_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig], fact2);
         
-                            ssxDitt += GPUComplex_product(GPUComplex_product((*aqsntemp)[n1][ig] , GPUComplex_conj((*aqsmtemp)[n1][igp])) , ssxDit);
+                            ssxDitt += GPUComplex_product(GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_conj(aqsmtemp[n1*ncouls + igp])) , ssxDit);
                         }
                         ssxDittt[tid] += GPUComplex_mult(ssxDitt , vcoul[igp]);
                     }
@@ -271,11 +261,11 @@ int main(int argc, char** argv)
                     {
                         for(int ig = 0; ig < igmax; ++ig)
                         {
-                            ssxDit = GPUComplex_mult((*I_epsR_array)[ifreq][my_igp][ig] , fact1) + \
-                                                         GPUComplex_mult((*I_epsR_array)[ifreq+1][my_igp][ig] , fact2);
+                            ssxDit = GPUComplex_mult(I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig], fact1) + \
+                                                         GPUComplex_mult(I_epsR_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig], fact2);
         
 //#pragma omp critical
-                            ssxDitt += GPUComplex_product(GPUComplex_product((*aqsntemp)[n1][ig] , GPUComplex_conj((*aqsmtemp)[n1][igp])) , ssxDit);
+                            ssxDitt += GPUComplex_product(GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_conj(aqsmtemp[n1*ncouls + igp])) , ssxDit);
                         }
                     }
                 }
@@ -307,7 +297,7 @@ int main(int argc, char** argv)
                 GPUComplex schsDtemp = expr0;
 
                 for(int ig = 0; ig < igmax; ++ig)
-                    schsDtemp = schsDtemp - GPUComplex_product(GPUComplex_product((*aqsntemp)[n1][ig] , GPUComplex_conj((*aqsmtemp)[n1][igp])) , (*I_epsR_array)[1][my_igp][ig]);
+                    schsDtemp = schsDtemp - GPUComplex_product(GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_conj(aqsmtemp[n1*ncouls + igp])) , I_epsR_array[1*ngpown*ncouls + my_igp*ncouls + ig]);
 
                 achsDtemp_threadArr[tid] += GPUComplex_mult(schsDtemp , vcoul[igp] * 0.5);
             }
@@ -338,7 +328,7 @@ int main(int argc, char** argv)
 #pragma omp parallel for default(shared)
         for(int ifreq = 0; ifreq < nFreq; ++ifreq)
         {
-            GPUComplex schDt = (*schDt_matrix)[n1][ifreq];
+            GPUComplex schDt = schDt_matrix[n1*nFreq + ifreq];
             double cedifft_zb = dFreqGrid[ifreq];
             double cedifft_zb_right, cedifft_zb_left;
             GPUComplex schDt_right, schDt_left, schDt_avg, schDt_lin, schDt_lin2, schDt_lin3;
@@ -356,7 +346,7 @@ int main(int argc, char** argv)
                 cedifft_zb_right = cedifft_zb;
                 cedifft_zb_left = dFreqGrid[ifreq-1];
                 schDt_right = schDt;
-                schDt_left = (*schDt_matrix)[n1][ifreq-1];
+                schDt_left = schDt_matrix[n1*nFreq + ifreq-1];
                 schDt_avg = GPUComplex_mult((schDt_right + schDt_left) , 0.5);
                 schDt_lin = schDt_right - schDt_left;
                 schDt_lin2 = GPUComplex_divide(schDt_lin , (cedifft_zb_right - cedifft_zb_left));
@@ -434,9 +424,9 @@ int main(int argc, char** argv)
                     {
                         for(int ig = 0; ig < igmax; ++ig)
                         {
-                            GPUComplex sch2Dt = GPUComplex_mult((GPUComplex_minus((*I_epsR_array)[ifreq][my_igp][ig] , (*I_epsA_array)[ifreq][my_igp][ig])) , fact1) + \
-                                                        GPUComplex_mult((GPUComplex_minus((*I_epsR_array)[ifreq+1][my_igp][ig] , (*I_epsA_array)[ifreq+1][my_igp][ig])) , fact2);
-                            sch2Dtt += GPUComplex_product(GPUComplex_product((*aqsntemp)[n1][ig] , GPUComplex_conj((*aqsmtemp)[n1][igp])) , sch2Dt);
+                            GPUComplex sch2Dt = GPUComplex_mult((GPUComplex_minus(I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig], I_epsA_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig])) , fact1) + \
+                                                        GPUComplex_mult((GPUComplex_minus(I_epsR_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig], I_epsA_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig])) , fact2);
+                            sch2Dtt += GPUComplex_product(GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_conj(aqsmtemp[n1*ncouls + igp])) , sch2Dt);
                         }
                         schDttt += GPUComplex_mult(sch2Dtt , vcoul[igp]);
                         if(flag_occ){}
@@ -472,9 +462,9 @@ int main(int argc, char** argv)
                     {
                         for(int ig = 0; ig < igmax; ++ig)
                         {
-                            GPUComplex sch2Dt = GPUComplex_mult(GPUComplex_mult((GPUComplex_minus((*I_epsR_array)[ifreq][my_igp][ig] , (*I_epsA_array)[ifreq][my_igp][ig])) , fact1) + \
-                                                        GPUComplex_mult((GPUComplex_minus((*I_epsR_array)[ifreq+1][my_igp][ig] , (*I_epsA_array)[ifreq+1][my_igp][ig])) , fact2), -0.5);
-                            sch2Dtt += GPUComplex_product(GPUComplex_product((*aqsntemp)[n1][ig] , GPUComplex_conj((*aqsmtemp)[n1][igp])) , sch2Dt);
+                            GPUComplex sch2Dt = GPUComplex_mult(GPUComplex_mult((GPUComplex_minus(I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig], I_epsA_array[ifreq*ncouls*ngpown + my_igp*ncouls + ig])) , fact1) + \
+                                                        GPUComplex_mult((GPUComplex_minus(I_epsR_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig], I_epsA_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig])) , fact2), -0.5);
+                            sch2Dtt += GPUComplex_product(GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_conj(aqsmtemp[n1*ncouls + igp])) , sch2Dt);
                         }
                         schDttt_cor_threadArr[tid] += GPUComplex_mult(sch2Dtt , vcoul[igp]);
                     }
@@ -509,10 +499,10 @@ int main(int argc, char** argv)
     cout << "********** Total Time Taken **********= " << elapsedTime.count() << " secs" << endl;
 
 //Free the allocated memory since you are a good programmer :D
-    free(aqsntemp_arr);
-    free(aqsmtemp_arr);
-    free(I_epsA_array_vla);
-    free(I_epsR_array_vla);
+    free(aqsntemp);
+    free(aqsmtemp);
+    free(I_epsA_array);
+    free(I_epsR_array);
     free(inv_igp_index);
     free(indinv);
     free(vcoul);
@@ -530,7 +520,7 @@ int main(int argc, char** argv)
     free(achDtemp_corb);
     free(asxDtemp);
     free(dFreqBrd);
-    free(schDt_matrix_arr);
+    free(schDt_matrix);
 
     return 0;
 }

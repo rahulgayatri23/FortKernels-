@@ -140,6 +140,7 @@ void set_imag(double val)
     friend inline void GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
     friend inline GPUComplex doubleMinusGPUComplex(const double &a, GPUComplex& src) ;
     friend inline GPUComplex doublePlusGPUComplex(double a, GPUComplex& src) ;
+    friend inline GPUComplex plusEquals(GPUComplex& a, GPUComplex& b) ;
     friend inline double GPUComplex_real( const GPUComplex& src) ;
     friend inline double GPUComplex_imag( const GPUComplex& src) ;
     friend inline GPUComplex GPUComplex_minus( const GPUComplex& a, const GPUComplex& b) ;
@@ -153,6 +154,7 @@ void set_imag(double val)
     inline GPUComplex GPUComplex_mult(GPUComplex& a, double b, double c) ;
     inline GPUComplex GPUComplex_mult(const GPUComplex& a, double b) ;
     inline GPUComplex GPUComplex_divide(const GPUComplex& a, double b) ;
+    inline GPUComplex plusEquals(GPUComplex& a, GPUComplex& b) ;
     inline void GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
     inline void GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
     inline GPUComplex GPUComplex_minus( const GPUComplex& a, const GPUComplex& b) ;
@@ -304,4 +306,16 @@ GPUComplex GPUComplex_minus( const GPUComplex& a, const GPUComplex& b)
     GPUComplex result(a.re - b.re, a.im - b.im);
     return result;
 }
+
+/*
+ * Return the complex number a += b  
+ */
+GPUComplex plusEquals(GPUComplex& a, GPUComplex& b)
+{
+    a.re += b.re;
+    a.im += b.im;
+}
+
+
+
 #endif
