@@ -318,7 +318,8 @@ time_chc = 0D0
               enddo                
 !$OMP END PARALLEL DO
 
-              ssxDi(iw) = ssxDi(iw) + ssxDittt
+              ssxDi(iw) = ssxDi(iw) + (0.5D0, 0.5D0) 
+!              ssxDi(iw) = ssxDi(iw) + ssxDittt
 
             endif
           endif

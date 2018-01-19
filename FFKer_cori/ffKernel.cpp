@@ -187,17 +187,17 @@ int main(int argc, char** argv)
 
     for(int n1 = 0; n1 < nvband; ++n1)
     {
+        double occ = 1.00;
         GPUComplex ssxDit = expr0;
         GPUComplex ssxDittt_agg = expr0;
-        double occ = 1.00;
+
         for(int iw = 0; iw < nfreqeval; ++iw)
         {
             double wx = freqevalmin - ekq[n1] + freqevalstep;
             ssxDi[iw] = expr0;
-            int ifreq = 0;
-            for(int i = 0; i < numThreads; ++i) 
-                ssxDittt[i] = expr0;
+                    GPUComplex ssxDittt_tmp = expr0;
 
+            int ifreq = 0;
             if(wx > 0.00)
             {
                 for(int ijk = 0; ijk < nFreq-1; ++ijk)
@@ -215,17 +215,19 @@ int main(int argc, char** argv)
                         ifreq = ijk;
                 }
             }
-            if(ifreq == 0) ifreq = nFreq-1;
+            if(ifreq == 0) ifreq = nFreq-2;
 
             if(wx > 0.00)
             {
                 double fact1 = (dFreqGrid[ifreq+1] - wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
                 double fact2 = (wx - dFreqGrid[ifreq]) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
 
+                for(int i = 0; i < numThreads; ++i)
+                    ssxDittt[i] = expr0;
+
 #pragma omp parallel for default(shared)
                 for(int my_igp = 0; my_igp < ngpown; ++my_igp)
                 {
-                    int tid = omp_get_thread_num();
                     int indigp = inv_igp_index[my_igp];
                     int igp = indinv[indigp];
                     int igmax = ncouls;
@@ -235,12 +237,13 @@ int main(int argc, char** argv)
                     {
                         for(int ig = 0; ig < igmax; ++ig)
                         {
-                            ssxDit = GPUComplex_mult(I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig], fact1) + \
-                                                         GPUComplex_mult(I_epsR_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig], fact2);
+                            ssxDit = GPUComplex_mult(I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] , fact1 ) + \
+                                                         GPUComplex_mult(I_epsR_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] , fact2);
         
-                            ssxDitt += GPUComplex_product(GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_conj(aqsmtemp[n1*ncouls + igp])) , ssxDit);
+                            ssxDitt += GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit));
                         }
-                        ssxDittt[tid] += GPUComplex_mult(ssxDitt , vcoul[igp]);
+#pragma omp critical
+                        ssxDittt_tmp += GPUComplex_mult(ssxDitt , vcoul[igp]);
                     }
                 }
             }
@@ -248,11 +251,14 @@ int main(int argc, char** argv)
             {
                 double fact1 = (dFreqGrid[ifreq+1] + wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
                 double fact2 = (-dFreqGrid[ifreq] - wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
+                ssxDittt_tmp = expr0;
+
+                for(int i = 0; i < numThreads; ++i)
+                    ssxDittt[i] = expr0;
 
 #pragma omp parallel for default(shared)
                 for(int my_igp = 0; my_igp < ngpown; ++my_igp)
                 {
-                    int tid = omp_get_thread_num();
                     int indigp = inv_igp_index[my_igp];
                     int igp = indinv[indigp];
                     int igmax = ncouls;
@@ -262,20 +268,18 @@ int main(int argc, char** argv)
                     {
                         for(int ig = 0; ig < igmax; ++ig)
                         {
-                            ssxDit = GPUComplex_mult(I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig], fact1) + \
-                                                         GPUComplex_mult(I_epsR_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig], fact2);
+                            ssxDit = GPUComplex_mult(I_epsA_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] , fact1 ) + \
+                                                         GPUComplex_mult(I_epsA_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] , fact2);
         
-//#pragma omp critical
-                            ssxDitt += GPUComplex_product(GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_conj(aqsmtemp[n1*ncouls + igp])) , ssxDit);
+                            ssxDitt += GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit));
                         }
+#pragma omp critical
+                        ssxDittt_tmp += GPUComplex_mult(ssxDitt , vcoul[igp]);
                     }
                 }
             }
 
-            for(int i = 0; i < numThreads; ++i) 
-                ssxDittt_agg += ssxDittt[i];
-
-            ssxDi[iw] += ssxDittt_agg;
+            ssxDi[iw] += ssxDittt_tmp;
             asxDtemp[iw] += GPUComplex_mult(ssxDi[iw] , occ);
         } // iw
     }

@@ -223,6 +223,7 @@ int main(int argc, char** argv)
         {
             double wx = freqevalmin - ekq[n1] + freqevalstep;
             ssxDi[iw] = expr0;
+//            asxDtemp[iw] += occ;
 
             if(flag_occ)
             {
@@ -244,7 +245,7 @@ int main(int argc, char** argv)
                             ifreq = ijk;
                     }
                 }
-                if(ifreq == 0) ifreq = nFreq-1;
+                if(ifreq == 0) ifreq = nFreq-2;
 
                 if(wx > 0.00)
                 {
@@ -294,15 +295,15 @@ int main(int argc, char** argv)
                         {
                             for(int ig = 0; ig < igmax; ++ig)
                             {
-                                ssxDit = (*I_epsR_array)[ifreq][my_igp][ig] * fact1 + \
-                                                             (*I_epsR_array)[ifreq+1][my_igp][ig] * fact2;
+                                ssxDit = (*I_epsA_array)[ifreq][my_igp][ig] * fact1 + \
+                                                             (*I_epsA_array)[ifreq+1][my_igp][ig] * fact2;
             
-//Fix this, This critical takes way too long .....
-//#pragma omp critical 
                                 
                                 ssxDitt += (*aqsntemp)[n1][ig] * std::conj((*aqsmtemp)[n1][igp]) * ssxDit;
                             }
                         }
+#pragma omp critical 
+                        ssxDittt += ssxDitt*vcoul[igp];
                     }
                 }
 
