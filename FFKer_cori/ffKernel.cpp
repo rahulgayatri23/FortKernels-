@@ -193,9 +193,11 @@ int main(int argc, char** argv)
 
         for(int iw = 0; iw < nfreqeval; ++iw)
         {
+                for(int i = 0; i < numThreads; ++i)
+                    ssxDittt[i] = expr0;
             double wx = freqevalmin - ekq[n1] + freqevalstep;
             ssxDi[iw] = expr0;
-                    GPUComplex ssxDittt_tmp = expr0;
+            GPUComplex ssxDittt_tmp = expr0;
 
             int ifreq = 0;
             if(wx > 0.00)
@@ -222,8 +224,6 @@ int main(int argc, char** argv)
                 double fact1 = (dFreqGrid[ifreq+1] - wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
                 double fact2 = (wx - dFreqGrid[ifreq]) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
 
-                for(int i = 0; i < numThreads; ++i)
-                    ssxDittt[i] = expr0;
 
 #pragma omp parallel for default(shared)
                 for(int my_igp = 0; my_igp < ngpown; ++my_igp)
@@ -232,6 +232,7 @@ int main(int argc, char** argv)
                     int igp = indinv[indigp];
                     int igmax = ncouls;
                     GPUComplex ssxDitt = expr0;
+                    int tid = omp_get_thread_num();
 
                     if(igp < ncouls && igp >= 0)
                     {
@@ -242,8 +243,7 @@ int main(int argc, char** argv)
         
                             ssxDitt += GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit));
                         }
-#pragma omp critical
-                        ssxDittt_tmp += GPUComplex_mult(ssxDitt , vcoul[igp]);
+                        ssxDittt[tid] += GPUComplex_mult(ssxDitt , vcoul[igp]);
                     }
                 }
             }
@@ -263,6 +263,7 @@ int main(int argc, char** argv)
                     int igp = indinv[indigp];
                     int igmax = ncouls;
                     GPUComplex ssxDitt = expr0;
+                    int tid = omp_get_thread_num();
 
                     if(igp < ncouls && igp >= 0)
                     {
@@ -273,11 +274,12 @@ int main(int argc, char** argv)
         
                             ssxDitt += GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit));
                         }
-#pragma omp critical
-                        ssxDittt_tmp += GPUComplex_mult(ssxDitt , vcoul[igp]);
+                        ssxDittt[tid] += GPUComplex_mult(ssxDitt , vcoul[igp]);
                     }
                 }
             }
+                for(int i = 0; i < numThreads; ++i)
+                    ssxDittt_tmp += ssxDittt[i];
 
             ssxDi[iw] += ssxDittt_tmp;
             asxDtemp[iw] += GPUComplex_mult(ssxDi[iw] , occ);
