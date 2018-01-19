@@ -194,6 +194,7 @@ int main(int argc, char** argv)
 
     cout << "starting loop" << endl;
     auto startTimer_firstloop = std::chrono::high_resolution_clock::now();
+    auto startTimer_kernel = std::chrono::high_resolution_clock::now();
 
     for(int n1 = 0; n1 < nvband; ++n1)
     {
@@ -427,7 +428,7 @@ int main(int argc, char** argv)
 
 //#pragma omp parallel for default(shared)
 //                for(int my_igp = 0; my_igp < ngpown; ++my_igp)
-                RAJA::forall<omp_parallel_for_exec_policy>(0, ngpown, [=] (int my_igp)
+                RAJA::forall<omp_parallel_for_exec_policy>(0, ngpown, [&] (int my_igp)
                 {
                     int tid = omp_get_thread_num();
                     int indigp = inv_igp_index[my_igp] ;
@@ -444,11 +445,13 @@ int main(int argc, char** argv)
                             sch2Dtt += GPUComplex_product(GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_conj(aqsmtemp[n1*ncouls + igp])) , sch2Dt);
                         }
                         schDttt += GPUComplex_mult(sch2Dtt , vcoul[igp]);
+//                        GPUComplex tmp = GPUComplex_mult(sch2Dtt , vcoul[igp]);
+//                        plusEquals(schDttt, tmp);
                         if(flag_occ){}
                         else
                             schDttt_cor_threadArr[tid] += GPUComplex_mult(sch2Dtt , vcoul[igp]);
                     }
-                }
+                });
 
                 sch2Di[iw] += schDttt;
             }
@@ -460,7 +463,7 @@ int main(int argc, char** argv)
                     if(wx > dFreqGrid[ijk] && wx < dFreqGrid[ijk+1])
                         ifreq = ijk;
                 }
-                if(ifreq == 0) ifreq = nFreq-1;
+                if(ifreq == 0) ifreq = nFreq-2;
 
                 double fact1 = (dFreqGrid[ifreq+1] - wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]); 
                 double fact2 = (wx - dFreqGrid[ifreq]) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]); 
@@ -469,6 +472,7 @@ int main(int argc, char** argv)
                 //                for(int my_igp = 0; my_igp < ngpown; ++my_igp)
                 RAJA::forall<omp_parallel_for_exec_policy>(0, ngpown, [=] (int my_igp)
                 {
+                    int tid = omp_get_thread_num();
                     int indigp = inv_igp_index[my_igp] ;
                     int igp = indinv[indigp];
                     int igmax = ncouls;
@@ -509,9 +513,11 @@ int main(int argc, char** argv)
     achDtemp_cor[0].print();
 
     std::chrono::duration<double> elapsedTime = std::chrono::high_resolution_clock::now() - startTimer;
+    std::chrono::duration<double> elapsedKernelTime = std::chrono::high_resolution_clock::now() - startTimer_kernel;
     cout << "********** PreLoop **********= " << elapsedTime_preloop.count() << " secs" << endl;
-    cout << "********** FirtLoop **********= " << elapsedTime_firstloop.count() << " secs" << endl;
-    cout << "********** SecondLoop  **********= " << elapsedTime_secondloop.count() << " secs" << endl;
+    cout << "********** Kenel Time **********= " << elapsedKernelTime.count() << " secs" << endl;
+//    cout << "********** FirtLoop **********= " << elapsedTime_firstloop.count() << " secs" << endl;
+//    cout << "********** SecondLoop  **********= " << elapsedTime_secondloop.count() << " secs" << endl;
     cout << "********** Total Time Taken **********= " << elapsedTime.count() << " secs" << endl;
 
 //Free the allocated memory since you are a good programmer :D
