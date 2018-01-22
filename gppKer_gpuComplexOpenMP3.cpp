@@ -10,6 +10,7 @@
 #include <chrono>
 
 #include "Complex.h"
+#include <likwid.h>
 #define igblk 512
 
 using namespace std;
@@ -213,6 +214,7 @@ int main(int argc, char** argv)
     cout << "Size of aqsntemp = " << (ncouls*number_bands*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of I_eps_array array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
 
+    LIKWID_MARKER_INIT;
 
    for(int i=0; i<number_bands; i++)
        for(int j=0; j<ncouls; j++)
@@ -284,6 +286,7 @@ int main(int argc, char** argv)
 
     for(int n1 = 0; n1<number_bands; ++n1) 
     {
+       LIKWID_MARKER_START("gppKer"); 
 #pragma omp parallel for shared(vcoul, wtilde_array, aqsntemp, aqsmtemp, I_eps_array, wx_array, ssx_array) schedule(dynamic) private(tid) \
         reduction(+:achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
@@ -336,6 +339,7 @@ int main(int argc, char** argv)
             achtemp_im2 += achtemp_im_loc[2];
 
         } //ngpown
+       LIKWID_MARKER_STOP("gppKer"); 
     } // number-bands
 
     std::chrono::duration<double> elapsedKernelTime = std::chrono::high_resolution_clock::now() - startKernelTimer;
@@ -363,6 +367,9 @@ int main(int argc, char** argv)
     std::chrono::duration<double> elapsed_totalTime = std::chrono::high_resolution_clock::now() - start_totalTime;
     cout << "********** Kernel Time Taken **********= " << elapsedKernelTime.count() << " secs" << endl;
     cout << "********** Total Time Taken **********= " << elapsed_totalTime.count() << " secs" << endl;
+
+    LIKWID_MARKER_CLOSE;
+
 
     free(acht_n1_loc);
     free(achtemp);

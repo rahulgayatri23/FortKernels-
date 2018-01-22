@@ -2,32 +2,28 @@ EXE = gppKer_gpuComplexOpenMP.ex
 SRC = gppKer_gpuComplexOpenMP3.cpp 
 
 #CXX = xlc++
-CXX = CC 
 #CXX = g++
-#CXX = clang++
+CXX = CC
 
 LINK = ${CXX}
 
 ifeq ($(CXX),CC)
-	CXXFLAGS=-O3 -qopenmp -qopt-report=5
+	CXXFLAGS= -g -O3 -qopenmp -qopt-report=5 -std=c++11 -pthread -DLIKWID_PERFMON
+    CXXFLAGS+=-I /usr/common/software/likwid/4.3.0/include/
 	CXXFLAGS+=-xCORE_AVX2
-#	CXXFLAGS+=-xMIC_AVX512
-	LINKFLAGS=-qopenmp
+	#CXXFLAGS+=-xMIC_AVX512
+	LINKFLAGS=-qopenmp -dynamic
+    LINKFLAGS+=-L /usr/common/software/likwid/4.3.0/lib -llikwid
 endif 
 
-CXXFLAGS=-O3 -qopenmp -std=c++11 -qopt-report=5
-#CXXFLAGS+=-xCORE-AVX2
-CXXFLAGS+=-xMIC-AVX512
-LINKFLAGS=-qopenmp -std=c++11
-
 ifeq ($(CXX),g++)
-	CXXFLAGS= -g -O3 -std=c++11 -fopenmp  -ffast-math -funroll-loops -ftree-vectorizer-verbose=2 
+	CXXFLAGS= -g -O3 -std=c++11 -fopenmp
 	LINKFLAGS=-fopenmp
 endif 
 
 ifeq ($(CXX),xlc++)
-	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp
-	LINKFLAGS=-qsmp
+	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp 
+	LINKFLAGS=-qsmp 
 endif 
 
 ifeq ($(CXX),clang++)
@@ -35,10 +31,9 @@ ifeq ($(CXX),clang++)
 	LINKFLAGS=-fopenmp -fopenmp-targets=nvptx64-nvidia-cuda --cuda-path=${CUDA_HOME}
 endif 
 
-
 OBJ = $(SRC:.cpp=.o)
 
-$(EXE): $(OBJ) 
+$(EXE): $(OBJ)  
 	$(CXX) $(OBJ) -o $(EXE) $(LINKFLAGS)
 
 $(OBJ1): $(SRC) 
