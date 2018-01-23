@@ -73,10 +73,10 @@ int main(int argc, char** argv)
     ViewVectorTypeComplex aqsmtemp("aqsmtemp", number_bands * ncouls);
     mem_alloc += (number_bands * ncouls * sizeof(GPUComplex));
 
-    ViewVectorTypeComplex I_epsR_array("I_epsR_array", number_bands * ncouls);
+    ViewVectorTypeComplex I_epsR_array("I_epsR_array", nFreq * ngpown * ncouls);
     mem_alloc += (nFreq * ngpown * ncouls * sizeof(GPUComplex));
 
-    ViewVectorTypeComplex I_epsA_array("I_epsA_array", number_bands * ncouls);
+    ViewVectorTypeComplex I_epsA_array("I_epsA_array", nFreq * ngpown * ncouls);
     mem_alloc += (nFreq * ngpown * ncouls * sizeof(GPUComplex));
 
     ViewVectorTypeComplex ssxDi("ssxDi", nfreqeval);
@@ -94,7 +94,7 @@ int main(int argc, char** argv)
     mem_alloc += (nfreqeval * 10 * sizeof(GPUComplex));
     mem_alloc += (nFreq * sizeof(GPUComplex)) ;
 
-    GPUComplex *schDt_matrix = new GPUComplex[number_bands * nFreq];
+    ViewVectorTypeComplex schDt_matrix("schDt_matrix", number_bands * nFreq);
     mem_alloc += (nFreq * number_bands * sizeof(GPUComplex));
 
     //Variables used : 
@@ -131,7 +131,7 @@ int main(int argc, char** argv)
         }
 
         for(int j=0; j<nFreq; ++j)
-            schDt_matrix[i*nFreq + j] = expr0;
+            schDt_matrix(i*nFreq + j) = expr0;
     }
 
     for(int i=0; i<ncouls; ++i)
@@ -339,7 +339,7 @@ int main(int argc, char** argv)
 //#pragma omp parallel for default(shared)
         Kokkos::parallel_for(nFreq, KOKKOS_LAMBDA (int ifreq)
         {
-            GPUComplex schDt = schDt_matrix[n1*nFreq + ifreq];
+            GPUComplex schDt = schDt_matrix(n1*nFreq + ifreq);
             double cedifft_zb = dFreqGrid(ifreq);
             double cedifft_zb_right, cedifft_zb_left;
             GPUComplex schDt_right, schDt_left, schDt_avg, schDt_lin, schDt_lin2, schDt_lin3;
@@ -357,7 +357,7 @@ int main(int argc, char** argv)
                 cedifft_zb_right = cedifft_zb;
                 cedifft_zb_left = dFreqGrid(ifreq-1);
                 schDt_right = schDt;
-                schDt_left = schDt_matrix[n1*nFreq + ifreq-1];
+                schDt_left = schDt_matrix(n1*nFreq + ifreq-1);
                 schDt_avg = GPUComplex_mult((schDt_right + schDt_left) , 0.5);
                 schDt_lin = schDt_right - schDt_left;
                 schDt_lin2 = GPUComplex_divide(schDt_lin , (cedifft_zb_right - cedifft_zb_left));
@@ -513,33 +513,7 @@ int main(int argc, char** argv)
     std::chrono::duration<double> elapsedKernelTime = std::chrono::high_resolution_clock::now() - startTimer_kernel;
     cout << "********** PreLoop **********= " << elapsedTime_preloop.count() << " secs" << endl;
     cout << "********** Kenel Time **********= " << elapsedKernelTime.count() << " secs" << endl;
-//    cout << "********** FirtLoop **********= " << elapsedTime_firstloop.count() << " secs" << endl;
-//    cout << "********** SecondLoop  **********= " << elapsedTime_secondloop.count() << " secs" << endl;
     cout << "********** Total Time Taken **********= " << elapsedTime.count() << " secs" << endl;
-
-//Free the allocated memory since you are a good programmer :D
-//    free(aqsntemp);
-//    free(aqsmtemp);
-//    free(I_epsA_array);
-//    free(I_epsR_array);
-//    free(inv_igp_index);
-//    free(indinv);
-//    free(vcoul);
-//    free(ekq);
-//    free(dFreqGrid);
-//    free(pref);
-//    free(ssxDi);
-//    free(schDi);
-//    free(sch2Di);
-//    free(schDi_cor);
-//    free(schDi_corb);
-//    free(achDtemp);
-//    free(ach2Dtemp);
-//    free(achDtemp_cor);
-//    free(achDtemp_corb);
-//    free(asxDtemp);
-//    free(dFreqBrd);
-    free(schDt_matrix);
 
     }
     Kokkos::finalize();
