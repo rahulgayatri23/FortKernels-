@@ -12,15 +12,10 @@
 #include <chrono>
 
 
-#include "/sw/summitdev/cuda/8.0.54/include/vector_types.h"
+#include <vector_types.h>
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 
-
-#define NcoulsKernel 0
-#define NgpownKernel 0
-#define NcoulsNgpownKernel 0
-#define NumberBandsKernel 1
 
 class GPUComplex : public double2{
 
