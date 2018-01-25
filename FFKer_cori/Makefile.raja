@@ -1,7 +1,5 @@
-EXE = gppKer_gpuComplexRaja.ex
-SRC = gppKer_gpuComplexRaja.cpp 
-
-
+EXE = ffKernel_raja.ex
+SRC = ffKernel_raja.cpp 
 
 CXX = xlc++
 #CXX = CC 
@@ -27,25 +25,10 @@ ifeq ($(cxx),CC)
 endif 
 
 #	CXXFLAGS=-O3 -qopenmp -std=c++11 -qopt-report=5
-#	CXXFLAGS+=-xCORE-AVX2
-##	CXXFLAGS+=-xMIC-AVX512
+##	CXXFLAGS+=-xCORE-AVX2
+#	CXXFLAGS+=-xMIC-AVX512
 #	CXXFLAGS+=-I /global/homes/r/rgayatri/RAJA/include -I $(RAJA_LOCATION)/include
 #	LINKFLAGS=-qopenmp -std=c++11 -L $(RAJA_LOCATION)/src -lRAJA
-=======
-#ifeq ($(CXX),CC)
-#	CXXFLAGS=-O3 -qopenmp -qopt-report=5
-#	CXXFLAGS+=-xCORE_AVX2
-#	CXXFLAGS+=-I $(RAJA_LOCATION)/include
-##	CXXFLAGS+=-xMIC_AVX512
-#	LINKFLAGS=-qopenmp -L $(RAJA_LOCATION)/lib -lRAJA
-#endif 
-
-	CXXFLAGS=-O3 -qopenmp -std=c++11 -qopt-report=5
-#	CXXFLAGS+=-xCORE-AVX2
-	CXXFLAGS+=-xMIC-AVX512
-	CXXFLAGS+=-I /global/homes/r/rgayatri/RAJA/include -I $(RAJA_LOCATION)/include
-	LINKFLAGS=-qopenmp -std=c++11 -L $(RAJA_LOCATION)/src -lRAJA
->>>>>>> 2c4b1978d2e1f98963a203aace3a4bf0b89916ff
 
 ifeq ($(CXX),g++)
 	CXXFLAGS= -g -O3 -std=c++11 -fopenmp  -ffast-math -funroll-loops -ftree-vectorizer-verbose=2 
