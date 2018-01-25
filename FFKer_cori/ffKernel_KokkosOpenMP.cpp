@@ -238,7 +238,7 @@ int main(int argc, char** argv)
                     GPUComplex ssxDitt = expr0;
                     int tid = omp_get_thread_num();
 
-                    if(igp < ncouls && igp >= 0)
+//                    if(igp < ncouls && igp >= 0)
                     {
                         for(int ig = 0; ig < igmax; ++ig)
                         {
@@ -269,7 +269,7 @@ int main(int argc, char** argv)
                     GPUComplex ssxDitt = expr0;
                     int tid = omp_get_thread_num();
 
-                    if(igp < ncouls && igp >= 0)
+//                    if(igp < ncouls && igp >= 0)
                     {
                         for(int ig = 0; ig < igmax; ++ig)
                         {
@@ -302,7 +302,7 @@ int main(int argc, char** argv)
             int igp = indinv(indigp);
             int tid = omp_get_thread_num();
 
-            if(igp < ncouls && igp >= 0)
+//            if(igp < ncouls && igp >= 0)
             {
                 int igmax = ncouls;
                 GPUComplex schsDtemp = expr0;
@@ -434,7 +434,7 @@ int main(int argc, char** argv)
                     int igmax = ncouls;
                     GPUComplex sch2Dtt(0.00, 0.00);
 
-                    if(igp < ncouls && igp >= 0)
+//                    if(igp < ncouls && igp >= 0)
                     {
                         for(int ig = 0; ig < igmax; ++ig)
                         {
@@ -475,7 +475,7 @@ int main(int argc, char** argv)
                     int igmax = ncouls;
                     GPUComplex sch2Dtt(0.00, 0.00);
 
-                    if(igp < ncouls && igp >= 0)
+//                    if(igp < ncouls && igp >= 0)
                     {
                         for(int ig = 0; ig < igmax; ++ig)
                         {
