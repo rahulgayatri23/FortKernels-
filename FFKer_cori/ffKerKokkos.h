@@ -4,8 +4,8 @@ using namespace std;
 
 
 #define CUDASPACE 0
-#define OPENMPSPACE 1
-#define CUDAUVM 0
+#define OPENMPSPACE 0
+#define CUDAUVM 1
 #define SERIAL 0
 #define THREADS 0
 
@@ -55,3 +55,20 @@ typedef Kokkos::View<double*, Layout, MemSpace>   ViewVectorTypeDouble;
 
 typedef Kokkos::View<int, Layout, MemSpace>   ViewScalarTypeInt;
 typedef Kokkos::View<double, Layout, MemSpace>   ViewScalarTypeDouble;
+
+//struct achtempStruct 
+//{
+//    GPUComplex compl_num;
+//KOKKOS_INLINE_FUNCTION
+//    void operator+=(achtempStruct const& other) 
+//    {
+//        compl_num.re += other.re;
+//        compl_num.im += other.im;
+//    }
+//KOKKOS_INLINE_FUNCTION
+//    void operator+=(achtempStruct const volatile& other) volatile 
+//    {
+//        compl_num.re += other.re;
+//        compl_num.im += other.im;
+//    }
+//};

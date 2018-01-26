@@ -1,18 +1,36 @@
 KOKKOS_PATH = ${HOME}/Kokkos/kokkos
 KOKKOS_DEVICES = "OpenMP"
-SRC = ffKernel_KokkosOpenMP.cpp
 EXE_NAME = "ffKernel_KokkosOpenMP"
 
-CXX=CC
+SRC = ffKernel_KokkosOpenMP.cpp
+#CXX=CC
+#CXX=g++
+CXX=xlc++
+
 default: build
 	echo "Start Build"
 
-CXXFLAGS=-O3 -std=c++11 -qopenmp
-CXXFLAGS+=-xCORE_AVX2
-#CXXFLAGS+=-xMIC_AVX512
-LINKFLAGS=-qopenmp
-EXE = ${EXE_NAME}.host
-KOKKOS_ARCH = "HSW"
+ifeq ($(CXX),CC)
+	CXXFLAGS=-O3 #-std=c++11
+	CXXFLAGS+=-xCORE_AVX2
+	#CXXFLAGS+=-xMIC_AVX512
+#	LINKFLAGS=-qopenmp -dynamic
+    EXE = ${EXE_NAME}.host
+    KOKKOS_ARCH = "knl"
+endif 
+
+ifeq ($(CXX),g++)
+	CXXFLAGS=-O3 #-std=c++11
+    EXE = ${EXE_NAME}.host
+    KOKKOS_ARCH = "power8"
+endif 
+
+ifeq ($(CXX),xlc++)
+	CXXFLAGS=-qsmp=noauto:omp
+    EXE = ${EXE_NAME}.host
+#	LINKFLAGS=-qsmp=noauto:omp 
+    KOKKOS_ARCH = "power8"
+endif 
 
 LINK = ${CXX}
 LINKFLAGS = 
@@ -35,7 +53,7 @@ clean: kokkos-clean
 # Compilation rules
 
 %.o:%.cpp $(KOKKOS_CPP_DEPENDS)
-	$(CXX) $(KOKKOS_CPPFLAGS) $(CXXFLAGS) $(EXTRA_INC) -c $<
+	$(CXX) $(KOKKOS_CPPFLAGS) $(KOKKOS_CXXFLAGS) $(CXXFLAGS) $(EXTRA_INC) -c $<
 
 test: $(EXE)
 	./$(EXE)
