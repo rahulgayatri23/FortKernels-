@@ -3,6 +3,7 @@
 #include <complex>
 #include <omp.h>
 #include "Complex.h"
+#include <ittnotify.h>
 
 using namespace std;
 
@@ -320,6 +321,8 @@ int main(int argc, char** argv)
 
     auto startTimer_secondloop = std::chrono::high_resolution_clock::now();
 
+    __SSC_MARK(0x111);
+    __itt_resume();
     for(int n1 = 0; n1 < number_bands; ++n1)
     {
         bool flag_occ = n1 < nvband;
@@ -491,6 +494,9 @@ int main(int argc, char** argv)
             achDtemp_corb[iw] += schDi_corb[iw];
         }// iw
     } //n1
+
+    __SSC_MARK(0x222);
+    __itt_pause();
     std::chrono::duration<double> elapsedTime_secondloop = std::chrono::high_resolution_clock::now() - startTimer_secondloop;
 
     cout << "achsDtemp = " ;
