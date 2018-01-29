@@ -11,9 +11,9 @@
 using namespace std;
 
 
-#define CUDASPACE 1
+#define CUDASPACE 0
 #define OPENMPSPACE 0
-#define CUDAUVM 0
+#define CUDAUVM 1
 #define SERIAL 0
 #define THREADS 0
 

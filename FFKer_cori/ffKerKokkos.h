@@ -56,19 +56,21 @@ typedef Kokkos::View<double*, Layout, MemSpace>   ViewVectorTypeDouble;
 typedef Kokkos::View<int, Layout, MemSpace>   ViewScalarTypeInt;
 typedef Kokkos::View<double, Layout, MemSpace>   ViewScalarTypeDouble;
 
-//struct achtempStruct 
-//{
-//    GPUComplex compl_num;
-//KOKKOS_INLINE_FUNCTION
-//    void operator+=(achtempStruct const& other) 
-//    {
-//        compl_num.re += other.re;
-//        compl_num.im += other.im;
-//    }
-//KOKKOS_INLINE_FUNCTION
-//    void operator+=(achtempStruct const volatile& other) volatile 
-//    {
-//        compl_num.re += other.re;
-//        compl_num.im += other.im;
-//    }
-//};
+struct GPUComplStruct 
+{
+    double re;
+    double im;
+KOKKOS_INLINE_FUNCTION
+    void operator+=(GPUComplStruct const& other) 
+    {
+        re += other.re;
+        im += other.im;
+    }
+KOKKOS_INLINE_FUNCTION
+    void operator+=(GPUComplStruct const volatile& other) volatile 
+    {
+        re += other.re;
+        im += other.im;
+    }
+};
+

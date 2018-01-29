@@ -2,7 +2,6 @@
 #include <chrono>
 #include <complex>
 #include <omp.h>
-#include "Complex.h"
 #include "ffKerKokkos.h"
 
 using namespace std;
@@ -92,13 +91,12 @@ int main(int argc, char** argv)
     mem_alloc += (nFreq * number_bands * sizeof(GPUComplex));
 
     //Variables used : 
-    GPUComplex *achsDtemp = new GPUComplex;
+//    GPUComplex achsDtemp ;
+    ViewScalarTypeComplex achsDtemp ("achsDtemp");
     GPUComplex *achsDtemp_threadArr = new GPUComplex[numThreads];
-    GPUComplex *schDttt_cor_threadArr = new GPUComplex[numThreads];
     for(int i = 0; i < numThreads; ++i)
     {
         achsDtemp_threadArr[i] = expr0;
-        schDttt_cor_threadArr[i] = expr0;
     }
 
 
@@ -174,7 +172,8 @@ int main(int argc, char** argv)
         achDtemp_cor(i) = expr0;
         achDtemp_corb(i) = expr0;
     }
-    GPUComplex *ssxDittt = new GPUComplex[numThreads];
+//    GPUComplex *ssxDittt = new GPUComplex[numThreads];
+    ViewScalarTypeComplex ssxDittt ("ssxDittt");
 
     cout << "Memory Used = " << mem_alloc/(1024 * 1024 * 1024) << " GB" << endl;
     std::chrono::duration<double> elapsedTime_preloop = std::chrono::high_resolution_clock::now() - startTimer;
@@ -182,128 +181,122 @@ int main(int argc, char** argv)
     cout << "starting loop" << endl;
     auto startTimer_firstloop = std::chrono::high_resolution_clock::now();
     auto startTimer_kernel = std::chrono::high_resolution_clock::now();
+    GPUComplStruct achsDtemp_struct1;
 
-//    for(int n1 = 0; n1 < number_bands; ++n1)
-//    {
-//        bool flag_occ = n1 < nvband;
-//        double occ = 1.00;
-//
-//        Kokkos::parallel_for(ngpown, KOKKOS_LAMBDA (int my_igp)
-//        {
-//            int indigp = inv_igp_index(my_igp);
-//            int igp = indinv(indigp);
-//
-//            GPUComplex schsDtemp = expr0;
-//
-////            for(int ig = 0; ig < ncouls; ++ig)
-////                schsDtemp = schsDtemp - GPUComplex_product(GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_conj(aqsmtemp(n1*ncouls + igp))) , I_epsR_array(1*ngpown*ncouls + my_igp*ncouls + ig));
-//
-//            *achsDtemp += schsDtemp ;
-////            achsDtemp += GPUComplex_mult(schsDtemp , vcoul(igp) * 0.5);
-//        });
-//    } //n1
-//
-//    for(int i = 0; i < numThreads; ++i)
-//        achsDtemp += achsDtemp_threadArr[i];
+    for(int n1 = 0; n1 < number_bands; ++n1)
+    {
+        bool flag_occ = n1 < nvband;
+        double occ = 1.00;
 
-//    for(int n1 = 0; n1 < nvband; ++n1)
-//    {
-//        double occ = 1.00;
-//        GPUComplex ssxDit = expr0;
-//        GPUComplex ssxDittt_agg = expr0;
-//
-//        for(int iw = 0; iw < nfreqeval; ++iw)
-//        {
-//                for(int i = 0; i < numThreads; ++i)
-//                    ssxDittt[i] = expr0;
-//            double wx = freqevalmin - ekq(n1) + freqevalstep;
-//            ssxDi(iw) = expr0;
-//            GPUComplex ssxDittt_tmp = expr0;
-//
-//            int ifreq = 0;
-//            if(wx > 0.00)
-//            {
-//                for(int ijk = 0; ijk < nFreq-1; ++ijk)
-//                {
-//                    if(wx > dFreqGrid(ijk) && wx < dFreqGrid(ijk+1))
-//                    ifreq = ijk;
-//                }
-//            }
-//            else
-//            {
-//                int ifreq = 0;
-//                for(int ijk = 0; ijk < nFreq-1; ++ijk)
-//                {
-//                    if(-wx > dFreqGrid(ijk) && -wx < dFreqGrid(ijk+1))
-//                        ifreq = ijk;
-//                }
-//            }
-//            if(ifreq == 0) ifreq = nFreq-2;
-//
-//            if(wx > 0.00)
-//            {
-//                double fact1 = (dFreqGrid(ifreq+1) - wx) / (dFreqGrid(ifreq+1) - dFreqGrid(ifreq));
-//                double fact2 = (wx - dFreqGrid(ifreq)) / (dFreqGrid(ifreq+1) - dFreqGrid(ifreq));
-//
-//
-//                Kokkos::parallel_for(ngpown, KOKKOS_LAMBDA (int my_igp)
-//                {
-//                    int indigp = inv_igp_index(my_igp);
-//                    int igp = indinv(indigp);
-//                    int igmax = ncouls;
-//                    GPUComplex ssxDitt = expr0;
-//                    int tid = omp_get_thread_num();
-//
-////                    if(igp < ncouls && igp >= 0)
-//                    {
-//                        for(int ig = 0; ig < igmax; ++ig)
-//                        {
-//                            GPUComplex ssxDit = GPUComplex_mult(I_epsR_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig) , fact1 ) + \
-//                                                         GPUComplex_mult(I_epsR_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig) , fact2);
-//        
-//                            ssxDitt += GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_product(GPUComplex_conj(aqsmtemp(n1*ncouls + igp)) , ssxDit));
-//                        }
-//                        ssxDittt[tid] += GPUComplex_mult(ssxDitt , vcoul(igp));
-//                    }
-//                });
-//            }
-//            else
-//            {
-//                double fact1 = (dFreqGrid(ifreq+1) + wx) / (dFreqGrid(ifreq+1) - dFreqGrid(ifreq));
-//                double fact2 = (-dFreqGrid(ifreq) - wx) / (dFreqGrid(ifreq+1) - dFreqGrid(ifreq));
-//                ssxDittt_tmp = expr0;
-//
-//                for(int i = 0; i < numThreads; ++i)
-//                    ssxDittt[i] = expr0;
-//
-//                Kokkos::parallel_for(ngpown, KOKKOS_LAMBDA (int my_igp)
-//                {
-//                    int indigp = inv_igp_index(my_igp);
-//                    int igp = indinv(indigp);
-//                    int igmax = ncouls;
-//                    GPUComplex ssxDitt = expr0;
-//                    int tid = omp_get_thread_num();
-//
-////                    if(igp < ncouls && igp >= 0)
-//                    {
-//                        for(int ig = 0; ig < igmax; ++ig)
-//                        {
-//                            GPUComplex ssxDit = GPUComplex_mult(I_epsA_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig) , fact1 ) + \
-//                                                         GPUComplex_mult(I_epsA_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig) , fact2);
-//        
-//                            ssxDitt += GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_product(GPUComplex_conj(aqsmtemp(n1*ncouls + igp)) , ssxDit));
-//                        }
-//                        ssxDittt[tid] += GPUComplex_mult(ssxDitt , vcoul(igp));
-//                    }
-//                });
-//            }
-//                for(int i = 0; i < numThreads; ++i)
-//                    ssxDittt_tmp += ssxDittt[i];
-//
-//            ssxDi(iw) += ssxDittt_tmp;
-//            asxDtemp(iw) += GPUComplex_mult(ssxDi(iw) , occ);
-//        } // iw
-//    }
+        GPUComplStruct achsDtemp_struct2;
+        Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, GPUComplStruct & achsDtemp_structUpdate)
+        {
+            int indigp = inv_igp_index(my_igp);
+            int igp = indinv(indigp);
+
+            GPUComplex schsDtemp = expr0;
+
+            for(int ig = 0; ig < ncouls; ++ig)
+                schsDtemp = GPUComplex_minus(schsDtemp , GPUComplex_product(GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_conj(aqsmtemp(n1*ncouls + igp))) , I_epsR_array(1*ngpown*ncouls + my_igp*ncouls + ig)));
+
+             
+            achsDtemp_structUpdate.re += GPUComplex_real(GPUComplex_mult(schsDtemp , vcoul(igp) * 0.5));
+            achsDtemp_structUpdate.im += GPUComplex_imag(GPUComplex_mult(schsDtemp , vcoul(igp) * 0.5));
+        }, achsDtemp_struct2);
+
+        achsDtemp_struct1.re += achsDtemp_struct2.re;
+        achsDtemp_struct1.im += achsDtemp_struct2.im;
+    } //n1
+
+    GPUComplex tmp(achsDtemp_struct1.re, achsDtemp_struct1.im);
+    achsDtemp() = tmp;
+
+    for(int n1 = 0; n1 < nvband; ++n1)
+    {
+        double occ = 1.00;
+        GPUComplex ssxDit = expr0;
+        GPUComplStruct ssxDittt_agg ;
+
+        for(int iw = 0; iw < nfreqeval; ++iw)
+        {
+            double wx = freqevalmin - ekq(n1) + freqevalstep;
+            ssxDi(iw) = expr0;
+            GPUComplex ssxDittt_tmp = expr0;
+
+            int ifreq = 0;
+            if(wx > 0.00)
+            {
+                for(int ijk = 0; ijk < nFreq-1; ++ijk)
+                {
+                    if(wx > dFreqGrid(ijk) && wx < dFreqGrid(ijk+1))
+                    ifreq = ijk;
+                }
+            }
+            else
+            {
+                int ifreq = 0;
+                for(int ijk = 0; ijk < nFreq-1; ++ijk)
+                {
+                    if(-wx > dFreqGrid(ijk) && -wx < dFreqGrid(ijk+1))
+                        ifreq = ijk;
+                }
+            }
+            if(ifreq == 0) ifreq = nFreq-2;
+
+            if(wx > 0.00)
+            {
+                double fact1 = (dFreqGrid(ifreq+1) - wx) / (dFreqGrid(ifreq+1) - dFreqGrid(ifreq));
+                double fact2 = (wx - dFreqGrid(ifreq)) / (dFreqGrid(ifreq+1) - dFreqGrid(ifreq));
+
+                Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, GPUComplStruct& ssxDittt_aggUpdate)
+                {
+                    int indigp = inv_igp_index(my_igp);
+                    int igp = indinv(indigp);
+                    int igmax = ncouls;
+                    GPUComplex ssxDitt = expr0;
+
+                    for(int ig = 0; ig < igmax; ++ig)
+                    {
+                        GPUComplex ssxDit = GPUComplex_plus(GPUComplex_mult(I_epsR_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig) , fact1 ) , GPUComplex_mult(I_epsR_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig) , fact2));
+    
+                        ssxDitt += GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_product(GPUComplex_conj(aqsmtemp(n1*ncouls + igp)) , ssxDit));
+                    }
+                    ssxDittt_aggUpdate.re += GPUComplex_real(GPUComplex_mult(ssxDitt , vcoul(igp)));
+                    ssxDittt_aggUpdate.im += GPUComplex_imag(GPUComplex_mult(ssxDitt , vcoul(igp)));
+                }, ssxDittt_agg);
+
+            }
+            else
+            {
+                double fact1 = (dFreqGrid(ifreq+1) + wx) / (dFreqGrid(ifreq+1) - dFreqGrid(ifreq));
+                double fact2 = (-dFreqGrid(ifreq) - wx) / (dFreqGrid(ifreq+1) - dFreqGrid(ifreq));
+                ssxDittt_tmp = expr0;
+
+                Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, GPUComplStruct& ssxDittt_aggUpdate)
+                {
+                    int indigp = inv_igp_index(my_igp);
+                    int igp = indinv(indigp);
+                    int igmax = ncouls;
+                    GPUComplex ssxDitt = expr0;
+
+                    for(int ig = 0; ig < igmax; ++ig)
+                    {
+                        GPUComplex ssxDit = GPUComplex_plus(GPUComplex_mult(I_epsA_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig) , fact1 ) , \
+                                                     GPUComplex_mult(I_epsA_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig) , fact2));
+    
+                        ssxDitt += GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_product(GPUComplex_conj(aqsmtemp(n1*ncouls + igp)) , ssxDit));
+                    }
+                    ssxDittt_aggUpdate.re += GPUComplex_real(GPUComplex_mult(ssxDitt , vcoul(igp)));
+                    ssxDittt_aggUpdate.im += GPUComplex_imag(GPUComplex_mult(ssxDitt , vcoul(igp)));
+                }, ssxDittt_agg);
+            }
+
+            GPUComplex tmp(ssxDittt_agg.re, ssxDittt_agg.im);
+            ssxDi(iw) = tmp;
+
+            asxDtemp(iw) += GPUComplex_mult(ssxDi(iw) , occ);
+        } // iw
+    }
 
     std::chrono::duration<double> elapsedTime_firstloop = std::chrono::high_resolution_clock::now() - startTimer_firstloop;
 
@@ -311,136 +304,135 @@ int main(int argc, char** argv)
 
     auto startTimer_secondloop = std::chrono::high_resolution_clock::now();
 
-//    for(int n1 = 0; n1 < number_bands; ++n1)
-//    {
-//        bool flag_occ = n1 < nvband;
-//        double occ = 1.00;
-//        for(int iw = 0; iw < nfreqeval; ++iw)
-//        {
-//            schDi(iw) = expr0;
-//            sch2Di(iw) = expr0;
-//            schDi_corb(iw) = expr0;
-//            schDi_cor(iw) = expr0;
-//        }
-//
-//        Kokkos::parallel_for(nFreq, KOKKOS_LAMBDA (int ifreq)
-//        {
-//            GPUComplex schDt = schDt_matrix(n1*nFreq + ifreq);
-//            double cedifft_zb = dFreqGrid(ifreq);
-//            double cedifft_zb_right, cedifft_zb_left;
-//            GPUComplex schDt_right, schDt_left, schDt_avg, schDt_lin, schDt_lin2, schDt_lin3;
-//            GPUComplex cedifft_compl(cedifft_zb, 0.00);
-//            GPUComplex cedifft_cor;
-//            GPUComplex cedifft_coh = cedifft_compl - dFreqBrd(ifreq);
-//
-//            if(flag_occ)
-//                cedifft_cor = GPUComplex_mult(cedifft_compl, -1) - dFreqBrd(ifreq);
-//                else
-//                    cedifft_cor = cedifft_compl - dFreqBrd(ifreq);
-//
-//            if(ifreq != 0)
-//            {
-//                cedifft_zb_right = cedifft_zb;
-//                cedifft_zb_left = dFreqGrid(ifreq-1);
-//                schDt_right = schDt;
-//                schDt_left = schDt_matrix(n1*nFreq + ifreq-1);
-//                schDt_avg = GPUComplex_mult((schDt_right + schDt_left) , 0.5);
-//                schDt_lin = schDt_right - schDt_left;
-//                schDt_lin2 = GPUComplex_divide(schDt_lin , (cedifft_zb_right - cedifft_zb_left));
-//            }
-//
-//            if(ifreq != nFreq)
-//            {
-//                for(int iw = 0; iw < nfreqeval; ++iw)
-//                {
-//                    double wx = freqevalmin - ekq(n1) + (iw-1) * freqevalstep;
-//                    GPUComplex tmp(0.00, pref(ifreq));
-//                    schDi(iw) = schDi(iw) - GPUComplex_divide(GPUComplex_product(tmp,schDt) , doubleMinusGPUComplex(wx, cedifft_coh));
-//                }
-//            }
-//
-//            if(ifreq != 0)
-//            {
-//                for(int iw = 0; iw < nfreqeval; ++iw)
-//                {
-//                    double intfact = (freqevalmin - ekq(n1) + (iw-1) * freqevalstep - cedifft_zb_right) / (freqevalmin - ekq(n1) + (iw-1) * freqevalstep - cedifft_zb_left);
-//                    if(intfact < 0.0001) intfact = 0.0001;
-//                    if(intfact > 10000) intfact = 10000;
-//                    intfact = -log(intfact);
-//                    GPUComplex pref_zb_compl(0.00, pref_zb);
-//                    sch2Di(iw) = sch2Di(iw) - GPUComplex_mult(GPUComplex_product(pref_zb_compl , schDt_avg) , intfact);
-//                    if(flag_occ)
-//                    {
-//                        intfact = abs((freqevalmin - ekq(n1) + (iw-1)*freqevalstep + cedifft_zb_right) / (freqevalmin - ekq(n1) + (iw-1)*freqevalstep + cedifft_zb_left));
-//                        if(intfact < 0.0001) intfact = 0.0001;
-//                        if(intfact > 10000) intfact = 10000;
-//                        intfact = log(intfact);
-//                        schDt_lin3 = GPUComplex_mult((schDt_left + schDt_lin2) , (-freqevalmin - ekq(n1) + (iw-1)*freqevalstep - cedifft_zb_left)*intfact) ;
-//                    }
-//                    else
-//                        schDt_lin3 = GPUComplex_mult((schDt_left + schDt_lin2) , (freqevalmin - ekq(n1) + (iw-1)*freqevalstep - cedifft_zb_left)*intfact);
-//
-//                    schDt_lin3 += schDt_lin;
-//                    schDi_cor(iw) = schDi_cor(iw) -  GPUComplex_product(pref_zb_compl , schDt_lin3);
-//                }
-//            }
-//        });
-//
-//        for(int iw = 0; iw < nfreqeval; ++iw)
-//        {
-//            double wx = freqevalmin - ekq(n1) + freqevalstep;
-//            GPUComplex schDttt_cor = expr0;
-//            for(int i = 0; i < numThreads; ++i)
-//                schDttt_cor_threadArr[i] = expr0;
-//
-//            if(wx > 0)
-//            {
-//                int ifreq = -1;
-//                for(int ijk = 0; ijk < nFreq-1; ++ijk)
-//                {
-//                    if(wx > dFreqGrid(ijk) && wx < dFreqGrid(ijk+1))
-//                        ifreq = ijk;
-//                }
-//                if(ifreq == -1) ifreq = nFreq-2;
-//
-//                double fact1 = -0.5 * (dFreqGrid(ifreq+1) - wx) / (dFreqGrid(ifreq+1) - dFreqGrid(ifreq)); 
-//                double fact2 = -0.5 * (wx - dFreqGrid(ifreq)) / (dFreqGrid(ifreq+1) - dFreqGrid(ifreq)); 
-//
-//                GPUComplex schDttt_agg = expr0;
-//                GPUComplex *schDttt = new GPUComplex[numThreads];
-//                for(int i = 0; i < numThreads; ++i)
-//                    schDttt[i] = expr0;
-//
-//                Kokkos::parallel_for(ngpown, KOKKOS_LAMBDA (int my_igp)
-//                {
-//                    int tid = omp_get_thread_num();
-//                    int indigp = inv_igp_index(my_igp) ;
-//                    int igp = indinv(indigp);
-//                    int igmax = ncouls;
-//                    GPUComplex sch2Dtt(0.00, 0.00);
-//
-////                    if(igp < ncouls && igp >= 0)
-//                    {
-//                        for(int ig = 0; ig < igmax; ++ig)
-//                        {
-//                            GPUComplex sch2Dt = GPUComplex_mult((GPUComplex_minus(I_epsR_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig), I_epsA_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig))) , fact1) + \
-//                                                        GPUComplex_mult((GPUComplex_minus(I_epsR_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig), I_epsA_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig))) , fact2);
-//                            sch2Dtt += GPUComplex_product(GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_conj(aqsmtemp(n1*ncouls + igp))) , sch2Dt);
-//                        }
-//                        schDttt[tid] += GPUComplex_mult(sch2Dtt , vcoul(igp));
-//                        if(flag_occ){}
-//                        else
-//                            schDttt_cor_threadArr[tid] += GPUComplex_mult(sch2Dtt , vcoul(igp));
-//                    }
-//                });
-//                for(int i = 0; i < numThreads; ++i)
-//                    schDttt_agg = schDttt[i];
-//
-//                sch2Di(iw) += schDttt_agg;
-//            }
+    for(int n1 = 0; n1 < number_bands; ++n1)
+    {
+        bool flag_occ = n1 < nvband;
+        double occ = 1.00;
+        for(int iw = 0; iw < nfreqeval; ++iw)
+        {
+            schDi(iw) = expr0;
+            sch2Di(iw) = expr0;
+            schDi_corb(iw) = expr0;
+            schDi_cor(iw) = expr0;
+        }
+
+        Kokkos::parallel_for(nFreq, KOKKOS_LAMBDA (int ifreq)
+        {
+            GPUComplex schDt = schDt_matrix(n1*nFreq + ifreq);
+            double cedifft_zb = dFreqGrid(ifreq);
+            double cedifft_zb_right, cedifft_zb_left;
+            GPUComplex schDt_right, schDt_left, schDt_avg, schDt_lin, schDt_lin2, schDt_lin3;
+            GPUComplex cedifft_compl(cedifft_zb, 0.00);
+            GPUComplex cedifft_cor;
+            GPUComplex cedifft_coh = GPUComplex_minus(cedifft_compl , dFreqBrd(ifreq));
+
+            if(flag_occ)
+                cedifft_cor = GPUComplex_minus(GPUComplex_mult(cedifft_compl, -1) , dFreqBrd(ifreq));
+                else
+                    cedifft_cor = GPUComplex_minus(cedifft_compl , dFreqBrd(ifreq));
+
+            if(ifreq != 0)
+            {
+                cedifft_zb_right = cedifft_zb;
+                cedifft_zb_left = dFreqGrid(ifreq-1);
+                schDt_right = schDt;
+                schDt_left = schDt_matrix(n1*nFreq + ifreq-1);
+                schDt_avg = GPUComplex_mult((GPUComplex_plus(schDt_right , schDt_left)) , 0.5);
+                schDt_lin = GPUComplex_minus(schDt_right , schDt_left);
+                schDt_lin2 = GPUComplex_divide(schDt_lin , (cedifft_zb_right - cedifft_zb_left));
+            }
+
+            if(ifreq != nFreq)
+            {
+                for(int iw = 0; iw < nfreqeval; ++iw)
+                {
+                    double wx = freqevalmin - ekq(n1) + (iw-1) * freqevalstep;
+                    GPUComplex tmp(0.00, pref(ifreq));
+                    schDi(iw) = GPUComplex_minus(schDi(iw) , GPUComplex_divide(GPUComplex_product(tmp,schDt) , doubleMinusGPUComplex(wx, cedifft_coh)));
+                }
+            }
+
+            if(ifreq != 0)
+            {
+                for(int iw = 0; iw < nfreqeval; ++iw)
+                {
+                    double intfact = (freqevalmin - ekq(n1) + (iw-1) * freqevalstep - cedifft_zb_right) / (freqevalmin - ekq(n1) + (iw-1) * freqevalstep - cedifft_zb_left);
+                    if(intfact < 0.0001) intfact = 0.0001;
+                    if(intfact > 10000) intfact = 10000;
+                    intfact = -log(intfact);
+                    GPUComplex pref_zb_compl(0.00, pref_zb);
+                    sch2Di(iw) = GPUComplex_minus(sch2Di(iw) , GPUComplex_mult(GPUComplex_product(pref_zb_compl , schDt_avg) , intfact));
+                    if(flag_occ)
+                    {
+                        intfact = abs((freqevalmin - ekq(n1) + (iw-1)*freqevalstep + cedifft_zb_right) / (freqevalmin - ekq(n1) + (iw-1)*freqevalstep + cedifft_zb_left));
+                        if(intfact < 0.0001) intfact = 0.0001;
+                        if(intfact > 10000) intfact = 10000;
+                        intfact = log(intfact);
+                        schDt_lin3 = GPUComplex_mult((GPUComplex_plus(schDt_left , schDt_lin2)) , (-freqevalmin - ekq(n1) + (iw-1)*freqevalstep - cedifft_zb_left)*intfact) ;
+                    }
+                    else
+                        schDt_lin3 = GPUComplex_mult((GPUComplex_plus(schDt_left , schDt_lin2)) , (freqevalmin - ekq(n1) + (iw-1)*freqevalstep - cedifft_zb_left)*intfact);
+
+                    schDt_lin3 += schDt_lin;
+                    schDi_cor(iw) = GPUComplex_minus(schDi_cor(iw) ,  GPUComplex_product(pref_zb_compl , schDt_lin3));
+                }
+            }
+        });
+
+        for(int iw = 0; iw < nfreqeval; ++iw)
+        {
+            double wx = freqevalmin - ekq(n1) + freqevalstep;
+            GPUComplex schDttt_cor = expr0;
+            GPUComplStruct schDttt_corStruct;
+
+            if(wx > 0)
+            {
+                int ifreq = -1;
+                for(int ijk = 0; ijk < nFreq-1; ++ijk)
+                {
+                    if(wx > dFreqGrid(ijk) && wx < dFreqGrid(ijk+1))
+                        ifreq = ijk;
+                }
+                if(ifreq == -1) ifreq = nFreq-2;
+
+                double fact1 = -0.5 * (dFreqGrid(ifreq+1) - wx) / (dFreqGrid(ifreq+1) - dFreqGrid(ifreq)); 
+                double fact2 = -0.5 * (wx - dFreqGrid(ifreq)) / (dFreqGrid(ifreq+1) - dFreqGrid(ifreq)); 
+
+                GPUComplex schDttt_agg = expr0;
+                ViewScalarTypeComplex schDttt_cor_tmp("schDttt_cor_tmp");
+                GPUComplStruct schDtttStruct;
+                ViewScalarTypeComplex schDttt("schDttt");
+
+                Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, GPUComplStruct& schDtttStructUpdate)
+                {
+                    int indigp = inv_igp_index(my_igp) ;
+                    int igp = indinv(indigp);
+                    int igmax = ncouls;
+                    GPUComplex sch2Dtt(0.00, 0.00);
+
+                    for(int ig = 0; ig < igmax; ++ig)
+                    {
+                        GPUComplex sch2Dt = GPUComplex_plus(GPUComplex_mult((GPUComplex_minus(I_epsR_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig), I_epsA_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig))) , fact1) , \
+                                                    GPUComplex_mult((GPUComplex_minus(I_epsR_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig), I_epsA_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig))) , fact2));
+                        sch2Dtt += GPUComplex_product(GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_conj(aqsmtemp(n1*ncouls + igp))) , sch2Dt);
+                    }
+
+                    schDtttStructUpdate.re = GPUComplex_real(GPUComplex_mult(sch2Dtt , vcoul(igp)));
+                    schDtttStructUpdate.im = GPUComplex_imag(GPUComplex_mult(sch2Dtt , vcoul(igp)));
+                    if(flag_occ){}
+                    else
+                        schDttt() += GPUComplex_mult(sch2Dtt , vcoul(igp));
+                }, schDtttStruct);
+
+                sch2Di(iw) += schDttt();
+
+                GPUComplex tmp(schDttt_corStruct.re, schDttt_corStruct.im);
+                schDttt_cor += schDttt();
+            }
 //            else if(flag_occ)
 //            {
 //                wx = -wx; int ifreq = 0;
+//                ViewScalarTypeComplex schDttt_cor_tmp("schDttt_cor_tmp");
 //                for(int ijk = 0; ijk < nFreq-1; ++ijk)
 //                {
 //                    if(wx > dFreqGrid(ijk) && wx < dFreqGrid(ijk+1))
@@ -451,43 +443,41 @@ int main(int argc, char** argv)
 //                double fact1 = (dFreqGrid(ifreq+1) - wx) / (dFreqGrid(ifreq+1) - dFreqGrid(ifreq)); 
 //                double fact2 = (wx - dFreqGrid(ifreq)) / (dFreqGrid(ifreq+1) - dFreqGrid(ifreq)); 
 //
-//                Kokkos::parallel_for(ngpown, KOKKOS_LAMBDA (int my_igp)
+//                Kokkos::parallel_reduce(ngpown, KOKKOS_LAMBDA (int my_igp, GPUComplStruct& schDttt_corStructUpdate)
 //                {
-//                    int tid = omp_get_thread_num();
 //                    int indigp = inv_igp_index(my_igp) ;
 //                    int igp = indinv(indigp);
 //                    int igmax = ncouls;
 //                    GPUComplex sch2Dtt(0.00, 0.00);
 //
-////                    if(igp < ncouls && igp >= 0)
+//                    for(int ig = 0; ig < igmax; ++ig)
 //                    {
-//                        for(int ig = 0; ig < igmax; ++ig)
-//                        {
-//                            GPUComplex sch2Dt = GPUComplex_mult(GPUComplex_mult((GPUComplex_minus(I_epsR_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig), I_epsA_array(ifreq*ncouls*ngpown + my_igp*ncouls + ig))) , fact1) + \
-//                                                        GPUComplex_mult((GPUComplex_minus(I_epsR_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig), I_epsA_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig))) , fact2), -0.5);
-//                            sch2Dtt += GPUComplex_product(GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_conj(aqsmtemp(n1*ncouls + igp))) , sch2Dt);
-//                        }
-//                        schDttt_cor_threadArr[tid] += GPUComplex_mult(sch2Dtt , vcoul(igp));
+//                        GPUComplex sch2Dt = GPUComplex_mult(GPUComplex_plus(GPUComplex_mult((GPUComplex_minus(I_epsR_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig), I_epsA_array(ifreq*ncouls*ngpown + my_igp*ncouls + ig))) , fact1) , \
+//                                                    GPUComplex_mult((GPUComplex_minus(I_epsR_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig), I_epsA_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig))) , fact2)), -0.5);
+//                        sch2Dtt += GPUComplex_product(GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_conj(aqsmtemp(n1*ncouls + igp))) , sch2Dt);
 //                    }
-//                });
+//                    schDttt_corStructUpdate.re += GPUComplex_real(GPUComplex_mult(sch2Dtt , vcoul(igp)));
+//                    schDttt_corStructUpdate.im += GPUComplex_real(GPUComplex_mult(sch2Dtt , vcoul(igp)));
+//                }, schDttt_corStruct);
+//
+//                GPUComplex tmp(schDttt_corStruct.re, schDttt_corStruct.im);
+//                schDttt_cor += tmp;
 //            }
 //
-//            for(int i = 0; i < numThreads; ++i)
-//                schDttt_cor += schDttt_cor_threadArr[i];
-//
-//            schDi_cor(iw) += schDttt_cor;
-//
-////Summing up at the end of iw loop
-//            achDtemp(iw) += schDi(iw);
-//            ach2Dtemp(iw) += sch2Di(iw);
-//            achDtemp_cor(iw) += schDi_cor(iw);
-//            achDtemp_corb(iw) += schDi_corb(iw);
-//        }// iw
-//    } //n1
+
+            schDi_cor(iw) += schDttt_cor;
+
+//Summing up at the end of iw loop
+            achDtemp(iw) += schDi(iw);
+            ach2Dtemp(iw) += sch2Di(iw);
+            achDtemp_cor(iw) += schDi_cor(iw);
+            achDtemp_corb(iw) += schDi_corb(iw);
+        }// iw
+    } //n1
     std::chrono::duration<double> elapsedTime_secondloop = std::chrono::high_resolution_clock::now() - startTimer_secondloop;
 
     cout << "achsDtemp = " ;
-    achsDtemp->print();
+    achsDtemp().print();
     cout << "asxDtemp = " ;
     asxDtemp(0).print();
     cout << "achDtemp_cor = " ;
