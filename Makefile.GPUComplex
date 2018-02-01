@@ -21,8 +21,6 @@ ifeq ($(CXX),g++)
 endif 
 
 ifeq ($(CXX),xlc++)
-#	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp
-#	LINKFLAGS=-qsmp 
 	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp=noauto:omp -qoffload #-Xptxas -v
 	LINKFLAGS=-qsmp=noauto:omp -qoffload 
 endif 
