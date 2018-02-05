@@ -52,11 +52,11 @@ int main(int argc, char** argv)
     double pref_zb = 0.5 / 3.14;
 
 //Start to allocate the data structures;
-    ViewVectorTypeInt inv_igp_index("inv_igp_index", number_bands * ncouls);
-    ViewVectorTypeInt indinv("indinv", number_bands * ncouls);
-    ViewVectorTypeDouble vcoul("vcoul", number_bands * ncouls);
-    ViewVectorTypeDouble ekq("ekq", number_bands * ncouls);
-    ViewVectorTypeDouble dFreqGrid("dFreqGrid", number_bands * ncouls);
+    ViewVectorTypeInt inv_igp_index("inv_igp_index", ngpown);
+    ViewVectorTypeInt indinv("indinv", ncouls);
+    ViewVectorTypeDouble vcoul("vcoul", ncouls);
+    ViewVectorTypeDouble ekq("ekq", number_bands );
+    ViewVectorTypeDouble dFreqGrid("dFreqGrid", nFreq);
     ViewVectorTypeDouble pref("pref", nFreq);
     long double mem_alloc = 0.00;
 
