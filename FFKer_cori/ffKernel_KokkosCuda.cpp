@@ -227,7 +227,8 @@ int main(int argc, char** argv)
             GPUComplex schsDtemp = expr0;
 
             for(int ig = 0; ig < ncouls; ++ig)
-                schsDtemp = GPUComplex_minus(schsDtemp , GPUComplex_product(GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_conj(aqsmtemp(n1*ncouls + igp))) , I_epsR_array(1*ngpown*ncouls + my_igp*ncouls + ig)));
+                schsDtemp = aqsntemp(n1*ncouls + ig);
+//                schsDtemp = GPUComplex_minus(schsDtemp , GPUComplex_product(GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_conj(aqsmtemp(n1*ncouls + igp))) , I_epsR_array(1*ngpown*ncouls + my_igp*ncouls + ig)));
 
              
             GPUComplex achsDtemp_tmp = GPUComplex_mult(schsDtemp , vcoul(igp) * 0.5);
