@@ -13,8 +13,6 @@
 
 #include "/sw/summitdev/cuda/8.0.54/include/vector_types.h"
 
-//include "Complex_target.h"
-
 class GPUComplex : public double2{
 
     private : 

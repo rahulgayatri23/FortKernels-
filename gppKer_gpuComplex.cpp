@@ -326,9 +326,9 @@ int main(int argc, char** argv)
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
 
-#pragma omp target teams distribute parallel for shared(vcoul, aqsntemp, aqsmtemp, I_eps_array) firstprivate(achstemp) map(to:wx_array[nstart:nend], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls+1])\
+#pragma omp target teams distribute parallel for collapse(2) shared(vcoul, aqsntemp, aqsmtemp, I_eps_array) firstprivate(achstemp) map(to:wx_array[nstart:nend], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls+1])\
     map(tofrom:acht_n1_loc[0:number_bands], achtemp_re[nstart:nend], achtemp_im[nstart:nend], achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2) \
-    reduction(+:achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2) 
+    reduction(+:achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2)
     for(int n1 = 0; n1<number_bands; ++n1) 
     {
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
@@ -341,7 +341,6 @@ int main(int argc, char** argv)
             double achtemp_re_loc[3], achtemp_im_loc[3];
             for(int iw = nstart; iw < nend; ++iw) {achtemp_re_loc[iw] = 0.00; achtemp_im_loc[iw] = 0.00;}
 
-//#pragma simd
             for(int ig = 0; ig<ncouls; ++ig)
             {
                 int iw = 0;
