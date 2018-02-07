@@ -30,10 +30,10 @@ typedef RAJA::NestedPolicy<RAJA::ExecList<
     RAJA::omp_collapse_nowait_exec>,
     RAJA::OMP_Parallel<> > collapse2_exec_policy;
 
-typedef RAJA::NestedPolicy<RAJA::ExecList<
-    cuda_threadblock_z_exec<1>,
-    cuda_threadblock_y_exec<1>,
-    cuda_threadblock_x_exec<32>>> cuda_exec_policy;
+//typedef RAJA::NestedPolicy<RAJA::ExecList<
+//    cuda_threadblock_z_exec<1>,
+//    cuda_threadblock_y_exec<1>,
+//    cuda_threadblock_x_exec<32>>> cuda_exec_policy;
 
 
 inline void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, GPUComplex  *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex achstemp,  int* indinv, int ngpown, double* vcoul, int numThreads)
@@ -316,14 +316,8 @@ int main(int argc, char** argv)
             double achtemp_re_loc[3], achtemp_im_loc[3];
             for(int iw = nstart; iw < nend; ++iw) {achtemp_re_loc[iw] = 0.00; achtemp_im_loc[iw] = 0.00;}
 
-<<<<<<< HEAD
-            //Non-Cache Blocked Version
-            for(int ig = 0; ig<ncouls; ++ig)
-=======
-            
-//            int igblk = 512;
+            int igblk = 512;
             for(int igbeg = 0; igbeg < ncouls; igbeg+=igblk)
->>>>>>> 2c4b1978d2e1f98963a203aace3a4bf0b89916ff
             {
                 for(int iw = 0; iw < 3; ++iw)
                 {
