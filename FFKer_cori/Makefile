@@ -1,32 +1,34 @@
-EXE = ffKerCpp.ex
-SRC = ffKernel.cpp 
+EXE = ffKerCppOpenMP4.ex
+SRC = ffKernelOpenMP4.cpp 
 
-#CXX = xlc++
+CXX = xlc++
 #CXX = g++
-CXX = CC
+#CXX = CC
 
 LINK = ${CXX}
 
-ifeq ($(CXX),CC)
-	CXXFLAGS= -g -O3 -qopenmp -qopt-report=5 -std=c++11
-	CXXFLAGS+=-xCORE-AVX2
-	#CXXFLAGS+=-xMIC_AVX512
-	LINKFLAGS=-qopenmp -dynamic
-endif 
-
 ifeq ($(CXX),g++)
-	CXXFLAGS= -g -O3 -std=c++11 -fopenmp
+	CXXFLAGS= -g -O3 -std=c++11 -fopenmp -foffload="-lm" -foffload=nvptx-none
 	LINKFLAGS=-fopenmp
 endif 
 
 ifeq ($(CXX),xlc++)
-	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp 
-	LINKFLAGS=-qsmp 
+#	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp
+#	LINKFLAGS=-qsmp
+	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp=noauto:omp -qoffload #-Xptxas -v
+	LINKFLAGS=-qsmp=noauto:omp -qoffload 
 endif 
 
 ifeq ($(CXX),clang++)
 	CXXFLAGS=-O3 -std=gnu++11 -fopenmp -fopenmp-targets=nvptx64-nvidia-cuda --cuda-path=${CUDA_HOME}
 	LINKFLAGS=-fopenmp -fopenmp-targets=nvptx64-nvidia-cuda --cuda-path=${CUDA_HOME}
+endif 
+
+ifeq ($(CXX),icc)
+	CXXFLAGS=-O3 -qopenmp -qopt-report=5
+	CXXFLAGS+=xCORE_AVX2
+#	CXXFLAGS+=-xMIC_AVX512
+	LINKFLAGS=-qopenmp
 endif 
 
 OBJ = $(SRC:.cpp=.o)
