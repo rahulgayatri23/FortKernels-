@@ -176,6 +176,7 @@ int main(int argc, char** argv)
         achDtemp_cor[i] = expr0;
         achDtemp_corb[i] = expr0;
     }
+
     GPUComplex ssxDittt = expr0;
 
     cout << "Memory Used = " << mem_alloc/(1024 * 1024 * 1024) << " GB" << endl;
@@ -210,100 +211,100 @@ int main(int argc, char** argv)
             achsDtemp.im += GPUComplex_imag(achsDtemp_loc);
         }
     } //n1
-
-    for(int n1 = 0; n1 < nvband; ++n1)
-    {
-        double occ = 1.00;
-        GPUComplex ssxDit = expr0;
-        GPUComplex ssxDittt_agg = expr0;
-
-        for(int iw = 0; iw < nfreqeval; ++iw)
-        {
-            GPUComplex ssxDittt = expr0;
-            double wx = freqevalmin - ekq[n1] + freqevalstep;
-            ssxDi[iw] = expr0;
-
-            int ifreq = 0;
-            if(wx > 0.00)
-            {
-                for(int ijk = 0; ijk < nFreq-1; ++ijk)
-                {
-                    if(wx > dFreqGrid[ijk] && wx < dFreqGrid[ijk+1])
-                    ifreq = ijk;
-                }
-            }
-            else
-            {
-                int ifreq = 0;
-                for(int ijk = 0; ijk < nFreq-1; ++ijk)
-                {
-                    if(-wx > dFreqGrid[ijk] && -wx < dFreqGrid[ijk+1])
-                        ifreq = ijk;
-                }
-            }
-            if(ifreq == 0) ifreq = nFreq-2;
-
-            if(wx > 0.00)
-            {
-                double fact1 = (dFreqGrid[ifreq+1] - wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
-                double fact2 = (wx - dFreqGrid[ifreq]) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
-
-
-//#pragma omp parallel for default(shared)
-#pragma omp target teams distribute parallel for default(shared) 
-                for(int my_igp = 0; my_igp < ngpown; ++my_igp)
-                {
-                    int indigp = inv_igp_index[my_igp];
-                    int igp = indinv[indigp];
-                    GPUComplex ssxDitt = expr0;
-#pragma simd
-                    for(int ig = 0; ig < ncouls; ++ig)
-                    {
-                        ssxDit = GPUComplex_mult(I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] , fact1 ) + \
-                                                     GPUComplex_mult(I_epsR_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] , fact2);
-    
-                        ssxDitt += GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit));
-                    }
-                    GPUComplex ssxDittt_loc = GPUComplex_mult(ssxDitt , vcoul[igp]);
-#pragma omp atomic
-                    ssxDittt.re += GPUComplex_real(ssxDittt_loc);
-#pragma omp atomic
-                    ssxDittt.im += GPUComplex_real(ssxDittt_loc);
-                }
-            }
-            else
-            {
-                double fact1 = (dFreqGrid[ifreq+1] + wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
-                double fact2 = (-dFreqGrid[ifreq] - wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
-
-//#pragma omp parallel for default(shared)
-#pragma omp target teams distribute parallel for default(shared)
-                for(int my_igp = 0; my_igp < ngpown; ++my_igp)
-                {
-                    int indigp = inv_igp_index[my_igp];
-                    int igp = indinv[indigp];
-                    GPUComplex ssxDitt = expr0;
-
-#pragma simd
-                    for(int ig = 0; ig < ncouls; ++ig)
-                    {
-                        ssxDit = GPUComplex_mult(I_epsA_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] , fact1 ) + \
-                                                     GPUComplex_mult(I_epsA_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] , fact2);
-    
-                        ssxDitt += GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit));
-                    }
-                    GPUComplex ssxDittt_loc = GPUComplex_mult(ssxDitt , vcoul[igp]);
-#pragma omp atomic
-                    ssxDittt.re += GPUComplex_real(ssxDittt_loc);
-#pragma omp atomic
-                    ssxDittt.im += GPUComplex_real(ssxDittt_loc);
-                }
-            }
-
-            ssxDi[iw] += ssxDittt;
-            asxDtemp[iw] += GPUComplex_mult(ssxDi[iw] , occ);
-        } // iw
-    }
+//
+//    for(int n1 = 0; n1 < nvband; ++n1)
+//    {
+//        double occ = 1.00;
+//        GPUComplex ssxDit = expr0;
+//        GPUComplex ssxDittt_agg = expr0;
+//
+//        for(int iw = 0; iw < nfreqeval; ++iw)
+//        {
+//            GPUComplex ssxDittt = expr0;
+//            double wx = freqevalmin - ekq[n1] + freqevalstep;
+//            ssxDi[iw] = expr0;
+//
+//            int ifreq = 0;
+//            if(wx > 0.00)
+//            {
+//                for(int ijk = 0; ijk < nFreq-1; ++ijk)
+//                {
+//                    if(wx > dFreqGrid[ijk] && wx < dFreqGrid[ijk+1])
+//                    ifreq = ijk;
+//                }
+//            }
+//            else
+//            {
+//                int ifreq = 0;
+//                for(int ijk = 0; ijk < nFreq-1; ++ijk)
+//                {
+//                    if(-wx > dFreqGrid[ijk] && -wx < dFreqGrid[ijk+1])
+//                        ifreq = ijk;
+//                }
+//            }
+//            if(ifreq == 0) ifreq = nFreq-2;
+//
+//            if(wx > 0.00)
+//            {
+//                double fact1 = (dFreqGrid[ifreq+1] - wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
+//                double fact2 = (wx - dFreqGrid[ifreq]) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
+//
+//
+////#pragma omp parallel for default(shared)
+//#pragma omp target teams distribute parallel for default(shared) 
+//                for(int my_igp = 0; my_igp < ngpown; ++my_igp)
+//                {
+//                    int indigp = inv_igp_index[my_igp];
+//                    int igp = indinv[indigp];
+//                    GPUComplex ssxDitt = expr0;
+//#pragma simd
+//                    for(int ig = 0; ig < ncouls; ++ig)
+//                    {
+//                        ssxDit = GPUComplex_mult(I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] , fact1 ) + \
+//                                                     GPUComplex_mult(I_epsR_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] , fact2);
+//    
+//                        ssxDitt += GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit));
+//                    }
+//                    GPUComplex ssxDittt_loc = GPUComplex_mult(ssxDitt , vcoul[igp]);
+//#pragma omp atomic
+//                    ssxDittt.re += GPUComplex_real(ssxDittt_loc);
+//#pragma omp atomic
+//                    ssxDittt.im += GPUComplex_real(ssxDittt_loc);
+//                }
+//            }
+//            else
+//            {
+//                double fact1 = (dFreqGrid[ifreq+1] + wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
+//                double fact2 = (-dFreqGrid[ifreq] - wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
+//
+////#pragma omp parallel for default(shared)
+//#pragma omp target teams distribute parallel for default(shared)
+//                for(int my_igp = 0; my_igp < ngpown; ++my_igp)
+//                {
+//                    int indigp = inv_igp_index[my_igp];
+//                    int igp = indinv[indigp];
+//                    GPUComplex ssxDitt = expr0;
+//
+//#pragma simd
+//                    for(int ig = 0; ig < ncouls; ++ig)
+//                    {
+//                        ssxDit = GPUComplex_mult(I_epsA_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] , fact1 ) + \
+//                                                     GPUComplex_mult(I_epsA_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] , fact2);
+//    
+//                        ssxDitt += GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit));
+//                    }
+//                    GPUComplex ssxDittt_loc = GPUComplex_mult(ssxDitt , vcoul[igp]);
+//#pragma omp atomic
+//                    ssxDittt.re += GPUComplex_real(ssxDittt_loc);
+//#pragma omp atomic
+//                    ssxDittt.im += GPUComplex_real(ssxDittt_loc);
+//                }
+//            }
+//
+//            ssxDi[iw] += ssxDittt;
+//            asxDtemp[iw] += GPUComplex_mult(ssxDi[iw] , occ);
+//        } // iw
+//    }
 
     std::chrono::duration<double> elapsedTime_firstloop = std::chrono::high_resolution_clock::now() - startTimer_firstloop;
 
