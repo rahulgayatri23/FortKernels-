@@ -3,8 +3,8 @@
 using namespace std;
 
 
-#define CUDASPACE 1
-#define OPENMPSPACE 0
+#define CUDASPACE 0
+#define OPENMPSPACE 1
 #define CUDAUVM 0
 #define SERIAL 0
 #define THREADS 0

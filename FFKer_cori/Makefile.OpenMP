@@ -2,8 +2,8 @@ KOKKOS_PATH = ${HOME}/Kokkos/kokkos
 KOKKOS_DEVICES = "OpenMP"
 EXE_NAME = "ffKernel_KokkosOpenMP"
 
-#SRC = ffKernel_KokkosOpenMP.cpp
-SRC = ffKernel_KokkosCuda.cpp
+SRC = ffKernel_KokkosOpenMP.cpp
+#SRC = ffKernel_KokkosCuda.cpp
 #CXX=CC
 #CXX=g++
 CXX=xlc++
