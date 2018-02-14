@@ -13,6 +13,17 @@
 
 using namespace std;
 
+GPUComplex** allocateMemGPU(size_t size)
+{
+    void **d_src;
+    if(cudaMalloc((void**) &d_src, size) != cudaSuccess)
+    {
+        return NULL;
+    }
+
+    return (GPUComplex**) d_src;
+}
+
 inline void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, GPUComplex  *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex achstemp,  int* indinv, int ngpown, double* vcoul)
 {
     double to1 = 1e-6;
