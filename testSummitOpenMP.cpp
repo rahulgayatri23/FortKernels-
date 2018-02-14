@@ -8,10 +8,10 @@ using namespace std;
 class GPUComplex {
 
     private : 
-        double re;
-        double im;
 
 public:
+        double re;
+        double im;
 
 explicit GPUComplex () {
     re = 0.00;
@@ -108,17 +108,25 @@ int main(int argc, char** argv)
            wtilde_array[i] = expr;
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
+    double sum_real = 0.00, sum_imag = 0.00;
 
 #pragma omp target enter data map(alloc: wtilde_array[0:number_bands])
 #pragma omp target update to(wtilde_array[0:number_bands])
-#pragma omp target teams distribute parallel for map(to:wtilde_array[0:number_bands])
+#pragma omp target teams distribute parallel for map(to:wtilde_array[0:number_bands]) \
+                map(tofrom : sum_real, sum_imag) \
+                reduction(+:sum_real, sum_imag)
     for(int n1 = 0; n1<number_bands; ++n1) 
+    {
         GPUComplex wdiff =  wtilde_array[0];
+        sum_real += wtilde_array[0].re;
+        sum_imag += wtilde_array[0].im;
+    }
 
 #pragma omp target exit data map(delete: wtilde_array[:0])
 
 
     std::chrono::duration<double> elapsed_totalTime = std::chrono::high_resolution_clock::now() - start_totalTime;
+    cout << "sum_real = " << sum_real << "\t sum_imag = " << sum_imag << endl;
     cout << "********** Time Taken **********= " << elapsed_totalTime.count() << " secs" << endl;
 
     free(wtilde_array);
