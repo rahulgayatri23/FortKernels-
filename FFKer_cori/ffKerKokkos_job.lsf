@@ -1,0 +1,16 @@
+#!/bin/bash
+#Job script for summitdev gppKer_gpuComplex
+#BSUB -P csc190port
+#BSUB -J ffKerKokkos_job
+#BSUB -o ffKerKokkos.o%J
+#BSUB -W 01:00
+#BSUB -nnodes 1
+
+#SHell commands
+#cd $MEMBERWORK/
+export OMP_NUM_THREADS=20; export OMP_PROC_BIND=spread; export OMP_PLACES=threads;
+cd /ccs/home/rgayatri/FortKernels-/FFKer_cori
+#jsrun -n1 -a1 -r1 -c20 -g1 -E LD_LIBRARY_PATH -E OMP_NUM_THREADS ./ffKernel_KokkosOpenMP.host 15023 1998 334 66 15 10
+#jsrun -n1 -a1 -r1 -c20 -g1 -E LD_LIBRARY_PATH -E OMP_NUM_THREADS ./ffKernel_KokkosCudaUVM.cuda 15023 1998 33401 66 15 10
+jsrun -n1 -a1 -r1 -c20 -g1 -E LD_LIBRARY_PATH -E OMP_NUM_THREADS ./ffKernel_KokkosCuda.cuda 15023 1998 334 66 15 10
+#jsrun -n1 -a1 -r1 -c20 -g1 -E LD_LIBRARY_PATH -E OMP_NUM_THREADS ./ffKernel_KokkosCuda.host 15023 1998 334 66 15 10
