@@ -129,7 +129,8 @@ __global__ void d_achsDtemp_solver(GPUComplex *achsDtemp, GPUComplex *aqsntemp, 
             if(my_igp < ngpown)
             {
                 int indigp = inv_igp_index[my_igp];
-                schsDtemp_kernel(schsDtemp, aqsntemp, aqsmtemp, I_epsR_array, indinv[indigp], ncouls, n1, my_igp, ngpown);
+                int igp = indinv[indigp];
+                schsDtemp_kernel(schsDtemp, aqsntemp, aqsmtemp, I_epsR_array, igp, ncouls, n1, my_igp, ngpown);
             }
         }
         if(leftOverngpown)
