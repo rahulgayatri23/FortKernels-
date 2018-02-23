@@ -1,9 +1,9 @@
 EXE = gppKer.ex
 SRC = gppKer.cpp 
 
-CXX = xlc++
+#CXX = xlc++
 #CXX = g++
-#CXX = CC
+CXX = CC
 
 LINK = ${CXX}
 

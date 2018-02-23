@@ -1,4 +1,4 @@
-EXE = ffKernelFort.ex
+EXE = ffKerFort.ex
 SRC = ffKernel.f90
 
 CXX = ftn

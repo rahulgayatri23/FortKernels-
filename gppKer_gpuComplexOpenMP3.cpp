@@ -10,6 +10,7 @@
 #include <chrono>
 
 #include "Complex.h"
+#include <likwid.h>
 #define igblk 512
 
 using namespace std;
@@ -213,6 +214,7 @@ int main(int argc, char** argv)
     cout << "Size of aqsntemp = " << (ncouls*number_bands*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of I_eps_array array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
 
+    LIKWID_MARKER_INIT;
 
    for(int i=0; i<number_bands; i++)
        for(int j=0; j<ncouls; j++)
@@ -284,7 +286,10 @@ int main(int argc, char** argv)
 
     for(int n1 = 0; n1<number_bands; ++n1) 
     {
-#pragma omp parallel for shared(vcoul, wtilde_array, aqsntemp, aqsmtemp, I_eps_array, wx_array, ssx_array) schedule(dynamic) private(tid) \
+#pragma omp parallel shared(vcoul, wtilde_array, aqsntemp, aqsmtemp, I_eps_array, wx_array, ssx_array)
+        {
+       LIKWID_MARKER_START("gppKer"); 
+#pragma omp for  schedule(dynamic) private(tid) \
         reduction(+:achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
@@ -298,35 +303,35 @@ int main(int argc, char** argv)
 
 
             //Cache Blocked Version
-//            for(int igbeg = 0; igbeg < ncouls; igbeg += igblk)
-//            {
-//                for(int iw = 0; iw < 3; ++iw)
-//                {
-//                    int igend = min(igbeg+igblk, ncouls);
-//                    for(int ig = igbeg; ig<igend; ++ig)
-//                    {
-//                        wdiff = doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
-//                        delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
-//                        GPUComplex sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
-//                        achtemp_re_loc[iw] += GPUComplex_real(sch_array);
-//                        achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
-//                    }
-//                }
-//            }
-
-            //Non-Cache Blocked Version
-#pragma omp simd
-            for(int ig = 0; ig<ncouls; ++ig)
+            for(int igbeg = 0; igbeg < ncouls; igbeg += igblk)
             {
                 for(int iw = 0; iw < 3; ++iw)
                 {
-                    wdiff = doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
-                    delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
-                    GPUComplex sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
-                    achtemp_re_loc[iw] += GPUComplex_real(sch_array);
-                    achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
+                    int igend = min(igbeg+igblk, ncouls);
+                    for(int ig = igbeg; ig<igend; ++ig)
+                    {
+                        wdiff = doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+                        delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
+                        GPUComplex sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
+                        achtemp_re_loc[iw] += GPUComplex_real(sch_array);
+                        achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
+                    }
                 }
             }
+
+//            //Non-Cache Blocked Version
+//#pragma omp simd
+//            for(int ig = 0; ig<ncouls; ++ig)
+//            {
+//                for(int iw = 0; iw < 3; ++iw)
+//                {
+//                    wdiff = doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+//                    delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
+//                    GPUComplex sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
+//                    achtemp_re_loc[iw] += GPUComplex_real(sch_array);
+//                    achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
+//                }
+//            }
 
             achtemp_re0 += achtemp_re_loc[0];
             achtemp_re1 += achtemp_re_loc[1];
@@ -336,6 +341,8 @@ int main(int argc, char** argv)
             achtemp_im2 += achtemp_im_loc[2];
 
         } //ngpown
+       LIKWID_MARKER_STOP("gppKer"); 
+        }
     } // number-bands
 
     std::chrono::duration<double> elapsedKernelTime = std::chrono::high_resolution_clock::now() - startKernelTimer;
@@ -363,6 +370,9 @@ int main(int argc, char** argv)
     std::chrono::duration<double> elapsed_totalTime = std::chrono::high_resolution_clock::now() - start_totalTime;
     cout << "********** Kernel Time Taken **********= " << elapsedKernelTime.count() << " secs" << endl;
     cout << "********** Total Time Taken **********= " << elapsed_totalTime.count() << " secs" << endl;
+
+    LIKWID_MARKER_CLOSE;
+
 
     free(acht_n1_loc);
     free(achtemp);

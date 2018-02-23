@@ -45,6 +45,13 @@ GPUComplex& operator =(const GPUComplex& src) {
     return *this;
 }
 
+GPUComplex& operator +(const GPUComplex& src) {
+    re += src.re;
+    im += src.im;
+
+    return *this;
+}
+
 GPUComplex& operator +=(const GPUComplex& src) {
     re = src.re + this->re;
     im = src.im + this->im;

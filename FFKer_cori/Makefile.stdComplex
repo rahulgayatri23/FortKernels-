@@ -1,9 +1,9 @@
-EXE = ffKerCpp.ex
-SRC = ffKernel.cpp 
+EXE = ffKerCpp_stdComplex.ex
+SRC = ffKernel_stdComplex.cpp 
 
-CXX = xlc++_r
+#CXX = xlc++
 #CXX = g++
-#CXX = CC
+CXX = CC
 
 LINK = ${CXX}
 
@@ -19,7 +19,7 @@ ifeq ($(CXX),g++)
 	LINKFLAGS=-fopenmp
 endif 
 
-ifeq ($(CXX),xlc++_r)
+ifeq ($(CXX),xlc++)
 	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp 
 	LINKFLAGS=-qsmp 
 endif 
