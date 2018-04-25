@@ -90,22 +90,19 @@ void ssxDittt_kernel(int *inv_igp_index, int *indinv, GPUComplex *aqsmtemp, GPUC
     {
         int indigp = inv_igp_index[my_igp];
         int igp = indinv[indigp];
-        int igmax = ncouls;
         int tid = omp_get_thread_num();
         GPUComplex ssxDit(0.00, 0.00);
         GPUComplex ssxDitt(0.00, 0.00);
 
-        if(igp < ncouls && igp >= 0)
+        for(int ig = 0; ig < ncouls; ++ig)
         {
-            for(int ig = 0; ig < igmax; ++ig)
-            {
-                ssxDit = GPUComplex_mult(I_eps_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] , fact1 ) + \
-                                             GPUComplex_mult(I_eps_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] , fact2);
+            ssxDit = GPUComplex_mult(I_eps_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] , fact1 ) + \
+                                         GPUComplex_mult(I_eps_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] , fact2);
 
-                ssxDitt += GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit));
-            }
-            ssxDittt[tid] += GPUComplex_mult(ssxDitt , vcoul[igp]);
+            ssxDitt += GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit));
+//            ssxDitt = aqsntemp[n1*ncouls + ig];
         }
+        ssxDittt[tid] += GPUComplex_mult(ssxDitt , vcoul[igp]);
     }
 }
 
@@ -393,17 +390,18 @@ int main(int argc, char** argv)
                 ssxDittt[i] = expr0;
 
             compute_fact(wx, nFreq, dFreqGrid, fact1, fact2, ifreq, 1, 0);
+            GPUComplex ssxDitt(0.00, 0.00);
 
-            if(wx > 0.00)
                 ssxDittt_kernel(inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsR_array, ssxDittt, ngpown, ncouls, n1, ifreq, fact1, fact2);
-            else
-                ssxDittt_kernel(inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsA_array, ssxDittt, ngpown, ncouls, n1, ifreq, fact1, fact2);
+//            else
+//                ssxDittt_kernel(inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsA_array, ssxDittt, ngpown, ncouls, n1, ifreq, fact1, fact2);
 
             for(int i = 0; i < numThreads; ++i)
                 ssxDittt_agg += ssxDittt[i];
 
             ssxDi[iw] += ssxDittt_agg;
             asxDtemp[iw] += GPUComplex_mult(ssxDi[iw] , occ);
+ //           asxDtemp[iw] += ssxDitt;
         } // iw
     }
 
