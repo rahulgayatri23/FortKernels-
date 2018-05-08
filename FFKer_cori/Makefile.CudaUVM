@@ -1,8 +1,8 @@
 KOKKOS_PATH = ${HOME}/Kokkos/kokkos
 KOKKOS_DEVICES = "Cuda KOKKOS_CUDA_OPTIONS=force_uvm"
 EXE_NAME = "ffKernel_KokkosCudaUVM"
-#SRC = ffKernel_KokkosCudaUVM.cpp
-SRC = ffKernel_KokkosCuda.cpp
+SRC = ffKernel_KokkosCudaUVM.cpp
+#SRC = ffKernel_KokkosCuda.cpp
 
 default: build
 	echo "Start Build"

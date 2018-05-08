@@ -181,7 +181,7 @@ void set_imag(double val)
     GPUComplex GPUComplex_divide1( const GPUComplex& a, const GPUComplex& b) ;
 
     KOKKOS_INLINE_FUNCTION
-    GPUComplex GPUComplex_divide2( const GPUComplex& a, double& b) ;
+    GPUComplex GPUComplex_divide2( const GPUComplex& a, const double& b) ;
 
 //Inline functions have to be defined in the same file as the declaration
 
@@ -322,7 +322,7 @@ GPUComplex GPUComplex_divide1( const GPUComplex& a, const GPUComplex& b)
     return result;
 }
 
-GPUComplex GPUComplex_divide2( const GPUComplex& a, double& b)
+GPUComplex GPUComplex_divide2( const GPUComplex& a, const double& b)
 {
     GPUComplex result(a.re/b, a.im/b);
     return result;

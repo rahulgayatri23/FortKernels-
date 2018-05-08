@@ -195,27 +195,26 @@ int main(int argc, char** argv)
         double occ = 1.00;
 
 //#pragma omp parallel for default(shared)
+//        for(int my_igp = 0; my_igp < ngpown; ++my_igp)
         Kokkos::parallel_for(ngpown, KOKKOS_LAMBDA (int my_igp)
         {
             int indigp = inv_igp_index(my_igp);
             int igp = indinv(indigp);
             int tid = omp_get_thread_num();
 
-//            if(igp < ncouls && igp >= 0)
-            {
-                int igmax = ncouls;
-                GPUComplex schsDtemp = expr0;
+            GPUComplex schsDtemp = expr0;
 
-                for(int ig = 0; ig < igmax; ++ig)
-                    schsDtemp = schsDtemp - GPUComplex_product(GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_conj(aqsmtemp(n1*ncouls + igp))) , I_epsR_array(1*ngpown*ncouls + my_igp*ncouls + ig));
+            for(int ig = 0; ig < ncouls; ++ig)
+                schsDtemp = schsDtemp - GPUComplex_product(GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_conj(aqsmtemp(n1*ncouls + igp))) , I_epsR_array(1*ngpown*ncouls + my_igp*ncouls + ig));
 
-                achsDtemp_threadArr[tid] += GPUComplex_mult(schsDtemp , vcoul(igp) * 0.5);
-            }
+            achsDtemp_threadArr[tid] += GPUComplex_mult(schsDtemp , vcoul(igp) * 0.5);
         });
     } //n1
 
     for(int i = 0; i < numThreads; ++i)
         achsDtemp += achsDtemp_threadArr[i];
+
+  std::chrono::duration<double> elapsedTime_firstloop = std::chrono::high_resolution_clock::now() - startTimer_firstloop;
 
     for(int n1 = 0; n1 < nvband; ++n1)
     {
@@ -259,25 +258,22 @@ int main(int argc, char** argv)
 
 
 //#pragma omp parallel for default(shared)
+//                for(int my_igp = 0; my_igp < ngpown; ++my_igp)
                 Kokkos::parallel_for(ngpown, KOKKOS_LAMBDA (int my_igp)
                 {
                     int indigp = inv_igp_index(my_igp);
                     int igp = indinv(indigp);
-                    int igmax = ncouls;
                     GPUComplex ssxDitt = expr0;
                     int tid = omp_get_thread_num();
 
-//                    if(igp < ncouls && igp >= 0)
+                    for(int ig = 0; ig < ncouls; ++ig)
                     {
-                        for(int ig = 0; ig < igmax; ++ig)
-                        {
-                            GPUComplex ssxDit = GPUComplex_mult(I_epsR_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig) , fact1 ) + \
-                                                         GPUComplex_mult(I_epsR_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig) , fact2);
-        
-                            ssxDitt += GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_product(GPUComplex_conj(aqsmtemp(n1*ncouls + igp)) , ssxDit));
-                        }
-                        ssxDittt[tid] += GPUComplex_mult(ssxDitt , vcoul(igp));
+                        GPUComplex ssxDit = GPUComplex_mult(I_epsR_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig) , fact1 ) + \
+                                                     GPUComplex_mult(I_epsR_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig) , fact2);
+    
+                        ssxDitt += GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_product(GPUComplex_conj(aqsmtemp(n1*ncouls + igp)) , ssxDit));
                     }
+                    ssxDittt[tid] += GPUComplex_mult(ssxDitt , vcoul(igp));
                 });
             }
             else
@@ -290,25 +286,22 @@ int main(int argc, char** argv)
                     ssxDittt[i] = expr0;
 
 //#pragma omp parallel for default(shared)
+//                for(int my_igp = 0; my_igp < ngpown; ++my_igp)
                 Kokkos::parallel_for(ngpown, KOKKOS_LAMBDA (int my_igp)
                 {
                     int indigp = inv_igp_index(my_igp);
                     int igp = indinv(indigp);
-                    int igmax = ncouls;
                     GPUComplex ssxDitt = expr0;
                     int tid = omp_get_thread_num();
 
-//                    if(igp < ncouls && igp >= 0)
+                    for(int ig = 0; ig < ncouls; ++ig)
                     {
-                        for(int ig = 0; ig < igmax; ++ig)
-                        {
-                            GPUComplex ssxDit = GPUComplex_mult(I_epsA_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig) , fact1 ) + \
-                                                         GPUComplex_mult(I_epsA_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig) , fact2);
-        
-                            ssxDitt += GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_product(GPUComplex_conj(aqsmtemp(n1*ncouls + igp)) , ssxDit));
-                        }
-                        ssxDittt[tid] += GPUComplex_mult(ssxDitt , vcoul(igp));
+                        GPUComplex ssxDit = GPUComplex_mult(I_epsA_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig) , fact1 ) + \
+                                                     GPUComplex_mult(I_epsA_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig) , fact2);
+    
+                        ssxDitt += GPUComplex_product(aqsntemp(n1*ncouls + ig) , GPUComplex_product(GPUComplex_conj(aqsmtemp(n1*ncouls + igp)) , ssxDit));
                     }
+                    ssxDittt[tid] += GPUComplex_mult(ssxDitt , vcoul(igp));
                 });
             }
                 for(int i = 0; i < numThreads; ++i)
@@ -319,7 +312,6 @@ int main(int argc, char** argv)
         } // iw
     }
 
-    std::chrono::duration<double> elapsedTime_firstloop = std::chrono::high_resolution_clock::now() - startTimer_firstloop;
 
 //    /******************************Done with the First Part of the Code*****************************************************************************/
 
@@ -338,6 +330,7 @@ int main(int argc, char** argv)
         }
 
 //#pragma omp parallel for default(shared)
+//        for(int ifreq = 0; ifreq < nFreq; ++ifreq)
         Kokkos::parallel_for(nFreq, KOKKOS_LAMBDA (int ifreq)
         {
             GPUComplex schDt = schDt_matrix(n1*nFreq + ifreq);
@@ -427,15 +420,15 @@ int main(int argc, char** argv)
                     schDttt[i] = expr0;
 
 //#pragma omp parallel for default(shared)
+//                for(int my_igp = 0; my_igp < ngpown; ++my_igp)
                 Kokkos::parallel_for(ngpown, KOKKOS_LAMBDA (int my_igp)
                 {
                     int tid = omp_get_thread_num();
                     int indigp = inv_igp_index(my_igp) ;
                     int igp = indinv(indigp);
-                    int igmax = ncouls;
                     GPUComplex sch2Dtt(0.00, 0.00);
 
-                    for(int ig = 0; ig < igmax; ++ig)
+                    for(int ig = 0; ig < ncouls; ++ig)
                     {
                         GPUComplex sch2Dt = GPUComplex_mult((GPUComplex_minus(I_epsR_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig), I_epsA_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig))) , fact1) + \
                                                     GPUComplex_mult((GPUComplex_minus(I_epsR_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig), I_epsA_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig))) , fact2);
@@ -465,15 +458,15 @@ int main(int argc, char** argv)
                 double fact2 = (wx - dFreqGrid(ifreq)) / (dFreqGrid(ifreq+1) - dFreqGrid(ifreq)); 
 
 //#pragma omp parallel for default(shared)
+//                for(int my_igp = 0; my_igp < ngpown; ++my_igp)
                 Kokkos::parallel_for(ngpown, KOKKOS_LAMBDA (int my_igp)
                 {
                     int tid = omp_get_thread_num();
                     int indigp = inv_igp_index(my_igp) ;
                     int igp = indinv(indigp);
-                    int igmax = ncouls;
                     GPUComplex sch2Dtt(0.00, 0.00);
 
-                    for(int ig = 0; ig < igmax; ++ig)
+                    for(int ig = 0; ig < ncouls; ++ig)
                     {
                         GPUComplex sch2Dt = GPUComplex_mult(GPUComplex_mult((GPUComplex_minus(I_epsR_array(ifreq*ngpown*ncouls + my_igp*ncouls + ig), I_epsA_array(ifreq*ncouls*ngpown + my_igp*ncouls + ig))) , fact1) + \
                                                     GPUComplex_mult((GPUComplex_minus(I_epsR_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig), I_epsA_array((ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig))) , fact2), -0.5);
