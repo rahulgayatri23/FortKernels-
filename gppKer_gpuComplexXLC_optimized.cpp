@@ -157,31 +157,31 @@ int main(int argc, char** argv)
 
     //OpenMP Printing of threads on Host and Device
     int tid, numThreads, numTeams;
-#pragma omp parallel shared(numThreads) private(tid)
-    {
-        tid = omp_get_thread_num();
-        if(tid == 0)
-            numThreads = omp_get_num_threads();
-    }
-    std::cout << "Number of OpenMP Threads = " << numThreads << endl;
-
-#pragma omp target enter data map(alloc: numTeams, numThreads)
-#pragma omp target map(tofrom: numTeams, numThreads)
-#pragma omp teams shared(numTeams) private(tid)
-    {
-        tid = omp_get_team_num();
-        if(tid == 0)
-        {
-            numTeams = omp_get_num_teams();
-#pragma omp parallel 
-            {
-                int ttid = omp_get_thread_num();
-                if(ttid == 0)
-                    numThreads = omp_get_num_threads();
-            }
-        }
-    }
-#pragma omp target exit data map(delete: numTeams, numThreads)
+//#pragma omp parallel shared(numThreads) private(tid)
+//    {
+//        tid = omp_get_thread_num();
+//        if(tid == 0)
+//            numThreads = omp_get_num_threads();
+//    }
+//    std::cout << "Number of OpenMP Threads = " << numThreads << endl;
+//
+//#pragma omp target enter data map(alloc: numTeams, numThreads)
+//#pragma omp target map(tofrom: numTeams, numThreads)
+//#pragma omp teams shared(numTeams) private(tid)
+//    {
+//        tid = omp_get_team_num();
+//        if(tid == 0)
+//        {
+//            numTeams = omp_get_num_teams();
+//#pragma omp parallel 
+//            {
+//                int ttid = omp_get_thread_num();
+//                if(ttid == 0)
+//                    numThreads = omp_get_num_threads();
+//            }
+//        }
+//    }
+//#pragma omp target exit data map(delete: numTeams, numThreads)
     std::cout << "Number of OpenMP Teams = " << numTeams << std::endl;
     std::cout << "Number of OpenMP DEVICE Threads = " << numThreads << std::endl;
 
@@ -281,44 +281,27 @@ int main(int argc, char** argv)
     double achtemp_re0 = 0.00, achtemp_re1 = 0.00, achtemp_re2 = 0.00, \
         achtemp_im0 = 0.00, achtemp_im1 = 0.00, achtemp_im2 = 0.00;
 
-//#pragma omp parallel for collapse(3)
-//       for(int n1 = 0; n1 < nvband; n1++)
-//       {
-//            for(int my_igp=0; my_igp<ngpown; ++my_igp)
-//            {
-//               for(int iw=nstart; iw<nend; iw++)
-//               {
-//                    int indigp = inv_igp_index[my_igp];
-//                    int igp = indinv[indigp];
-//                    GPUComplex ssxt(0.00, 0.00);
-//                    GPUComplex scht(0.00, 0.00);
-//                    flagOCC_solver(wx_array[iw], wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
-//                    asxtemp[iw] += GPUComplex_mult(ssxt, occ , vcoul[igp]);
-//              }
-//            }
-//       }
+#pragma omp target enter data map(alloc: acht_n1_loc[0:number_bands], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls+1])
 
-#pragma omp target enter data map(alloc: acht_n1_loc[0:number_bands], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls+1], achtemp_re[nstart:nend], achtemp_im[nstart:nend])
+#pragma omp target update to(aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], asxtemp[nstart:nend])
 
-#pragma omp target update to(aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], asxtemp[nstart:nend], achtemp_re[nstart:nend], achtemp[nstart:nend])
-
-//#pragma omp target teams distribute parallel for nowait collapse(3) map(to:wx_array[nstart:nend], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls+1])\
-//    map(tofrom:asxtemp[nstart:nend]) 
-//       for(int n1 = 0; n1 < nvband; n1++)
-//       {
-//            for(int my_igp=0; my_igp<ngpown; ++my_igp)
-//            {
-//               for(int iw=nstart; iw<nend; iw++)
-//               {
-//                    int indigp = inv_igp_index[my_igp];
-//                    int igp = indinv[indigp];
-//                    GPUComplex ssxt(0.00, 0.00);
-//                    GPUComplex scht(0.00, 0.00);
-//                    flagOCC_solver(wx_array[iw], wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
-//                    asxtemp[iw] += GPUComplex_mult(ssxt, occ , vcoul[igp]);
-//              }
-//            }
-//       }
+#pragma omp target teams distribute parallel for nowait collapse(3) map(to:wx_array[nstart:nend], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls+1])\
+    map(tofrom:asxtemp[nstart:nend]) 
+       for(int n1 = 0; n1 < nvband; n1++)
+       {
+            for(int my_igp=0; my_igp<ngpown; ++my_igp)
+            {
+               for(int iw=nstart; iw<nend; iw++)
+               {
+                    int indigp = inv_igp_index[my_igp];
+                    int igp = indinv[indigp];
+                    GPUComplex ssxt(0.00, 0.00);
+                    GPUComplex scht(0.00, 0.00);
+                    flagOCC_solver(wx_array[iw], wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
+                    asxtemp[iw] += GPUComplex_mult(ssxt, occ , vcoul[igp]);
+              }
+            }
+       }
 
 #pragma omp target teams distribute parallel for nowait
     for(int n1 = 0; n1<number_bands; ++n1) 
@@ -328,7 +311,7 @@ int main(int argc, char** argv)
 
 #pragma omp target teams distribute parallel for collapse(2) shared(vcoul, aqsntemp, aqsmtemp, I_eps_array) firstprivate(achstemp) map(to:wx_array[nstart:nend], aqsmtemp[0:number_bands*ncouls],aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], wtilde_array[0:ngpown*ncouls], vcoul[0:ncouls], inv_igp_index[0:ngpown], indinv[0:ncouls+1])\
     map(tofrom:acht_n1_loc[0:number_bands], achtemp_re[nstart:nend], achtemp_im[nstart:nend], achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2) \
-    reduction(+:achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2)
+    reduction(+:achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2) thread_limit(256)
     for(int n1 = 0; n1<number_bands; ++n1) 
     {
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
@@ -338,7 +321,11 @@ int main(int argc, char** argv)
 
             GPUComplex wdiff, delw;
 
-            double achtemp_re_loc[3], achtemp_im_loc[3];
+//            double *achtemp_re_loc = new double[3];
+//            double *achtemp_im_loc = new double[3];
+            double achtemp_re_loc[3];
+            double achtemp_im_loc[3];
+
             for(int iw = nstart; iw < nend; ++iw) {achtemp_re_loc[iw] = 0.00; achtemp_im_loc[iw] = 0.00;}
 
             for(int ig = 0; ig<ncouls; ++ig)
@@ -363,7 +350,6 @@ int main(int argc, char** argv)
                 sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
                 achtemp_re_loc[iw] += GPUComplex_real(sch_array);
                 achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
-
             }
 
             achtemp_re0 += achtemp_re_loc[0];
