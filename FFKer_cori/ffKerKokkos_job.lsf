@@ -1,0 +1,16 @@
+#!/bin/bash
+#Job script for summitdev testJob
+#BSUB -P csc190port
+#BSUB -J ffKerJob
+#BSUB -o ffKerJob.o%J
+#BSUB -W 01:00
+#BSUB -nnodes 1
+
+#SHell commands
+#cd $MEMBERWORK/
+export OMP_NUM_THREADS=160; export OMP_PROC_BIND=spread; export OMP_PLACES=threads;
+cd /ccs/home/rgayatri/FortKernels-/FFKer_cori
+#jsrun -n1 -a1 -r1 -c20 -g1 -E LD_LIBRARY_PATH -E OMP_NUM_THREADS ./ffKernel_KokkosOpenMP.host 128 8 10000 200 200 25
+#jsrun -n1 -a1 -r1 -c20 -g1 -E LD_LIBRARY_PATH -E OMP_NUM_THREADS ./ffKernel_KokkosCudaUVM.cuda 128 8 10000 200 200 25
+jsrun -n1 -a1 -r1 -c20 -g1 -E LD_LIBRARY_PATH -E OMP_NUM_THREADS ./ffKernel_KokkosCuda.cuda 128 8 10000 200 200 25
+#jsrun -n1 -a1 -r1 -c20 -g1 -E LD_LIBRARY_PATH -E OMP_NUM_THREADS ./ffKerCpp.ex 128 8 10000 200 200 25
