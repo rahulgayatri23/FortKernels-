@@ -15,6 +15,7 @@
 #include <vector_types.h>
 #include <cuda.h>
 #include <cuda_runtime_api.h>
+#define CUDA 1
 
 
 class GPUComplex : public double2{
@@ -283,7 +284,7 @@ double GPUComplex_imag( const GPUComplex& src) {
     return src.im;
 }
 
-void asxDtemp_kernel(GPUComplex *I_epsR_array, GPUComplex *I_epsA_array, int ncouls, int ngpown, int freqeval, double *vcoul, int *inv_igp_index, int *indinv, double fact1, double fact2, double wx, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *asxDtemp, int ifreq, int n1);
+void asxDtemp_kernel(GPUComplex *I_epsR_array, GPUComplex *I_epsA_array, int ncouls, int ngpown, int freqeval, double *vcoul, int *inv_igp_index, int *indinv, double fact1, double fact2, double wx, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *asxDtemp, int ifreq, int n1, GPUComplex *ssxDi, double occ);
 
 void achsDtemp_kernel(GPUComplex *achsDtemp, GPUComplex *aqsntemp, GPUComplex *aqsmtemp, GPUComplex *I_epsR_array, int *inv_igp_index, int *indinv, double* vcoul, int number_bands, int ncouls, int ngpown);
 

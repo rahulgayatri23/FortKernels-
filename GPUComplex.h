@@ -15,6 +15,7 @@
 #include <vector_types.h>
 #include <cuda.h>
 #include <cuda_runtime_api.h>
+#define CUDA 1
 
 class GPUComplex : public double2{
 
