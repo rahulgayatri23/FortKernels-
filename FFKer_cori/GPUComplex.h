@@ -283,10 +283,8 @@ double GPUComplex_imag( const GPUComplex& src) {
     return src.im;
 }
 
-void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double *achtemp_re, double *achtemp_im, double *vcoul, int nstart, int nend, int* indinv, int* inv_igp_index);
+void asxDtemp_kernel(GPUComplex *I_epsR_array, GPUComplex *I_epsA_array, int ncouls, int ngpown, int freqeval, double *vcoul, int *inv_igp_index, int *indinv, double fact1, double fact2, double wx, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *asxDtemp, int ifreq, int n1);
 
-void till_nvbandKernel(GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *asxtemp, int *inv_igp_index, int *indinv, GPUComplex *wtilde_array, double *wx_array, GPUComplex *I_eps_array, int ncouls, int nvband, int ngpown, int nstart, int nend, double *d_vcoul);
-
-void achsDtemp_kernel(GPUComplex *achsDtemp, GPUComplex *aqsntemp, GPUComplex *aqsmtemp, GPUComplex *I_epsR_array, double *inv_igp_index, double *indinv, int number_bands, int ncouls, int ngpown);
+void achsDtemp_kernel(GPUComplex *achsDtemp, GPUComplex *aqsntemp, GPUComplex *aqsmtemp, GPUComplex *I_epsR_array, int *inv_igp_index, int *indinv, double* vcoul, int number_bands, int ncouls, int ngpown);
 
 #endif

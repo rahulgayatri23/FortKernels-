@@ -6,6 +6,49 @@
 
 using namespace std;
 
+// Define this to turn on error checking
+#define CUDA_ERROR_CHECK
+
+#define CudaSafeCall( err ) __cudaSafeCall( err, __FILE__, __LINE__ )
+#define CudaCheckError()    __cudaCheckError( __FILE__, __LINE__ )
+
+inline void __cudaSafeCall( cudaError err, const char *file, const int line )
+{
+#ifdef CUDA_ERROR_CHECK
+    if ( cudaSuccess != err )
+    {
+        fprintf( stderr, "cudaSafeCall() failed at %s:%i : %s\n",
+        file, line, cudaGetErrorString( err ) );
+        exit( -1 );
+    }
+#endif
+
+    return;
+}
+
+inline void __cudaCheckError( const char *file, const int line )
+{
+#ifdef CUDA_ERROR_CHECK
+    cudaError err = cudaGetLastError();
+    if ( cudaSuccess != err )
+    {
+        fprintf( stderr, "cudaCheckError() failed at %s:%i : %s\n",
+        file, line, cudaGetErrorString( err ) );
+        exit( -1 );
+    }
+
+    // More careful checking. However, this will affect performance.
+    // Comment away if needed.
+    err = cudaDeviceSynchronize();
+    if( cudaSuccess != err )
+    {
+        fprintf( stderr, "cudaCheckError() with sync failed at %s:%i : %s\n",file, line, cudaGetErrorString( err ) );
+        exit( -1 );
+    }
+#endif
+    return;
+}
+
 int main(int argc, char** argv)
 {
 
@@ -89,122 +132,31 @@ int main(int argc, char** argv)
     GPUComplex *d_schDt_matrix, *d_aqsmtemp, *d_aqsntemp, *d_I_epsR_array, *d_I_epsA_array, *d_ssxDi, *d_schDi, *d_sch2Di, *d_schDi_cor, \
                 *d_schDi_corb, *d_achDtemp, *d_ach2Dtemp, *d_achDtemp_cor, *d_achDtemp_corb, *d_asxDtemp, *d_dFreqBrd, *d_achsDtemp;
 
-    double *d_indinv, *d_inv_igp_index;
+    int *d_indinv, *d_inv_igp_index;
+    double *d_vcoul, *d_dFreqGrid;
 
-    if(cudaMalloc((void**) &d_achsDtemp, sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate achsDtemp on device" << endl ;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_schDt_matrix, number_bands*nFreq*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate schDt_matrix on device" << endl ;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_aqsntemp, number_bands*ncouls*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate aqsntemp on device" << endl ;
-        return 0;
-    }
-   
-    if(cudaMalloc((void**) &d_aqsmtemp, number_bands*ncouls*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate aqsmtemp on device" << endl ;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_I_epsR_array, nFreq*ngpown*ncouls*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate I_epsR_array on device" << endl ;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_I_epsA_array, nFreq*ngpown*ncouls*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate I_epsA_array on device" << endl ;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_ssxDi, nfreqeval*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate I_ssxDi on device" << endl ;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_schDi, nfreqeval*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate schDi on device" << endl ;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_sch2Di, nfreqeval*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate sch2Di on device" << endl ;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_schDi_cor, nfreqeval*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate schDi_cor on device" << endl ;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_schDi_corb, nfreqeval*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate schDi_corb on device" << endl ;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_achDtemp, nfreqeval*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate achDtemp on device" << endl ;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_ach2Dtemp, nfreqeval*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate ach2Dtemp on device" << endl ;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_achDtemp_cor, nfreqeval*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate achDtemp_cor on device" << endl ;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_achDtemp_corb, nfreqeval*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate achDtemp_corb on device" << endl ;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_asxDtemp, nfreqeval*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate asxDtemp on device" << endl ;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_dFreqBrd, nFreq*sizeof(GPUComplex)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate dFreqBrd on device" << endl ;
-        return 0;
-    }
-
-
-    if(cudaMalloc((void**) &d_indinv, (ncouls+1)*sizeof(int)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate indinv on device" << endl;
-        return 0;
-    }
-
-    if(cudaMalloc((void**) &d_inv_igp_index, ngpown*sizeof(int)) != cudaSuccess)
-    {
-        cout << "Nope could not allocate inv_igp_index on device" << endl;
-        return 0;
-    }
+    //Create data-structs on the device
+    CudaSafeCall(cudaMalloc((void**) &d_achsDtemp, sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_schDt_matrix, number_bands*nFreq*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_aqsmtemp, number_bands*ncouls*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_aqsntemp, number_bands*ncouls*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_I_epsR_array, nFreq*ngpown*ncouls*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_I_epsA_array, nFreq*ngpown*ncouls*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_ssxDi, nfreqeval*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_schDi, nfreqeval*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_sch2Di, nfreqeval*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_schDi_cor, nfreqeval*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_schDi_corb, nfreqeval*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_achDtemp, nfreqeval*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_ach2Dtemp, nfreqeval*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_achDtemp_cor, nfreqeval*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_achDtemp_corb, nfreqeval*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_asxDtemp, nfreqeval*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_dFreqBrd, nFreq*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_indinv, ncouls*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_inv_igp_index, ngpown*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_vcoul, ncouls*sizeof(GPUComplex)));
+    CudaSafeCall(cudaMalloc((void**) &d_dFreqGrid, nFreq*sizeof(GPUComplex)));
 
     //Variables used : 
 
@@ -285,217 +237,127 @@ int main(int argc, char** argv)
     cout << "Memory Used = " << mem_alloc/(1024 * 1024 * 1024) << " GB" << endl;
     std::chrono::duration<double> elapsedTime_preloop = std::chrono::high_resolution_clock::now() - startTimer;
 
-    if(cudaMemcpy(d_schDt_matrix, schDt_matrix, number_bands*nFreq*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy schDt_matrix to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_aqsntemp, aqsntemp, number_bands*ncouls*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy aqsntemp to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_aqsmtemp, aqsmtemp, number_bands*ncouls*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy aqsmtemp to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_I_epsR_array, I_epsR_array, nFreq*ngpown*ncouls*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy I_epsR_array to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_I_epsA_array, I_epsA_array, nFreq*ngpown*ncouls*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy I_epsA_array to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_ssxDi, ssxDi, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy ssxDi to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_schDi, schDi, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy schDi to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_sch2Di, sch2Di, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy sch2Di to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_schDi_cor, schDi_cor, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy schDi_cor to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_schDi_corb, schDi_corb, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy schDi_corb to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_achDtemp, achDtemp, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy achDtemp to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_ach2Dtemp, ach2Dtemp, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy ach2Dtemp to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_achDtemp_cor, achDtemp_cor, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy achDtemp_cor to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_achDtemp_corb, achDtemp_corb, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy achDtemp_corb to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_asxDtemp, asxDtemp, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy asxDtemp to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_dFreqBrd, dFreqBrd, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy dFreqBrd to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_indinv, indinv, ncouls*sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy indinv to device" << endl;
-        return 0;
-    }
-
-    if(cudaMemcpy(d_inv_igp_index, inv_igp_index, ngpown*sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        cout << "Nope could not copy inv_igp_index to device" << endl;
-        return 0;
-    }
+    //Copy to Device
+    CudaSafeCall(cudaMemcpy(d_schDt_matrix, schDt_matrix, number_bands*nFreq*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_aqsntemp, aqsntemp, number_bands*ncouls*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_aqsmtemp, aqsmtemp, number_bands*ncouls*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_aqsntemp, aqsntemp, number_bands*ncouls*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_I_epsR_array, I_epsR_array, nFreq*ngpown*ncouls*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_I_epsA_array, I_epsA_array, nFreq*ngpown*ncouls*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_ssxDi, ssxDi, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_schDi, schDi, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_sch2Di, sch2Di, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_schDi_cor, schDi_cor, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_schDi_corb, schDi_corb, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_achDtemp, achDtemp, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_ach2Dtemp, ach2Dtemp, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_achDtemp_cor, achDtemp_cor, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_achDtemp_corb, achDtemp_corb, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_asxDtemp, asxDtemp, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_dFreqBrd, dFreqBrd, nfreqeval*sizeof(GPUComplex), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_indinv, indinv, ncouls*sizeof(int), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_inv_igp_index, inv_igp_index, ngpown*sizeof(int), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_vcoul, vcoul, ncouls*sizeof(double), cudaMemcpyHostToDevice));
+    CudaSafeCall(cudaMemcpy(d_dFreqGrid, dFreqGrid, nFreq*sizeof(double), cudaMemcpyHostToDevice));
 
     cout << "starting loop" << endl;
     auto startTimer_firstloop = std::chrono::high_resolution_clock::now();
     auto startTimer_kernel = std::chrono::high_resolution_clock::now();
 
 
-    achsDtemp_kernel(d_achsDtemp, d_aqsntemp, d_aqsmtemp, d_I_epsR_array, d_inv_igp_index, d_indinv, number_bands, ncouls, ngpown);
+    achsDtemp_kernel(d_achsDtemp, d_aqsntemp, d_aqsmtemp, d_I_epsR_array, d_inv_igp_index, d_indinv, d_vcoul, number_bands, ncouls, ngpown);
+    CudaCheckError();
+    CudaSafeCall(cudaMemcpy(achsDtemp, d_achsDtemp, sizeof(GPUComplex), cudaMemcpyDeviceToHost));
 
-    cudaDeviceSynchronize();
-
-    if(cudaMemcpy(achsDtemp, d_achsDtemp, sizeof(GPUComplex), cudaMemcpyDeviceToHost) != cudaSuccess)
-    {
-        cout << "Nope could not copy back achsDtemp to host" << endl;
-        return 0;
-    }
+//    till_nvbandKernel(d_dFreqBrd, d_dFreqGrid, d_asxDtemp, d_aqsmtemp, d_aqsntemp, d_aqsmtemp, ;
 
     for(int n1 = 0; n1 < nvband; ++n1)
     {
-        double occ = 1.00;
+        double occ = 1.00, fact1 = 0.00, fact2 = 0.00;
         GPUComplex ssxDit = expr0;
-        GPUComplex ssxDittt_agg = expr0;
-
-        for(int iw = 0; iw < nfreqeval; ++iw)
+        double wx = freqevalmin - ekq[n1] + freqevalstep;
+        int ifreq = 0;
+        if(wx > 0.00)
         {
-            double wx = freqevalmin - ekq[n1] + freqevalstep;
-            ssxDi[iw] = expr0;
-            GPUComplex ssxDittt = expr0;
-
-            int ifreq = 0;
-            if(wx > 0.00)
+            for(int ijk = 0; ijk < nFreq-1; ++ijk)
             {
-                for(int ijk = 0; ijk < nFreq-1; ++ijk)
-                {
-                    if(wx > dFreqGrid[ijk] && wx < dFreqGrid[ijk+1])
-                    ifreq = ijk;
-                }
-            }
-            else
-            {
-                int ifreq = 0;
-                for(int ijk = 0; ijk < nFreq-1; ++ijk)
-                {
-                    if(-wx > dFreqGrid[ijk] && -wx < dFreqGrid[ijk+1])
-                        ifreq = ijk;
-                }
+                if(wx > dFreqGrid[ijk] && wx < dFreqGrid[ijk+1])
+                ifreq = ijk;
             }
             if(ifreq == 0) ifreq = nFreq-2;
-
-            if(wx > 0.00)
+            fact1 = (dFreqGrid[ifreq+1] - wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
+            fact2 = (wx - dFreqGrid[ifreq]) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
+        }
+        else
+        {
+            for(int ijk = 0; ijk < nFreq-1; ++ijk)
             {
-                double fact1 = (dFreqGrid[ifreq+1] - wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
-                double fact2 = (wx - dFreqGrid[ifreq]) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
-
-
-//#pragma omp parallel for default(shared)
-                for(int my_igp = 0; my_igp < ngpown; ++my_igp)
-                {
-                    int indigp = inv_igp_index[my_igp];
-                    int igp = indinv[indigp];
-                    GPUComplex ssxDitt = expr0;
-
-                    if(igp < ncouls && igp >= 0)
-                    {
-                        for(int ig = 0; ig < ncouls; ++ig)
-                        {
-                            ssxDit = GPUComplex_plus(GPUComplex_mult(I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] , fact1 ) , \
-                                                         GPUComplex_mult(I_epsR_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] , fact2));
-        
-                            ssxDitt += GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit));
-                        }
-                        ssxDittt += GPUComplex_mult(ssxDitt , vcoul[igp]);
-                    }
-                }
+                if(-wx > dFreqGrid[ijk] && -wx < dFreqGrid[ijk+1])
+                    ifreq = ijk;
             }
-            else
-            {
-                double fact1 = (dFreqGrid[ifreq+1] + wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
-                double fact2 = (-dFreqGrid[ifreq] - wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
+            if(ifreq == 0) ifreq = nFreq-2;
+            fact1 = (dFreqGrid[ifreq+1] + wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
+            fact2 = (-dFreqGrid[ifreq] - wx) / (dFreqGrid[ifreq+1] - dFreqGrid[ifreq]);
+        }
 
-//#pragma omp parallel for default(shared)
-                for(int my_igp = 0; my_igp < ngpown; ++my_igp)
-                {
-                    int indigp = inv_igp_index[my_igp];
-                    int igp = indinv[indigp];
-                    GPUComplex ssxDitt = expr0;
+        asxDtemp_kernel(d_I_epsR_array, d_I_epsA_array, ncouls, ngpown,nfreqeval, d_vcoul, d_inv_igp_index, d_indinv, fact1, fact2, wx, d_aqsmtemp, d_aqsntemp, d_asxDtemp, ifreq, n1);
 
-                    if(igp < ncouls && igp >= 0)
-                    {
-                        for(int ig = 0; ig < ncouls; ++ig)
-                        {
-                            ssxDit = GPUComplex_plus(GPUComplex_mult(I_epsA_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] , fact1 ) , \
-                                                         GPUComplex_mult(I_epsA_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] , fact2));
-        
-                            ssxDitt += GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit));
-                        }
-                        ssxDittt += GPUComplex_mult(ssxDitt , vcoul[igp]);
-                    }
-                }
-            }
-            ssxDi[iw] += ssxDittt;
-            asxDtemp[iw] += GPUComplex_mult(ssxDi[iw] , occ);
-        } // iw
+    //    for(int iw = 0; iw < nfreqeval; ++iw)
+    //    {
+    //        ssxDi[iw] = expr0;
+    //        GPUComplex ssxDittt = expr0;
+    //        if(wx > 0.00)
+    //        {
+//#p//ragma omp parallel for default(shared)
+    //            for(int my_igp = 0; my_igp < ngpown; ++my_igp)
+    //            {
+    //                int indigp = inv_igp_index[my_igp];
+    //                int igp = indinv[indigp];
+    //                GPUComplex ssxDitt = expr0;
+
+//  //                  if(igp < ncouls && igp >= 0)
+    //                {
+    //                    for(int ig = 0; ig < ncouls; ++ig)
+    //                    {
+    //                        ssxDit = GPUComplex_plus(GPUComplex_mult(I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] , fact1 ) , \
+    //                                                     GPUComplex_mult(I_epsR_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] , fact2));
+    //    
+    //                        ssxDitt += GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit));
+    //                    }
+    //                    ssxDittt += GPUComplex_mult(ssxDitt , vcoul[igp]);
+    //                }
+    //            }
+    //        }
+    //        else
+    //        {
+
+//#p//ragma omp parallel for default(shared)
+    //            for(int my_igp = 0; my_igp < ngpown; ++my_igp)
+    //            {
+    //                int indigp = inv_igp_index[my_igp];
+    //                int igp = indinv[indigp];
+    //                GPUComplex ssxDitt = expr0;
+
+//  //                  if(igp < ncouls && igp >= 0)
+    //                {
+    //                    for(int ig = 0; ig < ncouls; ++ig)
+    //                    {
+    //                        ssxDit = GPUComplex_plus(GPUComplex_mult(I_epsA_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] , fact1 ) , \
+    //                                                     GPUComplex_mult(I_epsA_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] , fact2));
+    //    
+    //                        ssxDitt += GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit));
+    //                    }
+    //                    ssxDittt += GPUComplex_mult(ssxDitt , vcoul[igp]);
+    //                }
+    //            }
+    //        }
+    //        ssxDi[iw] += ssxDittt;
+    //        asxDtemp[iw] += GPUComplex_mult(ssxDittt, occ);
+    //    } // iw
     }
-//
+        CudaCheckError();
+        CudaSafeCall(cudaMemcpy(asxDtemp, d_asxDtemp, nfreqeval*sizeof(GPUComplex), cudaMemcpyDeviceToHost));
+
 //
 //    std::chrono::duration<double> elapsedTime_firstloop = std::chrono::high_resolution_clock::now() - startTimer_firstloop;
 //

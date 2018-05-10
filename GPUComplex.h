@@ -16,7 +16,6 @@
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 
-
 class GPUComplex : public double2{
 
     private : 
