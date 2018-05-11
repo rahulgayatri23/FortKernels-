@@ -230,6 +230,46 @@ __global__  void cudaBGWKernel_ncouls_ngpown( cuDoubleComplex *wtilde_array, cuD
     }
 }
 
+__global__  void cudaNgpown_kernel( int n1, cuDoubleComplex *wtilde_array, cuDoubleComplex *aqsntemp, cuDoubleComplex* aqsmtemp, cuDoubleComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double* achtemp_re, double* achtemp_im, double* vcoul, int nstart, int nend, int* indinv, int* inv_igp_index, int numThreadsPerBlock)
+{
+    int my_igp = blockIdx.x;
+
+    if(my_igp < ngpown )
+    {
+        int loopOverncouls = 1, leftOverncouls = 0;
+
+        if(ncouls > numThreadsPerBlock)
+        {
+            loopOverncouls = ncouls / numThreadsPerBlock;
+            leftOverncouls = ncouls % numThreadsPerBlock;
+        }
+
+        double achtemp_re_loc[3], achtemp_im_loc[3];
+        int indigp = inv_igp_index[my_igp];
+        int igp = indinv[indigp];
+        for(int iw = nstart; iw < nend; ++iw)
+        {
+            achtemp_re_loc[iw] = 0.00; achtemp_im_loc[iw] = 0.00;
+            for( int x = 0; x < loopOverncouls && threadIdx.x < numThreadsPerBlock ; ++x)
+            { 
+                int ig = x*numThreadsPerBlock + threadIdx.x;
+                cuDoubleComplex mygpvar1 = d_cuDoubleComplex_conj(aqsmtemp[n1*ncouls +igp]);
+                cuDoubleComplex wdiff = d_doubleMinuscuComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+                double rden = 1/(wdiff.x*wdiff.x + wdiff.y*wdiff.y);
+                achtemp_re_loc[iw] += d_cuDoubleComplex_product(d_cuDoubleComplex_product(mygpvar1, aqsntemp[n1*ncouls + ig]),\
+                    d_cuDoubleComplex_product(d_cuDoubleComplex_mult(d_cuDoubleComplex_product(wtilde_array[my_igp*ncouls + igp], d_cuDoubleComplex_conj(wdiff)), rden), I_eps_array[my_igp*ncouls + igp])).x * 0.5 * vcoul[igp];
+                achtemp_im_loc[iw] += d_cuDoubleComplex_product(d_cuDoubleComplex_product(mygpvar1, aqsntemp[n1*ncouls + ig]),\
+                    d_cuDoubleComplex_product(d_cuDoubleComplex_mult(d_cuDoubleComplex_product(wtilde_array[my_igp*ncouls + igp], d_cuDoubleComplex_conj(wdiff)), rden), I_eps_array[my_igp*ncouls + igp])).y * 0.5 * vcoul[igp];
+            }
+
+            atomicAdd(&achtemp_re[iw] , achtemp_re_loc[iw] );
+            atomicAdd(&achtemp_im[iw] , achtemp_im_loc[iw] );
+        }
+    }
+}
+
+
+
 __global__ void d_flagOCC_solver(double *wx_array, cuDoubleComplex *wtilde_array, cuDoubleComplex* asxtemp, cuDoubleComplex *aqsmtemp, cuDoubleComplex *aqsntemp, cuDoubleComplex *I_eps_array, int* inv_igp_index, int* indinv, int ncouls, int nvband, int ngpown, int nstart, int nend, double* vcoul)
 {
     int n1 = blockIdx.x ;
@@ -315,19 +355,26 @@ __global__ void d_flagOCC_solver(double *wx_array, cuDoubleComplex *wtilde_array
 
 void gppKernelGPU( cuDoubleComplex *wtilde_array, cuDoubleComplex *aqsntemp, cuDoubleComplex* aqsmtemp, cuDoubleComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double *achtemp_re, double *achtemp_im, double *vcoul, int nstart, int nend, int* indinv, int* inv_igp_index)
 {
-    dim3 numBlocks(number_bands, ngpown);
+#if NumberBandsKernel
+    int numBlocks = number_bands;
     int numThreadsPerBlock = 32;
-    printf("launching 2 dimension grid with (number_bands, ngpown) dime and then calling ncouls loop by threads inside \n");
+    printf("launching single dimension grid with number_bands blocks and %d threadsPerBlock \n", numThreadsPerBlock);
 
-    cudaBGWKernel_ncouls_ngpown <<< numBlocks, numThreadsPerBlock>>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numThreadsPerBlock);
+    cudaNumberBands_kernel <<< numBlocks, numThreadsPerBlock >>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numThreadsPerBlock);
+#endif
 
-//    int numBlocks = number_bands;
-//    int numThreadsPerBlock = 32;
-//    printf("launching single dimension grid with number_bands blocks and %d threadsPerBlock \n", numThreadsPerBlock);
-//
-//    cudaNumberBands_kernel <<< numBlocks, numThreadsPerBlock >>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numThreadsPerBlock);
+#if NgpownKernel
+    int numBlocks = ngpown;
+    int numThreadsPerBlock = 32;
+    printf("Launching a single dimension grid with ngpown blocks and %d threadsPerBlock \n", numThreadsPerBlock);
+
+    for(int n1 = 0; n1 < number_bands; ++n1)
+    {
+        cudaNgpown_kernel <<< numBlocks, numThreadsPerBlock >>> ( n1, wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numThreadsPerBlock);
+    }
+#endif
+
 }
-
 
 void till_nvbandKernel(cuDoubleComplex* aqsmtemp, cuDoubleComplex* aqsntemp, cuDoubleComplex* asxtemp, int *inv_igp_index, int *indinv, cuDoubleComplex *wtilde_array, double *wx_array, cuDoubleComplex *I_eps_array, int ncouls, int nvband, int ngpown, int nstart, int nend, double* vcoul)
 {

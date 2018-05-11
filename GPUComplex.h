@@ -16,6 +16,9 @@
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 
+#define NumberBandsKernel 1
+#define NgpownKernel 0
+
 class GPUComplex : public double2{
 
     private : 
