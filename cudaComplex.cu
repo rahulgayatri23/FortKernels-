@@ -261,6 +261,17 @@ __global__  void cudaNgpown_kernel( int n1, cuDoubleComplex *wtilde_array, cuDou
                 achtemp_im_loc[iw] += d_cuDoubleComplex_product(d_cuDoubleComplex_product(mygpvar1, aqsntemp[n1*ncouls + ig]),\
                     d_cuDoubleComplex_product(d_cuDoubleComplex_mult(d_cuDoubleComplex_product(wtilde_array[my_igp*ncouls + igp], d_cuDoubleComplex_conj(wdiff)), rden), I_eps_array[my_igp*ncouls + igp])).y * 0.5 * vcoul[igp];
             }
+            if(leftOverncouls)
+            {
+                int ig = loopOverncouls*numThreadsPerBlock + threadIdx.x;
+                cuDoubleComplex mygpvar1 = d_cuDoubleComplex_conj(aqsmtemp[n1*ncouls +igp]);
+                cuDoubleComplex wdiff = d_doubleMinuscuComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+                double rden = 1/(wdiff.x*wdiff.x + wdiff.y*wdiff.y);
+                achtemp_re_loc[iw] += d_cuDoubleComplex_product(d_cuDoubleComplex_product(mygpvar1, aqsntemp[n1*ncouls + ig]),\
+                    d_cuDoubleComplex_product(d_cuDoubleComplex_mult(d_cuDoubleComplex_product(wtilde_array[my_igp*ncouls + igp], d_cuDoubleComplex_conj(wdiff)), rden), I_eps_array[my_igp*ncouls + igp])).x * 0.5 * vcoul[igp];
+                achtemp_im_loc[iw] += d_cuDoubleComplex_product(d_cuDoubleComplex_product(mygpvar1, aqsntemp[n1*ncouls + ig]),\
+                    d_cuDoubleComplex_product(d_cuDoubleComplex_mult(d_cuDoubleComplex_product(wtilde_array[my_igp*ncouls + igp], d_cuDoubleComplex_conj(wdiff)), rden), I_eps_array[my_igp*ncouls + igp])).y * 0.5 * vcoul[igp];
+            }
 
             atomicAdd(&achtemp_re[iw] , achtemp_re_loc[iw] );
             atomicAdd(&achtemp_im[iw] , achtemp_im_loc[iw] );
