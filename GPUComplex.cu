@@ -4,14 +4,14 @@
  * Return the square of a complex number 
  */
 __device__ const inline GPUComplex d_GPUComplex_square(GPUComplex& src) {
-    return GPUComplex(src.re*src.re - src.im*src.im, 2*src.re*src.im);
+    return GPUComplex(src.complNum.x*src.complNum.x - src.complNum.y*src.complNum.y, 2*src.complNum.x*src.complNum.y);
 }
 
 /*
  * Return the conjugate of a complex number 
  */
 __device__ const inline GPUComplex d_GPUComplex_conj(const GPUComplex& src) {
-return GPUComplex(src.re, -src.im);
+return GPUComplex(src.complNum.x, -src.complNum.y);
 }
 
 
@@ -19,7 +19,7 @@ return GPUComplex(src.re, -src.im);
  * Return the product of 2 complex numbers 
  */
 __device__ const inline GPUComplex d_GPUComplex_product(const GPUComplex& a, const GPUComplex& b) {
-    return GPUComplex(a.re * b.re - a.im*b.im, a.re * b.im + a.im*b.re);
+    return GPUComplex(a.complNum.x * b.complNum.x - a.complNum.y*b.complNum.y, a.complNum.x * b.complNum.y + a.complNum.y*b.complNum.x);
 }
 
 
@@ -27,21 +27,21 @@ __device__ const inline GPUComplex d_GPUComplex_product(const GPUComplex& a, con
  * Return the absolute of a complex number 
  */
 __device__ inline double d_GPUComplex_abs(const GPUComplex& src) {
-    return sqrt(src.re * src.re + src.im * src.im);
+    return sqrt(src.complNum.x * src.complNum.x + src.complNum.y * src.complNum.y);
 }
 
 /*
  *  result = a * b * c (a = complex ; b,c = double) 
  */
 __device__ const inline GPUComplex d_GPUComplex_mult(GPUComplex& a, double b, double c) {
-    return GPUComplex(a.re * b * c, a.im * b * c);
+    return GPUComplex(a.complNum.x * b * c, a.complNum.y * b * c);
 }
 
 /*
  * Return the complex number c = a * b (a is complex, b is double) 
  */
 __device__ const inline GPUComplex d_GPUComplex_mult(const GPUComplex& a, double b) {
-   return GPUComplex(a.re*b, a.im*b);
+   return GPUComplex(a.complNum.x*b, a.complNum.y*b);
 
 }
 
@@ -49,58 +49,59 @@ __device__ const inline GPUComplex d_GPUComplex_mult(const GPUComplex& a, double
  * Return the complex number a += b * c  
  */
 __device__ inline void d_GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) {
-    a.re += b.re * c.re - b.im*c.im ;
-    a.im += b.re * c.im + b.im*c.re ;
+    a.complNum.x += b.complNum.x * c.complNum.x - b.complNum.y*c.complNum.y ;
+    a.complNum.y += b.complNum.x * c.complNum.y + b.complNum.y*c.complNum.x ;
 }
 
 /*
  * Return the complex number a -= b * c  
  */
 __device__ inline void d_GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) {
-    a.re -= b.re * c.re - b.im*c.im ;
-    a.im -= b.re * c.im + b.im*c.re ;
+    a.complNum.x -= b.complNum.x * c.complNum.x - b.complNum.y*c.complNum.y ;
+    a.complNum.y -= b.complNum.x * c.complNum.y + b.complNum.y*c.complNum.x ;
 }
 
 
 __device__ inline GPUComplex d_doubleMinusGPUComplex(const double &a, GPUComplex& src) {
-    return GPUComplex(a-src.re, -src.im);
+    return GPUComplex(a-src.complNum.x, -src.complNum.y);
 }
 
 __device__ const inline GPUComplex d_doublePlusGPUComplex(double a, GPUComplex& src) {
-    return GPUComplex(a+src.re, src.im);
+    return GPUComplex(a+src.complNum.x, src.complNum.y);
 }
 
 __device__ inline double d_GPUComplex_real( const GPUComplex& src) {
-    return src.re;
+    return src.complNum.x;
 }
 
 __device__ inline double d_GPUComplex_imag( const GPUComplex& src) {
-    return src.im;
+    return src.complNum.y;
 }
 
 __device__ inline void d_GPUComplex_plusEquals( GPUComplex& a, const GPUComplex & b) {
-    a.re += b.re;
-    a.im += b.im;
+    a.complNum.x += b.complNum.x;
+    a.complNum.y += b.complNum.y;
 }
 
 __device__ void inline d_GPUComplex_Equals( GPUComplex& a, const GPUComplex & b) {
-    a.re = b.re;
-    a.im = b.im;
+    a.complNum.x = b.complNum.x;
+    a.complNum.y = b.complNum.y;
 }
 
 __device__ void d_print( const GPUComplex& a) {
-    printf("( %f, %f) ", a.re, a.im);
+    printf("( %f, %f) ", a.complNum.x, a.complNum.y);
     printf("\n");
 }
 
 __device__ void ncoulsKernel(GPUComplex& mygpvar1, GPUComplex& wdiff, GPUComplex& aqsntemp_index, GPUComplex& wtilde_array_index, GPUComplex& I_eps_array_index, double vcoul_igp, double& achtemp_re_loc, double& achtemp_im_loc)
 {
-    double rden = 1/(wdiff.re*wdiff.re + wdiff.im*wdiff.im);
+    double rden = 1/(wdiff.complNum.x*wdiff.complNum.x + wdiff.complNum.y*wdiff.complNum.y);
 
     achtemp_re_loc += d_GPUComplex_product(d_GPUComplex_product(mygpvar1, aqsntemp_index),\
-        d_GPUComplex_product(d_GPUComplex_mult(d_GPUComplex_product(wtilde_array_index, d_GPUComplex_conj(wdiff)), rden), I_eps_array_index)).re * 0.5 * vcoul_igp;
+        d_GPUComplex_product(d_GPUComplex_mult(d_GPUComplex_product(wtilde_array_index, d_GPUComplex_conj(wdiff)), rden), I_eps_array_index)).complNum.x * 0.5 * vcoul_igp;
     achtemp_im_loc += d_GPUComplex_product(d_GPUComplex_product(mygpvar1, aqsntemp_index),\
-        d_GPUComplex_product(d_GPUComplex_mult(d_GPUComplex_product(wtilde_array_index, d_GPUComplex_conj(wdiff)), rden), I_eps_array_index)).im * 0.5 * vcoul_igp;
+        d_GPUComplex_product(d_GPUComplex_mult(d_GPUComplex_product(wtilde_array_index, d_GPUComplex_conj(wdiff)), rden), I_eps_array_index)).complNum.y * 0.5 * vcoul_igp;
+
 }
 
 __global__ void d_flagOCC_solver(double *wx_array, GPUComplex *wtilde_array, GPUComplex* asxtemp, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, int* inv_igp_index, int* indinv, int ncouls, int nvband, int ngpown, int nstart, int nend, double* vcoul)
@@ -263,13 +264,74 @@ __global__  void cudaNumberBands_kernel( GPUComplex *wtilde_array, GPUComplex *a
     }
 }
 
+__global__  void cudaNgpown_kernel( int n1, GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double* achtemp_re, double* achtemp_im, double* vcoul, int nstart, int nend, int* indinv, int* inv_igp_index, int numThreadsPerBlock)
+{
+    int my_igp = blockIdx.x;
+
+    if(my_igp < ngpown )
+    {
+        int loopOverncouls = 1, leftOverncouls = 0;
+
+        if(ncouls > numThreadsPerBlock)
+        {
+            loopOverncouls = ncouls / numThreadsPerBlock;
+            leftOverncouls = ncouls % numThreadsPerBlock;
+        }
+
+        double achtemp_re_loc[3], achtemp_im_loc[3];
+        int indigp = inv_igp_index[my_igp];
+        int igp = indinv[indigp];
+        for(int iw = nstart; iw < nend; ++iw)
+        {
+            achtemp_re_loc[iw] = 0.00; achtemp_im_loc[iw] = 0.00;
+            for( int x = 0; x < loopOverncouls && threadIdx.x < numThreadsPerBlock ; ++x)
+            { 
+                int ig = x*numThreadsPerBlock + threadIdx.x;
+                if(ig < ncouls)
+                {
+                    GPUComplex mygpvar1 = d_GPUComplex_conj(aqsmtemp[n1*ncouls +igp]);
+                    GPUComplex wdiff = d_doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+                    ncoulsKernel(mygpvar1, wdiff, aqsntemp[n1*ncouls+ig], wtilde_array[my_igp*ncouls+ig], I_eps_array[my_igp*ncouls+ig], vcoul[igp], achtemp_re_loc[iw], achtemp_im_loc[iw]);
+                }
+            }
+            if(leftOverncouls)
+            {
+                int ig = loopOverncouls*numThreadsPerBlock + threadIdx.x;
+                if(ig < ncouls)
+                {
+                    GPUComplex mygpvar1 = d_GPUComplex_conj(aqsmtemp[n1*ncouls +igp]);
+                    GPUComplex wdiff = d_doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+                    ncoulsKernel(mygpvar1, wdiff, aqsntemp[n1*ncouls+ig], wtilde_array[my_igp*ncouls+ig], I_eps_array[my_igp*ncouls+ig], vcoul[igp], achtemp_re_loc[iw], achtemp_im_loc[iw]);
+                }
+            }
+
+            atomicAdd(&achtemp_re[iw] , achtemp_re_loc[iw] );
+            atomicAdd(&achtemp_im[iw] , achtemp_im_loc[iw] );
+        }
+    }
+}
+
 void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* aqsmtemp, GPUComplex *I_eps_array, int ncouls, int ngpown, int number_bands, double* wx_array, double *achtemp_re, double *achtemp_im, double *vcoul, int nstart, int nend, int* indinv, int* inv_igp_index)
 {
 
+#if NumberBandsKernel
     int numBlocks = number_bands;
     int numThreadsPerBlock = 32;
+    printf("Launching a single dimension grid with number_bands blocks and %d threadsPerBlock \n", numThreadsPerBlock);
 
     cudaNumberBands_kernel <<< numBlocks, numThreadsPerBlock >>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numThreadsPerBlock);
+#endif
+
+#if NgpownKernel
+    int numBlocks = ngpown;
+    int numThreadsPerBlock = 32;
+    printf("Launching a single dimension grid with ngpown blocks and %d threadsPerBlock \n", numThreadsPerBlock);
+
+    for(int n1 = 0; n1 < number_bands; ++n1)
+    {
+        cudaNgpown_kernel <<< numBlocks, numThreadsPerBlock >>> ( n1, wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numThreadsPerBlock);
+    }
+#endif
 }
 
 void till_nvbandKernel(GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *asxtemp, int *inv_igp_index, int *indinv, GPUComplex *wtilde_array, double *wx_array, GPUComplex *I_eps_array, int ncouls, int nvband, int ngpown, int nstart, int nend, double *vcoul)
