@@ -16,8 +16,8 @@
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 
-#define NumberBandsKernel 0
-#define NgpownKernel 1
+#define NumberBandsKernel 1
+#define NgpownKernel 0
 
 #define CudaSafeCall( err ) __cudaSafeCall( err, __FILE__, __LINE__ )
 #define CudaCheckError()    __cudaCheckError( __FILE__, __LINE__ )

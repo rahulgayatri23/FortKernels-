@@ -10,8 +10,8 @@
 #cd $MEMBERWORK/
 export OMP_NUM_THREADS=160; export OMP_PROC_BIND=spread; export OMP_PLACES=threads;
 cd /ccs/home/rgayatri/FortKernels-
-#jsrun -n 1 -a 1 -g 1 ./gppKer_gpuComplex.ex 512 2 32768 20
+jsrun -n 1 -a 1 -g 1 ./gppKer_gpuComplex.ex 512 2 32768 20
 #jsrun -n 1 -a 1 -g 1 nvprof --kernels "cudaNumberBands_kernel" --metrics flop_count_dp --metrics dram_write_throughput --metrics dram_read_transactions --metrics dram_write_transactions ./gppKer_gpuComplex.ex 512 2 32768 20
-jsrun -n 1 -a 1 -g 1 nvprof --kernels "cudaNgpown_kernel" --metrics flop_count_dp --metrics dram_write_throughput --metrics dram_read_transactions --metrics dram_write_transactions ./gppKer_gpuComplex.ex 512 2 32768 20
+#jsrun -n 1 -a 1 -g 1 nvprof --kernels "cudaNgpown_kernel" --metrics flop_count_dp --metrics dram_write_throughput --metrics dram_read_transactions --metrics dram_write_transactions ./gppKer_gpuComplex.ex 512 2 32768 20
 #jsrun -n 1 -a 1 -g 1 nvprof --print-gpu-trace ./gppKer_gpuComplex.ex 512 2 32768 20
 #jsrun -n 1 -a 1 -g 1 nvprof --analysis-metrics -o GPUComplex_cuda_analyzeMetrics.nvprof ./gppKer_gpuComplex.ex 512 2 32768 20
