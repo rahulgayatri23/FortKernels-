@@ -5,7 +5,7 @@
 #include <iomanip>
 #include <cmath>
 #include <complex>
-#include <omp.h>
+#include <openacc.h>
 #include <ctime>
 #include <chrono>
 

@@ -4,8 +4,9 @@ SRC2 = gpuComplex.cpp
 
 #CXX = xlc++
 #CXX = CC 
-CXX = g++
+#CXX = g++
 #CXX = clang++
+CXX = pgc++
 
 LINK = ${CXX}
 
@@ -31,6 +32,11 @@ ifeq ($(CXX),icc)
 	CXXFLAGS+=xCORE_AVX2
 #	CXXFLAGS+=-xMIC_AVX512
 	LINKFLAGS=-qopenmp
+endif 
+
+ifeq ($(CXX),pgc++)
+	CXXFLAGS=-O3 -std=c++11 --gnu_extensions -g -Minfo=accel -acc -ta=nvidia
+	LINKFLAGS=-acc
 endif 
 
 OBJ1 = $(SRC1:.cpp=.o)

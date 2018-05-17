@@ -5,19 +5,18 @@
 #include <iomanip>
 #include <cmath>
 #include <complex>
-#include <omp.h>
+#include <openacc.h>
 #include <ctime>
 #include <chrono>
 
 #include "gpuComplex.cpp"
 
 using namespace std;
-int debug = 0;
 
-#pragma omp declare target
-inline void flagOCC_solver(double wxt, GPUComplex *wtilde_array, int my_igp, int n1, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex &ssxt, GPUComplex &scht,int ncouls, int igp, int number_bands, int ngpown);
-inline void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, GPUComplex  *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex achstemp,  int* indinv, int ngpown, double* vcoul, int numThreads);
-#pragma omp end declare target
+//#pragma omp declare target
+//inline void flagOCC_solver(double wxt, GPUComplex *wtilde_array, int my_igp, int n1, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex &ssxt, GPUComplex &scht,int ncouls, int igp, int number_bands, int ngpown);
+//inline void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, GPUComplex  *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex achstemp,  int* indinv, int ngpown, double* vcoul, int numThreads);
+//#pragma omp end declare target
 
 //#define CACHE_LINE 32
 //#define CACHE_ALIGN __declspec(align(CACHE_LINE))
@@ -88,7 +87,7 @@ void ssxt_scht_solver(double wxt, int igp, int my_igp, int ig, std::complex<doub
     scha = matngmatmgp*sch;
 }
 
-inline void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, GPUComplex  *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex achstemp,  int* indinv, int ngpown, double* vcoul, int numThreads)
+inline void reduce_achstemp(int n1, int number_bands, int* inv_igp_index, int ncouls, GPUComplex  *aqsmtemp, GPUComplex *aqsntemp, GPUComplex *I_eps_array, GPUComplex achstemp,  int* indinv, int ngpown, double* vcoul)
 {
     double to1 = 1e-6;
     GPUComplex schstemp(0.0, 0.0);;
@@ -150,10 +149,9 @@ inline void flagOCC_solver(double wxt, GPUComplex *wtilde_array, int my_igp, int
         GPUComplex matngmatmgp = GPUComplex_product(aqsntemp[n1*ncouls+ig] , mygpvar1);
         if(ig != igp) matngpmatmg = GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+ig]) , mygpvar2);
 
-        double delw2, scha_mult, ssxcutoff;
+        double ssxcutoff;
         double to1 = 1e-6;
         double sexcut = 4.0;
-        double gamma = 0.5;
         double limitone = 1.0/(to1*4.0);
         double limittwo = pow(0.5,2);
         GPUComplex sch, ssx;
@@ -221,7 +219,7 @@ int main(int argc, char** argv)
     int indinv[ncouls];
 
     //OpenMP Printing of threads on Host and Device
-    int tid, numThreads, numTeams;
+//    int tid, numThreads, numTeams;
 //#pragma acc parallel shared(numThreads) private(tid)
 //    {
 //        tid = omp_get_thread_num();
@@ -294,7 +292,7 @@ int main(int argc, char** argv)
     double wx_array[3];
     double occ=1.0;
     bool flag_occ;
-    double achstemp_real = 0.00, achstemp_imag = 0.00;
+//    double achstemp_real = 0.00, achstemp_imag = 0.00;
     cout << "Size of wtilde_array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of aqsntemp = " << (ncouls*number_bands*2.0*8) / pow(1024,2) << " Mbytes" << endl;
     cout << "Size of I_eps_array array = " << (ncouls*ngpown*2.0*8) / pow(1024,2) << " Mbytes" << endl;
@@ -325,9 +323,9 @@ int main(int argc, char** argv)
     for(int ig=0, tmp=1; ig<ncouls; ++ig,tmp++)
         indinv[ig] = ig;
 
-        double achtemp_re0 = 0, achtemp_im0 = 0,\
-            achtemp_re1 = 0, achtemp_im1 = 0,\
-            achtemp_re2 = 0, achtemp_im2 = 0;
+//        double achtemp_re0 = 0, achtemp_im0 = 0,\
+//            achtemp_re1 = 0, achtemp_im1 = 0,\
+//            achtemp_re2 = 0, achtemp_im2 = 0;
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
        for(int iw=nstart; iw<nend; ++iw)
@@ -342,7 +340,7 @@ int main(int argc, char** argv)
         flag_occ = n1 < nvband;
         GPUComplex sch_array[3];
 
-        reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul, numThreads);
+        reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul);
 
         for(int iw=nstart; iw<nend; ++iw)
         {
@@ -398,7 +396,6 @@ int main(int argc, char** argv)
                 {
                     wxt = wx_array[iw];
                     GPUComplex scha[igblk];
-                    int sch_cntr = igbeg;
                     for(int ig = 0; ig<igend; ++ig)
                     { 
                         wdiff = doubleMinusGPUComplex(wxt , wtilde_array[my_igp*ncouls+(ig + numBlock*igblk)]);
@@ -430,9 +427,9 @@ int main(int argc, char** argv)
 
             for(int iw=nstart; iw<nend; ++iw)
             {
-#pragma omp atomic
+//#pragma omp atomic
                 achtemp_re[iw] += GPUComplex_real( GPUComplex_mult(sch_array[iw] , vcoul[igp]));
-#pragma omp atomic
+//#pragma omp atomic
                 achtemp_im[iw] += GPUComplex_imag( GPUComplex_mult(sch_array[iw] , vcoul[igp]));
             }
 

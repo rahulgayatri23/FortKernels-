@@ -2,8 +2,8 @@ EXE = elemWise.ex
 SRC = elemWise.cpp 
 
 #CXX = xlc++
-CXX = g++
-#CXX = pgc++
+#CXX = g++
+CXX = pgc++
 #CXX = clang++
 
 LINK = ${CXX}
