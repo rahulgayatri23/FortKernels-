@@ -144,8 +144,8 @@ int main(int argc, char** argv)
     double dw = 1;
     int nstart = 0, nend = 3;
 
-    int inv_igp_index[ngpown];
-    int indinv[ncouls+1];
+    int *inv_igp_index = new int[ngpown];
+    int *indinv = new int[ncouls+1];
 
     //OpenMP Printing of threads on Host and Device
 //    int tid, numThreads, numTeams;
@@ -292,6 +292,8 @@ int main(int argc, char** argv)
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
 
+#pragma acc parallel loop copyin(inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[0:3], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls]) \
+    reduction(+:achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2)
     for(int n1 = 0; n1<number_bands; ++n1) 
     {
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
@@ -314,7 +316,7 @@ int main(int argc, char** argv)
                     delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
                     GPUComplex sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
                     achtemp_re_loc[iw] += GPUComplex_real(sch_array);
-                    achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
+                   achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
                 }
 
             }
@@ -367,6 +369,8 @@ int main(int argc, char** argv)
     free(asxtemp);
     free(vcoul);
     free(ssx_array);
+    free(inv_igp_index);
+    free(indinv);
 
     return 0;
 }
