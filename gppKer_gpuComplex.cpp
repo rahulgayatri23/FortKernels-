@@ -318,11 +318,10 @@ int main(int argc, char** argv)
         {
             int indigp = inv_igp_index[my_igp];
             int igp = indinv[indigp];
+            int igblk = 512;
 
             GPUComplex wdiff, delw;
 
-//            double *achtemp_re_loc = new double[3];
-//            double *achtemp_im_loc = new double[3];
             double achtemp_re_loc[3];
             double achtemp_im_loc[3];
 
@@ -330,26 +329,14 @@ int main(int argc, char** argv)
 
             for(int ig = 0; ig<ncouls; ++ig)
             {
-                int iw = 0;
-                wdiff = doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
-                delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
-                GPUComplex sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
-                achtemp_re_loc[iw] += GPUComplex_real(sch_array);
-                achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
-
-                iw++;
-                wdiff = doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
-                delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
-                sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
-                achtemp_re_loc[iw] += GPUComplex_real(sch_array);
-                achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
-
-                iw++;
-                wdiff = doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
-                delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
-                sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
-                achtemp_re_loc[iw] += GPUComplex_real(sch_array);
-                achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
+                for(int iw = 0; iw < 3; ++iw)
+                {
+                    wdiff = doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
+                    delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
+                    GPUComplex sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
+                    achtemp_re_loc[iw] += GPUComplex_real(sch_array);
+                    achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
+                }
             }
 
             achtemp_re0 += achtemp_re_loc[0];
