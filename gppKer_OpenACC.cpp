@@ -271,8 +271,11 @@ int main(int argc, char** argv)
     double achtemp_re0 = 0.00, achtemp_re1 = 0.00, achtemp_re2 = 0.00, \
         achtemp_im0 = 0.00, achtemp_im1 = 0.00, achtemp_im2 = 0.00;
 
+#pragma acc enter data copyin(inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[0:3], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls])
+#pragma acc parallel loop copyin(occ, asxtemp[nstart:nend]) present(inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[0:3], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls]) 
        for(int n1 = 0; n1 < nvband; n1++)
        {
+#pragma acc loop vector
             for(int my_igp=0; my_igp<ngpown; ++my_igp)
             {
                for(int iw=nstart; iw<nend; iw++)
@@ -287,15 +290,17 @@ int main(int argc, char** argv)
             }
        }
 
+#pragma acc parallel loop present(inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[0:3], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls]) 
     for(int n1 = 0; n1<number_bands; ++n1) 
         reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul);
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
-               
-//#pragma acc parallel loop copyin(inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[0:3], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls]) \
+
+#pragma acc parallel loop collapse(2) present(inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[0:3], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls])   \
     reduction(+:achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2)
     for(int n1 = 0; n1<number_bands; ++n1) 
     {
+#pragma acc loop gang
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
             int indigp = inv_igp_index[my_igp];
@@ -308,6 +313,7 @@ int main(int argc, char** argv)
 
             for(int iw = nstart; iw < nend; ++iw) {achtemp_re_loc[iw] = 0.00; achtemp_im_loc[iw] = 0.00;}
 
+#pragma acc loop vector 
             for(int ig = 0; ig<ncouls; ++ig)
             {
                 for(int iw = nstart; iw < nend; ++iw)
@@ -315,10 +321,13 @@ int main(int argc, char** argv)
                     wdiff = doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
                     delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
                     GPUComplex sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
-                    achtemp_re_loc[iw] += GPUComplex_real(sch_array);
-                    achtemp_im_loc[iw] += GPUComplex_imag(sch_array);
+                    double sch_re = GPUComplex_real(sch_array);
+                    double sch_im = GPUComplex_imag(sch_array);
+#pragma acc atomic
+                    achtemp_re_loc[iw] += sch_re;
+#pragma acc atomic
+                    achtemp_im_loc[iw] += sch_im;
                 }
-
             }
 
             achtemp_re0 += achtemp_re_loc[0];
@@ -330,7 +339,7 @@ int main(int argc, char** argv)
 
         } //ngpown
     } // number-bands
-//#pragma acc exit data delete(inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[0:3], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls])
+#pragma acc exit data delete(inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[0:3], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls])
 
     std::chrono::duration<double> elapsed_chrono = std::chrono::high_resolution_clock::now() - start_chrono;
 
