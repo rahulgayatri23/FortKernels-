@@ -296,11 +296,11 @@ int main(int argc, char** argv)
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
 
-#pragma acc parallel loop collapse(2) present(inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[0:3], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls])   \
+#pragma acc parallel loop gang num_gangs(number_bands) num_workers(4) present(inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[0:3], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls])   \
     reduction(+:achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2)
     for(int n1 = 0; n1<number_bands; ++n1) 
     {
-#pragma acc loop gang
+#pragma acc loop worker 
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
             int indigp = inv_igp_index[my_igp];
@@ -313,21 +313,22 @@ int main(int argc, char** argv)
 
             for(int iw = nstart; iw < nend; ++iw) {achtemp_re_loc[iw] = 0.00; achtemp_im_loc[iw] = 0.00;}
 
-#pragma acc loop vector 
-            for(int ig = 0; ig<ncouls; ++ig)
+            for(int iw = nstart; iw < nend; ++iw)
             {
-                for(int iw = nstart; iw < nend; ++iw)
+                double achtemp_re_vec = 0.00, achtemp_im_vec = 0.00;
+#pragma acc loop vector
+                for(int ig = 0; ig<ncouls; ++ig)
                 {
                     wdiff = doubleMinusGPUComplex(wx_array[iw] , wtilde_array[my_igp*ncouls+ig]);
                     delw = GPUComplex_mult(GPUComplex_product(wtilde_array[my_igp*ncouls+ig] , GPUComplex_conj(wdiff)), 1/GPUComplex_real(GPUComplex_product(wdiff, GPUComplex_conj(wdiff)))); 
                     GPUComplex sch_array = GPUComplex_mult(GPUComplex_product(GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls+igp]), aqsntemp[n1*ncouls+ig]), GPUComplex_product(delw , I_eps_array[my_igp*ncouls+ig])), 0.5*vcoul[igp]);
-                    double sch_re = GPUComplex_real(sch_array);
-                    double sch_im = GPUComplex_imag(sch_array);
-#pragma acc atomic
-                    achtemp_re_loc[iw] += sch_re;
-#pragma acc atomic
-                    achtemp_im_loc[iw] += sch_im;
+                    achtemp_re_vec += GPUComplex_real(sch_array);
+                    achtemp_im_vec += GPUComplex_imag(sch_array);
                 }
+#pragma acc atomic
+                    achtemp_re_loc[iw] += achtemp_re_vec;
+#pragma acc atomic
+                    achtemp_im_loc[iw] += achtemp_im_vec;
             }
 
             achtemp_re0 += achtemp_re_loc[0];
