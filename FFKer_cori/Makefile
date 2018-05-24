@@ -10,7 +10,7 @@ LINK = ${CXX}
 ifeq ($(CXX),CC)
 	CXXFLAGS= -g -O3 -qopenmp -qopt-report=5 -std=c++11 -pthread -DLIKWID_PERFMON -DUSE_VTUNE -I${VTUNE_AMPLIFIER_XE_2018_DIR}/include
 	CXXFLAGS+=-xCORE-AVX2
-	#CXXFLAGS+=-xMIC_AVX512
+	#CXXFLAGS+=-xMIC-AVX512
 	LINKFLAGS=-qopenmp -dynamic -L${VTUNE_AMPLIFIER_XE_2018_DIR}/lib64 -littnotify
     LINKFLAGS+=-L /usr/common/software/likwid/4.3.0/lib -llikwid
 endif 

@@ -8,7 +8,7 @@ CXX = CC
 LINK = ${CXX}
 
 ifeq ($(CXX),CC)
-	CXXFLAGS= -g -O3 -qopenmp -qopt-report=5 -std=c++11 -pthread -DLIKWID_PERFMON
+	CXXFLAGS= -g -O3 -qopenmp -qopt-report=5 -std=c++11 -pthread -DLIKWID_PERFMON -no-prec-div -fp-model fast=2
     CXXFLAGS+=-I /usr/common/software/likwid/4.3.0/include/
 	#CXXFLAGS+=-xCORE-AVX2
 	CXXFLAGS+=-xMIC-AVX512

@@ -45,7 +45,7 @@ real(kind(1.0d0)) :: limitone,limittwo
 real(kind(1.0d0)) :: starttime, endtime
 real(kind(1.0d0)) :: starttime_stat, endtime_stat
 real(kind(1.0d0)) :: time_stat
-real(kind(1.0d0)) :: starttime_sx, endtime_sx
+real(kind(1.0d0)) :: starttime_sx, endtime_sx, starttime_kernel1, endtime_kernel1, starttime_kernel2, endtime_kernel2
 real(kind(1.0d0)) :: time_sx 
 real(kind(1.0d0)) :: starttime_ch, endtime_ch
 real(kind(1.0d0)) :: time_cha,time_chb,time_chc 
@@ -187,6 +187,7 @@ time_chc = 0D0
       write(6,*) "Starting loop"
 
       call timget(starttime)
+      call timget(starttime_kernel1)
 
       do n1=1,number_bands
 
@@ -318,8 +319,7 @@ time_chc = 0D0
               enddo                
 !$OMP END PARALLEL DO
 
-              ssxDi(iw) = ssxDi(iw) + (0.5D0, 0.5D0) 
-!              ssxDi(iw) = ssxDi(iw) + ssxDittt
+              ssxDi(iw) = ssxDi(iw) + ssxDittt
 
             endif
           endif
@@ -332,6 +332,7 @@ time_chc = 0D0
         time_sx = time_sx + endtime_sx - starttime_sx
 
       enddo
+      call timget(endtime_kernel1)
 
          schDt_matrix(:,:) = 0D0
 
@@ -342,8 +343,8 @@ time_chc = 0D0
         time_cha = time_cha + endtime_ch - starttime_ch
 
 
-
 !!!End Of First Loop
+      call timget(starttime_kernel2)
       do n1=1,number_bands
         flag_occ = (n1.le.nvband)
         occ = 1.0d0
@@ -512,6 +513,7 @@ time_chc = 0D0
         enddo ! over iw
 
       enddo ! over ipe bands (n1)
+      call timget(endtime_kernel2)
 
       write(6,*) "achsDtemp:",achsDtemp 
       write(6,*) "asxDtemp:",asxDtemp(1) 
@@ -542,6 +544,8 @@ time_chc = 0D0
       DEALLOCATE(schDt_matrix)
       
       write(6,*) "Runtime:", endtime-starttime
+      write(6,*) "Runtime-Kernel1:",endtime_kernel1 - starttime_kernel1 
+      write(6,*) "Runtime-Kernel2:",endtime_kernel2 - starttime_kernel2 
 !      write(6,*) "Runtime STAT:", time_stat
 !      write(6,*) "Runtime SX:", time_sx
 !      write(6,*) "Runtime CH:", time_cha, time_chb, time_chc
