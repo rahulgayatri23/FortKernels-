@@ -135,6 +135,7 @@ int main(int argc, char** argv)
         exit (0);
     }
     auto start_totalTime = std::chrono::high_resolution_clock::now();
+    auto start_chrono = std::chrono::high_resolution_clock::now();
 
     int number_bands = atoi(argv[1]);
     int nvband = atoi(argv[2]);
@@ -271,6 +272,7 @@ int main(int argc, char** argv)
     Kokkos::deep_copy(inv_igp_index, h_inv_igp_index);
     Kokkos::deep_copy(indinv, h_indinv);
 
+    auto start_kernel = std::chrono::high_resolution_clock::now();
    for(int n1 = 0; n1 < nvband; n1++)
    {
         Kokkos::parallel_for(ngpown,KOKKOS_LAMBDA (int my_igp)
@@ -292,7 +294,6 @@ int main(int argc, char** argv)
         reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul);
     });
 
-    auto start_chrono = std::chrono::high_resolution_clock::now();
 
     achtempStruct achtempVar;
 
@@ -328,6 +329,7 @@ int main(int argc, char** argv)
         }); //ngpown
 
     }, achtempVar); // number-bands
+    std::chrono::duration<double> elapsed_kernel = std::chrono::high_resolution_clock::now() - start_kernel;
 
     for(int iw = nstart; iw < nend; ++iw)
     {
@@ -350,6 +352,7 @@ int main(int argc, char** argv)
     }
 
     std::chrono::duration<double> elapsed_totalTime = std::chrono::high_resolution_clock::now() - start_totalTime;
+    cout << "********** Kernel Time Taken **********= " << elapsed_kernel.count() << " secs" << endl;
     cout << "********** Total Time Taken **********= " << elapsed_totalTime.count() << " secs" << endl;
 
     free(acht_n1_loc);
