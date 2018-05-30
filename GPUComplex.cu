@@ -316,7 +316,7 @@ void gppKernelGPU( GPUComplex *wtilde_array, GPUComplex *aqsntemp, GPUComplex* a
 
 #if NumberBandsKernel
     int numBlocks = number_bands;
-    int numThreadsPerBlock = 32;
+    int numThreadsPerBlock = 64;
     printf("Launching a single dimension grid with number_bands blocks and %d threadsPerBlock \n", numThreadsPerBlock);
 
     cudaNumberBands_kernel <<< numBlocks, numThreadsPerBlock >>> ( wtilde_array, aqsntemp, aqsmtemp, I_eps_array, ncouls, ngpown, number_bands, wx_array, achtemp_re, achtemp_im, vcoul, nstart, nend, indinv, inv_igp_index, numThreadsPerBlock);
