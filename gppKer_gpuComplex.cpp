@@ -250,19 +250,19 @@ int main(int argc, char** argv)
    for(int i=0; i<number_bands; i++)
        for(int j=0; j<ncouls; j++)
        {
-           aqsmtemp[i*ncouls+j].complNum.x = 0.5;
-           aqsmtemp[i*ncouls+j].complNum.y = 0.5;
-           aqsntemp[i*ncouls+j].complNum.x = 0.5;
-           aqsntemp[i*ncouls+j].complNum.y = 0.5;
+           aqsmtemp[i*ncouls+j].x = 0.5;
+           aqsmtemp[i*ncouls+j].y = 0.5;
+           aqsntemp[i*ncouls+j].x = 0.5;
+           aqsntemp[i*ncouls+j].y = 0.5;
        }
 
    for(int i=0; i<ngpown; i++)
        for(int j=0; j<ncouls; j++)
        {
-           I_eps_array[i*ncouls+j].complNum.x = 0.5;
-           I_eps_array[i*ncouls+j].complNum.y = 0.5;
-           wtilde_array[i*ncouls+j].complNum.x = 0.5;
-           wtilde_array[i*ncouls+j].complNum.y = 0.5;
+           I_eps_array[i*ncouls+j].x = 0.5;
+           I_eps_array[i*ncouls+j].y = 0.5;
+           wtilde_array[i*ncouls+j].x = 0.5;
+           wtilde_array[i*ncouls+j].y = 0.5;
        }
 
    for(int i=0; i<ncouls; i++)
