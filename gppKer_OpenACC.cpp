@@ -245,27 +245,27 @@ int main(int argc, char** argv)
 
 #pragma acc enter data copyin(inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[0:3], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls])
 
-#pragma acc parallel loop copyin(occ, asxtemp[nstart:nend]) present(inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[0:3], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls]) 
-       for(int n1 = 0; n1 < nvband; n1++)
-       {
-#pragma acc loop vector
-            for(int my_igp=0; my_igp<ngpown; ++my_igp)
-            {
-               for(int iw=nstart; iw<nend; iw++)
-               {
-                    int indigp = inv_igp_index[my_igp];
-                    int igp = indinv[indigp];
-                    GPUComplex ssxt(0.00, 0.00);
-                    GPUComplex scht(0.00, 0.00);
-                    flagOCC_solver(wx_array[iw], wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
-                    asxtemp[iw] += GPUComplex_mult(ssxt, occ , vcoul[igp]);
-              }
-            }
-       }
-
-#pragma acc parallel loop present(inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[0:3], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls]) 
-    for(int n1 = 0; n1<number_bands; ++n1) 
-        reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul);
+//#pragma acc parallel loop copyin(occ, asxtemp[nstart:nend]) present(inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[0:3], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls]) 
+//       for(int n1 = 0; n1 < nvband; n1++)
+//       {
+//#pragma acc loop vector
+//            for(int my_igp=0; my_igp<ngpown; ++my_igp)
+//            {
+//               for(int iw=nstart; iw<nend; iw++)
+//               {
+//                    int indigp = inv_igp_index[my_igp];
+//                    int igp = indinv[indigp];
+//                    GPUComplex ssxt(0.00, 0.00);
+//                    GPUComplex scht(0.00, 0.00);
+//                    flagOCC_solver(wx_array[iw], wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
+//                    asxtemp[iw] += GPUComplex_mult(ssxt, occ , vcoul[igp]);
+//              }
+//            }
+//       }
+//
+//#pragma acc parallel loop present(inv_igp_index[0:ngpown], indinv[0:ncouls+1], wtilde_array[0:ngpown*ncouls], wx_array[0:3], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_eps_array[0:ngpown*ncouls], vcoul[0:ncouls]) 
+//    for(int n1 = 0; n1<number_bands; ++n1) 
+//        reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul);
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
 
