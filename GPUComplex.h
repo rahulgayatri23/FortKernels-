@@ -29,7 +29,7 @@ explicit GPUComplex () {
 }
 
 
-__host__ __device__ explicit GPUComplex(const double& a, const double& b) {
+explicit GPUComplex(const double& a, const double& b) {
     x = a;
     y = b;
 }
