@@ -273,27 +273,27 @@ int main(int argc, char** argv)
     Kokkos::deep_copy(indinv, h_indinv);
 
     auto start_kernel = std::chrono::high_resolution_clock::now();
-   for(int n1 = 0; n1 < nvband; n1++)
-   {
-        Kokkos::parallel_for(ngpown,KOKKOS_LAMBDA (int my_igp)
-        {
-           for(int iw=nstart; iw<nend; iw++)
-           {
-                int indigp = inv_igp_index(my_igp);
-                int igp = indinv(indigp);
-                GPUComplex ssxt(0.00, 0.00);
-                GPUComplex scht(0.00, 0.00);
-                flagOCC_solver(wx_array(iw), wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
-                asxtemp(iw) += GPUComplex_mult(ssxt, occ , vcoul(igp));
-            }
-        });
-   }
-
-    Kokkos::parallel_for(number_bands, KOKKOS_LAMBDA (int n1)
-    {
-        reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul);
-    });
-
+//   for(int n1 = 0; n1 < nvband; n1++)
+//   {
+//        Kokkos::parallel_for(ngpown,KOKKOS_LAMBDA (int my_igp)
+//        {
+//           for(int iw=nstart; iw<nend; iw++)
+//           {
+//                int indigp = inv_igp_index(my_igp);
+//                int igp = indinv(indigp);
+//                GPUComplex ssxt(0.00, 0.00);
+//                GPUComplex scht(0.00, 0.00);
+//                flagOCC_solver(wx_array(iw), wtilde_array, my_igp, n1, aqsmtemp, aqsntemp, I_eps_array, ssxt, scht, ncouls, igp, number_bands, ngpown);
+//                asxtemp(iw) += GPUComplex_mult(ssxt, occ , vcoul(igp));
+//            }
+//        });
+//   }
+//
+//    Kokkos::parallel_for(number_bands, KOKKOS_LAMBDA (int n1)
+//    {
+//        reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul);
+//    });
+//
 
     achtempStruct achtempVar;
 

@@ -18,55 +18,56 @@ class GPUComplex : public double2{
     private : 
 
 public:
-    double re;
-    double im;
+//    double re;
+//    double im;
 
+KOKKOS_INLINE_FUNCTION
 explicit GPUComplex () {
-    re = 0.00;
-    im = 0.00;
+    x = 0.00;
+    y = 0.00;
 }
 
 
 KOKKOS_INLINE_FUNCTION
-explicit GPUComplex(const double& x, const double& y) {
-    re = x;
-    im = y;
+explicit GPUComplex(const double& a, const double& b) {
+    x = a;
+    y = b;
 }
 
 KOKKOS_INLINE_FUNCTION
 GPUComplex(const GPUComplex& src) {
-    re = src.re;
-    im = src.im;
+    x = src.x;
+    y = src.y;
 }
 
 KOKKOS_INLINE_FUNCTION
 GPUComplex& operator =(const GPUComplex& src) {
-    re = src.re;
-    im = src.im;
+    x = src.x;
+    y = src.y;
 
     return *this;
 }
 
 KOKKOS_INLINE_FUNCTION
 GPUComplex& operator +=(const GPUComplex& src) {
-    re = src.re + this->re;
-    im = src.im + this->im;
+    x = src.x + this->x;
+    y = src.y + this->y;
 
     return *this;
 }
 
 KOKKOS_INLINE_FUNCTION
 GPUComplex& operator -=(const GPUComplex& src) {
-    re = src.re - this->re;
-    im = src.im - this->im;
+    x = src.x - this->x;
+    y = src.y - this->y;
 
     return *this;
 }
 
 KOKKOS_INLINE_FUNCTION
 GPUComplex& operator -() {
-    re = -this->re;
-    im = -this->im;
+    x = -this->x;
+    y = -this->y;
 
     return *this;
 }
@@ -78,15 +79,15 @@ GPUComplex& operator ~() {
 
 KOKKOS_INLINE_FUNCTION
 void print() const {
-    printf("( %f, %f) ", this->re, this->im);
+    printf("( %f, %f) ", this->x, this->y);
     printf("\n");
 }
 
 KOKKOS_INLINE_FUNCTION
 double abs(const GPUComplex& src) {
 
-    double re_this = src.re * src.re;
-    double im_this = src.im * src.im;
+    double re_this = src.x * src.x;
+    double im_this = src.y * src.y;
 
 //    double result = sqrt(re_this+im_this);
     double result = (re_this+im_this);
@@ -98,25 +99,25 @@ double abs(const GPUComplex& src) {
 KOKKOS_INLINE_FUNCTION
 double get_real() const
 {
-    return this->re;
+    return this->x;
 }
 
 KOKKOS_INLINE_FUNCTION
 double get_imag() const
 {
-    return this->im;
+    return this->y;
 }
 
 KOKKOS_INLINE_FUNCTION
 void set_real(double val)
 {
-    this->re = val;
+    this->x = val;
 }
 
 KOKKOS_INLINE_FUNCTION
 void set_imag(double val) 
 {
-    this->im = val;
+    this->y = val;
 }
 
 
@@ -165,8 +166,8 @@ void set_imag(double val)
  * Return the square of a complex number 
  */
 GPUComplex GPUComplex_square(GPUComplex& src) {
-    double re_this = src.re ;
-    double im_this = src.im ;
+    double re_this = src.x ;
+    double im_this = src.y ;
 
     GPUComplex result(re_this*re_this - im_this*im_this, 2*re_this*im_this);
 
@@ -178,8 +179,8 @@ GPUComplex GPUComplex_square(GPUComplex& src) {
  */
 GPUComplex GPUComplex_conj(const GPUComplex& src) {
 
-double re_this = src.re;
-double im_this = -1 * src.im;
+double re_this = src.x;
+double im_this = -1 * src.y;
 
 GPUComplex result(re_this, im_this);
 return result;
@@ -192,8 +193,8 @@ return result;
  */
 GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) {
 
-    double re_this = a.re * b.re - a.im*b.im ;
-    double im_this = a.re * b.im + a.im*b.re ;
+    double re_this = a.x * b.x - a.y*b.y ;
+    double im_this = a.x * b.y + a.y*b.x ;
 
     GPUComplex result(re_this, im_this);
     return result;
@@ -203,8 +204,8 @@ GPUComplex GPUComplex_product(const GPUComplex& a, const GPUComplex& b) {
  * Return the absolute of a complex number 
  */
 double GPUComplex_abs(const GPUComplex& src) {
-    double re_this = src.re * src.re;
-    double im_this = src.im * src.im;
+    double re_this = src.x * src.x;
+    double im_this = src.y * src.y;
 
     double result = (re_this+im_this);
 //    double result = sqrt(re_this+im_this);
@@ -216,7 +217,7 @@ double GPUComplex_abs(const GPUComplex& src) {
  */
 GPUComplex GPUComplex_mult(GPUComplex& a, double b, double c) {
 
-    GPUComplex result(a.re * b * c, a.im * b * c);
+    GPUComplex result(a.x * b * c, a.y * b * c);
     return result;
 
 }
@@ -226,7 +227,7 @@ GPUComplex GPUComplex_mult(GPUComplex& a, double b, double c) {
  */
 GPUComplex GPUComplex_mult(const GPUComplex& a, double b) {
 
-   GPUComplex result(a.re*b, a.im*b);
+   GPUComplex result(a.x*b, a.y*b);
    return result;
 
 }
@@ -235,45 +236,45 @@ GPUComplex GPUComplex_mult(const GPUComplex& a, double b) {
  * Return the complex number a += b * c  
  */
 void GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) {
-    double re_this = b.re * c.re - b.im*c.im ;
-    double im_this = b.re * c.im + b.im*c.re ;
+    double re_this = b.x * c.x - b.y*c.y ;
+    double im_this = b.x * c.y + b.y*c.x ;
 
     GPUComplex mult_result(re_this, im_this);
 
-    a.re += mult_result.re;
-    a.im += mult_result.im;
+    a.x += mult_result.x;
+    a.y += mult_result.y;
 }
 
 /*
  * Return the complex number a -= b * c  
  */
 void GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) {
-    double re_this = b.re * c.re - b.im*c.im ;
-    double im_this = b.re * c.im + b.im*c.re ;
+    double re_this = b.x * c.x - b.y*c.y ;
+    double im_this = b.x * c.y + b.y*c.x ;
 
     GPUComplex mult_result(re_this, im_this);
 
-    a.re -= mult_result.re;
-    a.im -= mult_result.im;
+    a.x -= mult_result.x;
+    a.y -= mult_result.y;
 }
 
 
 GPUComplex doubleMinusGPUComplex(const double &a, GPUComplex& src) {
-    GPUComplex result(a - src.re, 0 - src.im);
+    GPUComplex result(a - src.x, 0 - src.y);
     return result;
 }
 
 GPUComplex doublePlusGPUComplex(double a, GPUComplex& src) {
-    GPUComplex result(a + src.re, 0 + src.im);
+    GPUComplex result(a + src.x, 0 + src.y);
     return result;
 }
 
 double GPUComplex_real( const GPUComplex& src) {
-    return src.re;
+    return src.x;
 }
 
 double GPUComplex_imag( const GPUComplex& src) {
-    return src.im;
+    return src.y;
 }
 
 #endif
