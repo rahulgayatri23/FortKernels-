@@ -6,9 +6,6 @@
 
 using namespace std;
 
-void schDttt_corKernel1(GPUComplex &schDttt_cor, int *inv_igp_index, int *indinv, GPUComplex *I_epsR_array, GPUComplex *I_epsA_array, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, GPUComplex &schDttt, double *vcoul, int ncouls, int ifreq, int ngpown, int n1, double fact1, double fact2);
-
-void schDttt_corKernel2(GPUComplex &schDttt_cor, int *inv_igp_index, int *indinv, GPUComplex *I_epsR_array, GPUComplex *I_epsA_array, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, double *vcoul, int ncouls, int ifreq, int ngpown, int n1, double fact1, double fact2);
 
 void calculate_schDt_lin3(GPUComplex& schDt_lin3, GPUComplex* sch2Di, bool flag_occ, int freqevalmin, double *ekq, int iw, int freqevalstep, double cedifft_zb_right, double cedifft_zb_left, GPUComplex schDt_left, GPUComplex schDt_lin2, int n1, double pref_zb, GPUComplex pref_zb_compl, GPUComplex schDt_avg)
 {
@@ -80,9 +77,10 @@ void compute_fact(double wx, int nFreq, double *dFreqGrid, double &fact1, double
     }
 }
 
-void ssxDittt_kernel(int *inv_igp_index, int *indinv, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, double *vcoul, GPUComplex *I_eps_array, GPUComplex *ssxDittt, int ngpown, int ncouls, int n1,int ifreq, double fact1, double fact2)
+void ssxDittt_kernel(int *inv_igp_index, int *indinv, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, double *vcoul, GPUComplex *I_eps_array, GPUComplex &ssxDittt, int ngpown, int ncouls, int n1,int ifreq, double fact1, double fact2)
 {
-#pragma omp parallel for default(shared)
+    double ssxDittt_re = 0.00, ssxDittt_im = 0.00;
+#pragma omp parallel for default(shared) reduction(+:ssxDittt_re, ssxDittt_im)
     for(int my_igp = 0; my_igp < ngpown; ++my_igp)
     {
         int indigp = inv_igp_index[my_igp];
@@ -96,18 +94,22 @@ void ssxDittt_kernel(int *inv_igp_index, int *indinv, GPUComplex *aqsmtemp, GPUC
             ssxDit = GPUComplex_mult(I_eps_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] , fact1 ) + \
                                          GPUComplex_mult(I_eps_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] , fact2);
 
-            ssxDitt += GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit));
+            ssxDitt += GPUComplex_mult(GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_product(GPUComplex_conj(aqsmtemp[n1*ncouls + igp]) , ssxDit)), vcoul[igp]);
         }
-        ssxDittt[tid] += GPUComplex_mult(ssxDitt , vcoul[igp]);
+        ssxDittt_re += GPUComplex_real(ssxDitt);
+        ssxDittt_im += GPUComplex_imag(ssxDitt);
     }
+    GPUComplex tmp(ssxDittt_re, ssxDittt_im);
+    ssxDittt = tmp;
 }
 
 
-void achsDtemp_Kernel(int number_bands, int ngpown, int ncouls, int *inv_igp_index, int *indinv, GPUComplex *aqsntemp, GPUComplex *aqsmtemp, GPUComplex *I_epsR_array, double *vcoul, GPUComplex *achsDtemp_threadArr)
+void achsDtemp_Kernel(int number_bands, int ngpown, int ncouls, int *inv_igp_index, int *indinv, GPUComplex *aqsntemp, GPUComplex *aqsmtemp, GPUComplex *I_epsR_array, double *vcoul, GPUComplex &achsDtemp)
 {
+    double achsDtemp_re = 0.00, achsDtemp_im = 0.00;
     for(int n1 = 0; n1 < number_bands; ++n1)
     {
-#pragma omp parallel for default(shared)
+#pragma omp parallel for default(shared) reduction(+:achsDtemp_re, achsDtemp_im)
         for(int my_igp = 0; my_igp < ngpown; ++my_igp)
         {
             int indigp = inv_igp_index[my_igp];
@@ -119,9 +121,12 @@ void achsDtemp_Kernel(int number_bands, int ngpown, int ncouls, int *inv_igp_ind
             for(int ig = 0; ig < ncouls; ++ig)
                 schsDtemp = schsDtemp - GPUComplex_product(GPUComplex_product(aqsntemp[n1*ncouls + ig] , GPUComplex_conj(aqsmtemp[n1*ncouls + igp])) , I_epsR_array[1*ngpown*ncouls + my_igp*ncouls + ig]);
 
-            achsDtemp_threadArr[tid] += GPUComplex_mult(schsDtemp , vcoul[igp] * 0.5);
+            achsDtemp_re += GPUComplex_real(GPUComplex_mult(schsDtemp , vcoul[igp] * 0.5));
+            achsDtemp_im += GPUComplex_imag(GPUComplex_mult(schsDtemp , vcoul[igp] * 0.5));
         }
     } //n1
+    GPUComplex tmp(achsDtemp_re, achsDtemp_im);
+    achsDtemp = tmp;
 
 }
 
@@ -132,33 +137,22 @@ void asxDtemp_Kernel(int nvband, int nfreqeval, int ncouls, int ngpown, int numT
     {
         for(int iw = 0; iw < nfreqeval; ++iw)
         {
-            for(int i = 0; i < numThreads; ++i)
-                ssxDittt[i] = expr0;
-
             double wx = freqevalmin - ekq[n1] + freqevalstep;
             double fact1 = 0.00, fact2 = 0.00;
             int ifreq = 0;
-//            ssxDi[iw] = expr0;
-            GPUComplex ssxDittt_agg = expr0;
-
-            for(int i = 0; i < numThreads; ++i)
-                ssxDittt[i] = expr0;
+            GPUComplex ssxDittt = expr0;
 
             compute_fact(wx, nFreq, dFreqGrid, fact1, fact2, ifreq, 1, 0);
 
 //The ssxDittt_kernel is OMP parallelized.
                 ssxDittt_kernel(inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsR_array, ssxDittt, ngpown, ncouls, n1, ifreq, fact1, fact2);
 
-            for(int i = 0; i < numThreads; ++i)
-                ssxDittt_agg += ssxDittt[i];
-
-//            ssxDi[iw] += ssxDittt_agg;
-            asxDtemp[iw] += GPUComplex_mult(ssxDittt_agg , occ);
+            asxDtemp[iw] += GPUComplex_mult(ssxDittt, occ);
         } // iw
     }
 }
 
-void achDtemp_Kernel(int number_bands, int nvband, int nfreqeval, int ncouls, int ngpown, int numThreads, int nFreq, double freqevalmin, double freqevalstep, double occ, double *ekq, double pref_zb, double *pref, double *dFreqGrid, GPUComplex *dFreqBrd, int *inv_igp_index, int *indinv, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, double *vcoul, GPUComplex *I_epsR_array, GPUComplex *schDt_matrix, GPUComplex *schDi, GPUComplex *schDi_cor, GPUComplex *sch2Di, GPUComplex *achDtemp)
+void achDtemp_Kernel(int number_bands, int nvband, int nfreqeval, int ncouls, int ngpown, int nFreq, double freqevalmin, double freqevalstep, double *ekq, double pref_zb, double *pref, double *dFreqGrid, GPUComplex *dFreqBrd, GPUComplex *schDt_matrix, GPUComplex *schDi, GPUComplex *schDi_cor, GPUComplex *sch2Di, GPUComplex *achDtemp)
 {
     bool flag_occ;
     GPUComplex expr0(0.00, 0.00);
@@ -215,7 +209,7 @@ void achDtemp_Kernel(int number_bands, int nvband, int nfreqeval, int ncouls, in
 
 }
 
-void achDtemp_cor_Kernel(int number_bands, int nvband, int nfreqeval, int ncouls, int ngpown, int numThreads, int nFreq, double freqevalmin, double freqevalstep, double occ, double *ekq, double pref_zb, double *pref, double *dFreqGrid, GPUComplex *dFreqBrd, int *inv_igp_index, int *indinv, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, double *vcoul, GPUComplex *I_epsR_array, GPUComplex *I_epsA_array, GPUComplex *schDt_matrix, GPUComplex *schDi, GPUComplex *schDi_cor, GPUComplex *schDi_corb, GPUComplex *sch2Di, GPUComplex *ach2Dtemp, GPUComplex *achDtemp_cor, GPUComplex *achDtemp_corb)
+void achDtemp_cor_Kernel(int number_bands, int nvband, int nfreqeval, int ncouls, int ngpown, int nFreq, double freqevalmin, double freqevalstep, double *ekq, double *dFreqGrid, int *inv_igp_index, int *indinv, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, double *vcoul, GPUComplex *I_epsR_array, GPUComplex *I_epsA_array, GPUComplex *schDi_cor, GPUComplex *schDi_corb, GPUComplex *sch2Di, GPUComplex *ach2Dtemp, GPUComplex *achDtemp_cor, GPUComplex *achDtemp_corb)
 {
     bool flag_occ;
     GPUComplex expr0(0.00, 0.00);
@@ -485,9 +479,8 @@ int main(int argc, char** argv)
 
     /***********achsDtemp Kernel ****************/
     auto startTimer_achsDtemp = std::chrono::high_resolution_clock::now();
-    achsDtemp_Kernel(number_bands, ngpown, ncouls, inv_igp_index, indinv, aqsntemp, aqsmtemp, I_epsR_array, vcoul, achsDtemp_threadArr);
-    for(int i = 0; i < numThreads; ++i)
-        achsDtemp += achsDtemp_threadArr[i];
+    achsDtemp_Kernel(number_bands, ngpown, ncouls, inv_igp_index, indinv, aqsntemp, aqsmtemp, I_epsR_array, vcoul, achsDtemp);
+
     std::chrono::duration<double> elapsedTime_achsDtemp = std::chrono::high_resolution_clock::now() - startTimer_achsDtemp;
     cout << "********** achsDtemp Kernel time  **********= " << elapsedTime_achsDtemp.count() << " secs" << endl;
 
@@ -499,13 +492,13 @@ int main(int argc, char** argv)
 
     /***********achDtemp Kernel ****************/
     auto startTimer_achDtemp = std::chrono::high_resolution_clock::now();
-    achDtemp_Kernel(number_bands, nvband, nfreqeval, ncouls, ngpown, numThreads, nFreq, freqevalmin, freqevalstep, occ, ekq, pref_zb, pref, dFreqGrid, dFreqBrd, inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsR_array, schDt_matrix, schDi, schDi_cor, sch2Di, asxDtemp);
+    achDtemp_Kernel(number_bands, nvband, nfreqeval, ncouls, ngpown, nFreq, freqevalmin, freqevalstep, ekq, pref_zb, pref, dFreqGrid, dFreqBrd, schDt_matrix, schDi, schDi_cor, sch2Di, asxDtemp);
     std::chrono::duration<double> elapsedTime_achDtemp = std::chrono::high_resolution_clock::now() - startTimer_achDtemp;
     cout << "********** achDtemp Kernel time **********= " << elapsedTime_achDtemp.count() << " secs" << endl;
 
     /***********achDtemp_cor Kernel ****************/
     auto startTimer_achDtemp_cor = std::chrono::high_resolution_clock::now();
-    achDtemp_cor_Kernel(number_bands, nvband, nfreqeval, ncouls, ngpown, numThreads, nFreq, freqevalmin, freqevalstep, occ, ekq, pref_zb, pref, dFreqGrid, dFreqBrd, inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsR_array, I_epsA_array, schDt_matrix, schDi, schDi_cor, schDi_corb, sch2Di, ach2Dtemp, achDtemp_cor, achDtemp_corb);
+    achDtemp_cor_Kernel(number_bands, nvband, nfreqeval, ncouls, ngpown, nFreq, freqevalmin, freqevalstep, ekq, dFreqGrid, inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsR_array, I_epsA_array, schDi_cor, schDi_corb, sch2Di, ach2Dtemp, achDtemp_cor, achDtemp_corb);
     std::chrono::duration<double> elapsedTime_achDtemp_cor = std::chrono::high_resolution_clock::now() - startTimer_achDtemp_cor;
     cout << "********** achDtemp_cor Kernel time **********= " << elapsedTime_achDtemp_cor.count() << " secs" << endl;
 
