@@ -12,9 +12,6 @@
 #include <chrono>
 #include <stdio.h>
 
-#define CACHE_LINE 64
-#define CACHE_ALIGN __declspec(align(CACHE_LINE)) 
-
 class GPUComplex {
 
     private : 
@@ -22,6 +19,7 @@ class GPUComplex {
     double im;
 
 public:
+#pragma omp declare target
 explicit GPUComplex () {
     re = 0.00;
     im = 0.00;
@@ -143,6 +141,7 @@ void set_imag(double val)
     friend inline double GPUComplex_real( const GPUComplex& src) ;
     friend inline double GPUComplex_imag( const GPUComplex& src) ;
     friend inline GPUComplex GPUComplex_minus( const GPUComplex& a, const GPUComplex& b) ;
+#pragma omp end declare target
 };
 
     inline GPUComplex GPUComplex_square(GPUComplex& src) ;
@@ -156,6 +155,8 @@ void set_imag(double val)
     inline void GPUComplex_fma(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
     inline void GPUComplex_fms(GPUComplex& a, const GPUComplex& b, const GPUComplex& c) ;
     inline GPUComplex GPUComplex_minus( const GPUComplex& a, const GPUComplex& b) ;
+
+
 
 //Inline functions have to be defined in the same file as the declaration
 
