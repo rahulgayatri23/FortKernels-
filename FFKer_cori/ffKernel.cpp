@@ -18,9 +18,9 @@ using namespace std;
 
     void ssxDittt_kernel(int *inv_igp_index, int *indinv, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, double *vcoul, GPUComplex *I_eps_array, GPUComplex &ssxDittt, int ngpown, int ncouls, int n1,int ifreq, double fact1, double fact2);
 
-#pragma omp declare target
-    void achsDtemp_Kernel(int number_bands, int ngpown, int ncouls, int nFreq, int *inv_igp_index, int *indinv, GPUComplex *aqsntemp, GPUComplex *aqsmtemp, GPUComplex *I_epsR_array, double *vcoul, GPUComplex &achsDtemp);
-#pragma omp end declare target
+//#pragma omp declare target
+//    void achsDtemp_Kernel(int number_bands, int ngpown, int ncouls, int nFreq, int *inv_igp_index, int *indinv, GPUComplex *aqsntemp, GPUComplex *aqsmtemp, GPUComplex *I_epsR_array, double *vcoul, GPUComplex &achsDtemp);
+//#pragma omp end declare target
 
     void asxDtemp_Kernel(int nvband, int nfreqeval, int ncouls, int ngpown, int numThreads, int nFreq, double freqevalmin, double freqevalstep, double occ, double *ekq, double *dFreqGrid, int *inv_igp_index, int *indinv, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, double *vcoul, GPUComplex *I_epsR_array, GPUComplex *ssxDittt, GPUComplex *asxDtemp);
 
@@ -128,9 +128,10 @@ void ssxDittt_kernel(int *inv_igp_index, int *indinv, GPUComplex *aqsmtemp, GPUC
 
 void achsDtemp_Kernel(int number_bands, int ngpown, int ncouls, int nFreq, int *inv_igp_index, int *indinv, GPUComplex *aqsntemp, GPUComplex *aqsmtemp, GPUComplex *I_epsR_array, double *vcoul, GPUComplex &achsDtemp)
 {
+//    map(to: inv_igp_index[0:ngpown], indinv[0:ncouls], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_epsR_array[0:nFreq*ngpown*ncouls]) 
     double achsDtemp_re = 0.00, achsDtemp_im = 0.00;
 #pragma omp target teams distribute \
-    map(to: inv_igp_index[0:ngpown], indinv[0:ncouls], aqsmtemp[0:number_bands*ncouls], aqsntemp[0:number_bands*ncouls], I_epsR_array[0:nFreq*ngpown*ncouls]) \
+    map(to: aqsntemp[0:number_bands*ncouls]) \
     map(tofrom: achsDtemp_re, achsDtemp_im) \
     reduction(+: achsDtemp_re, achsDtemp_im)
     for(int n1 = 0; n1 < number_bands; ++n1)
@@ -153,7 +154,6 @@ void achsDtemp_Kernel(int number_bands, int ngpown, int ncouls, int nFreq, int *
     } //n1
     GPUComplex tmp(achsDtemp_re, achsDtemp_im);
     achsDtemp = tmp;
-
 }
 
 void asxDtemp_Kernel(int nvband, int nfreqeval, int ncouls, int ngpown, int numThreads, int nFreq, double freqevalmin, double freqevalstep, double occ, double *ekq, double *dFreqGrid, int *inv_igp_index, int *indinv, GPUComplex *aqsmtemp, GPUComplex *aqsntemp, double *vcoul, GPUComplex *I_epsR_array, GPUComplex *ssxDittt, GPUComplex *asxDtemp)
@@ -515,11 +515,11 @@ int main(int argc, char** argv)
     auto startTime_Kernel = std::chrono::high_resolution_clock::now();
 
 //#pragma omp target enter data map(alloc: \
-                            aqsmtemp[0:number_bands*ncouls], \
-                            aqsntemp[0:number_bands*ncouls], \
-                            I_epsR_array[0:nFreq*ngpown*ncouls])
-
-
+//                            aqsmtemp[0:number_bands*ncouls], \
+//                            aqsntemp[0:number_bands*ncouls], \
+//                            I_epsR_array[0:nFreq*ngpown*ncouls])
+//
+//
 //#pragma omp target update to (aqsmtemp[0:number_bands*ncouls], \
                             aqsntemp[0:number_bands*ncouls], \
                             I_epsR_array[0:nFreq*ngpown*ncouls])
@@ -527,11 +527,11 @@ int main(int argc, char** argv)
 
     /***********achsDtemp Kernel ****************/
 
-//    auto startTimer_achsDtemp = std::chrono::high_resolution_clock::now();
-//    achsDtemp_Kernel(number_bands, ngpown, ncouls, nFreq, inv_igp_index, indinv, aqsntemp, aqsmtemp, I_epsR_array, vcoul, achsDtemp);
-//    std::chrono::duration<double> elapsedTime_achsDtemp = std::chrono::high_resolution_clock::now() - startTimer_achsDtemp;
-//    cout << "********** achsDtemp Kernel time  **********= " << elapsedTime_achsDtemp.count() << " secs" << endl;
-//
+    auto startTimer_achsDtemp = std::chrono::high_resolution_clock::now();
+    achsDtemp_Kernel(number_bands, ngpown, ncouls, nFreq, inv_igp_index, indinv, aqsntemp, aqsmtemp, I_epsR_array, vcoul, achsDtemp);
+    std::chrono::duration<double> elapsedTime_achsDtemp = std::chrono::high_resolution_clock::now() - startTimer_achsDtemp;
+    cout << "********** achsDtemp Kernel time  **********= " << elapsedTime_achsDtemp.count() << " secs" << endl;
+
 //    /***********asxDtemp Kernel ****************/
 //    auto startTimer_asxDtemp = std::chrono::high_resolution_clock::now();
 //    asxDtemp_Kernel(nvband, nfreqeval, ncouls, ngpown, numThreads, nFreq, freqevalmin, freqevalstep, occ, ekq, dFreqGrid, inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsR_array, ssxDittt, asxDtemp);

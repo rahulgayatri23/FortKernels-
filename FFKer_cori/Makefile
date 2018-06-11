@@ -1,7 +1,7 @@
 EXE = ffKerCpp.ex
 SRC = ffKernel.cpp 
 
-CXX = xlc++
+CXX = xlc++_r
 #CXX = g++
 #CXX = CC
 
@@ -19,9 +19,9 @@ ifeq ($(CXX),g++)
 	LINKFLAGS=-fopenmp
 endif 
 
-ifeq ($(CXX),xlc++)
-	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp 
-	LINKFLAGS=-qsmp 
+ifeq ($(CXX),xlc++_r)
+	CXXFLAGS=-std=gnu++11 -g -O3 -qsmp=noauto:omp -qoffload #-qnoipa -qstrict #-Xptxas -v
+	LINKFLAGS=-qsmp=noauto:omp -qoffload 
 endif 
 
 ifeq ($(CXX),clang++)
