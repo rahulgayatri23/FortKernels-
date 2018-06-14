@@ -1,11 +1,28 @@
-EXE = gppKerFort.ex
-SRC = gppkernel_Fort.f90
+EXE = gppKerFort_OpenMP4.ex
+SRC = gppKer_OpenMP4.f90
 
-#CXX = xlc++
-CXX = gfortran
+#CXX = ftn
+#CXX = gfortran
+CXX = xlf_r
 
-CXXFLAGS= -g -O3 -fopenmp#-foffload="-lm" -foffload=nvptx-none
-LINKFLAGS=-fopenmp
+LINK = ${CXX}
+
+ifeq ($(CXX),ftn)
+	CXXFLAGS = -O3 -qopt-report=5 -g -qopenmp 
+	CXXFLAGS+=-xCORE_AVX2 
+	#CXXFLAGS+=-xMIC-AVX512 
+	LINKFLAGS = -dynamic -O3 -qopenmp
+endif 
+
+ifeq ($(CXX),gfortran)
+	CXXFLAGS= -g -O3  -fopenmp 
+	LINKFLAGS=-fopenmp
+endif 
+
+ifeq ($(CXX),xlf_r)
+	CXXFLAGS= -g -O3 -qsmp=omp
+	LINKFLAGS=-qsmp=omp
+endif 
 
 OBJ = $(SRC:.f90=.o)
 
@@ -16,4 +33,4 @@ $(OBJ): $(SRC)
 	$(CXX) -c $(SRC) $(CXXFLAGS)
 
 clean: 
-	rm -f $(SRC).o $(EXE)
+	rm -f $(OBJ) $(EXE)
