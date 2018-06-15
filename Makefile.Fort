@@ -20,8 +20,8 @@ ifeq ($(CXX),gfortran)
 endif 
 
 ifeq ($(CXX),xlf_r)
-	CXXFLAGS= -g -O3 -qsmp=omp
-	LINKFLAGS=-qsmp=omp
+	CXXFLAGS= -g -O3 -qsmp=omp -qoffload
+	LINKFLAGS=-qsmp=omp -qoffload
 endif 
 
 OBJ = $(SRC:.f90=.o)
