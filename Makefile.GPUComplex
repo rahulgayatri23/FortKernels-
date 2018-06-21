@@ -5,9 +5,9 @@ SRC = gppKer_gpuComplex.cpp
 #EXE = testCase2.ex
 #SRC = testCase2.cpp 
 
-CXX = xlc++_r
+#CXX = xlc++_r
 #CXX = CC 
-#CXX = g++
+CXX = g++
 #CXX = clang++
 
 LINK = ${CXX}

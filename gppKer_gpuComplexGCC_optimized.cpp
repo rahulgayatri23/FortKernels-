@@ -374,10 +374,14 @@ int main(int argc, char** argv)
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
         reduce_achstemp(n1, number_bands, inv_igp_index, ncouls,aqsmtemp, aqsntemp, I_eps_array, achstemp, indinv, ngpown, vcoul);
 
+//#pragma omp target teams distribute map(tofrom:achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2) \
+    reduction(+:achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2)
 #pragma omp target teams distribute parallel for schedule(static) collapse(2) map(tofrom:achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2) \
     reduction(+:achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2)
     for(int n1 = 0; n1<number_bands; ++n1) 
     {
+//#pragma omp parallel for schedule(static)\
+    reduction(+:achtemp_re0, achtemp_re1, achtemp_re2, achtemp_im0, achtemp_im1, achtemp_im2)
         for(int my_igp=0; my_igp<ngpown; ++my_igp)
         {
             int indigp = inv_igp_index[my_igp];
