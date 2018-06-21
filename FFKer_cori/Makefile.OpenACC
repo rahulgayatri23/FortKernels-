@@ -1,7 +1,7 @@
 EXE = ffKerCpp_OpenACC.ex
 SRC = ffKernel_OpenACC.cpp 
 
-#CXX = xlc++
+#CXX = xlc++_r
 #CXX = CC 
 #CXX = g++
 #CXX = clang++
@@ -14,11 +14,11 @@ ifeq ($(CXX),g++)
 	LINKFLAGS=-fopenacc
 endif 
 
-ifeq ($(CXX),xlc++)
-#	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp
-#	LINKFLAGS=-qsmp
-	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp=noauto:omp -qoffload #-Xptxas -v
-	LINKFLAGS=-qsmp=noauto:omp -qoffload 
+ifeq ($(CXX),xlc++_r)
+	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp
+	LINKFLAGS=-qsmp
+#	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp=noauto:omp -qoffload #-Xptxas -v
+#	LINKFLAGS=-qsmp=noauto:omp -qoffload 
 endif 
 
 ifeq ($(CXX),clang++)
@@ -34,7 +34,7 @@ ifeq ($(CXX),icc)
 endif 
 
 ifeq ($(CXX),pgc++)
-	CXXFLAGS=-O3 -std=c++11 --gnu_extensions -g -acc -ta=nvidia #-Minfo=accel 
+	CXXFLAGS=-O3 -g -std=c++11 -acc --gnu_extensions -ta=nvidia -mcmodel=medium #-Minfo=accel 
 	LINKFLAGS=-acc
 endif 
 

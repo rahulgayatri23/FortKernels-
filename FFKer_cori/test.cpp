@@ -51,9 +51,9 @@ int main(int argc, char** argv)
 
     cout << "Memory Used = " << mem_alloc/(1024 * 1024 * 1024) << " GB" << endl;
 
-    for(int i=0; i<N; ++i)
+    for(long int i=0; i<N; ++i)
     {
-        for(int j=0; j<N; ++j)
+        for(long int j=0; j<N; ++j)
         {
             arr[i*N+j] = expr;
         }
