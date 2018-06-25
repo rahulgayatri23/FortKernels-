@@ -1,9 +1,9 @@
 EXE = ffKerCpp.ex
 SRC = ffKernel.cpp 
 
-#CXX = xlc++_r
+CXX = xlc++_r
 #CXX = g++
-CXX = CC
+#CXX = CC
 
 LINK = ${CXX}
 
