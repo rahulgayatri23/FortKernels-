@@ -1,0 +1,27 @@
+EXE = tryOnMe.ex
+SRC = tryOnMe.cpp 
+
+CXX = CC
+
+LINK = ${CXX}
+
+ifeq ($(CXX),CC)
+	CXXFLAGS= -g -O3 -qopenmp -qopt-report=5 -std=c++11 -pthread -DLIKWID_PERFMON
+    CXXFLAGS+=-I /usr/common/software/likwid/4.3.0/include/
+	CXXFLAGS+=-xCORE_AVX2
+	#CXXFLAGS+=-xMIC_AVX512
+	LINKFLAGS=-qopenmp -dynamic
+    LINKFLAGS+=-L /usr/common/software/likwid/4.3.0/lib -llikwid
+endif 
+
+OBJ = $(SRC:.cpp=.o)
+
+$(EXE): $(OBJ)  
+	$(CXX) $(OBJ) -o $(EXE) $(LINKFLAGS)
+
+$(OBJ1): $(SRC) 
+	$(CXX) -c $(SRC) $(CXXFLAGS)
+
+clean: 
+	rm -f $(OBJ) $(EXE)
+
