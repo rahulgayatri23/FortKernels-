@@ -1,7 +1,7 @@
 EXE = ffKerCppOpenMP4.ex
 SRC = ffKernelOpenMP4.cpp 
 
-CXX = xlc++
+CXX = xlc++_r
 #CXX = g++
 #CXX = CC
 
@@ -12,7 +12,7 @@ ifeq ($(CXX),g++)
 	LINKFLAGS=-fopenmp
 endif 
 
-ifeq ($(CXX),xlc++)
+ifeq ($(CXX),xlc++_r)
 #	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp
 #	LINKFLAGS=-qsmp
 	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp=noauto:omp -qoffload #-Xptxas -v
