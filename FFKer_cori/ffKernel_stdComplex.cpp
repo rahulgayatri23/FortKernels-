@@ -64,31 +64,20 @@ int main(int argc, char** argv)
 
     long double mem_alloc = 0.00;
 
-//    std::complex<double> aqsntemp[number_bands][ncouls];
-    std::complex<double> *aqsntemp_arr = new std::complex<double>[number_bands * ncouls];
-    std::complex<double> (*aqsntemp)[number_bands][ncouls];
-    aqsntemp = (std::complex<double>(*)[number_bands][ncouls]) (aqsntemp_arr);
+    std::complex<double> *aqsntemp = new std::complex<double>[number_bands * ncouls];
     mem_alloc += (number_bands * ncouls * sizeof(std::complex<double>));
 
-//    std::complex<double> aqsmtemp[number_bands][number_bands];
-    std::complex<double> *aqsmtemp_arr = new std::complex<double>[number_bands * ncouls];
-    std::complex<double> (*aqsmtemp)[number_bands][ncouls];
-    aqsmtemp = (std::complex<double>(*)[number_bands][ncouls]) (aqsmtemp_arr);
+    std::complex<double> *aqsmtemp = new std::complex<double>[number_bands * ncouls];
     mem_alloc += (number_bands * ncouls * sizeof(std::complex<double>));
 
-//    std::complex<double> I_epsR_array[nFreq][ngpown][ncouls];
-    std::complex<double> *I_epsR_array_vla = new std::complex<double>[nFreq * ngpown * ncouls];
-    std::complex<double> (*I_epsR_array)[nFreq][ngpown][ncouls];
-    I_epsR_array = (std::complex<double>(*)[nFreq][ngpown][ncouls]) (I_epsR_array_vla);
+    std::complex<double> *I_epsR_array = new std::complex<double>[nFreq * ngpown * ncouls];
     mem_alloc += (nFreq * ngpown * ncouls * sizeof(std::complex<double>));
 
-//    std::complex<double> I_epsA_array[nFreq][ngpown][ncouls];
-    std::complex<double> *I_epsA_array_vla = new std::complex<double>[nFreq * ngpown * ncouls];
-    std::complex<double> (*I_epsA_array)[nFreq][ngpown][ncouls];
-    I_epsA_array = (std::complex<double>(*)[nFreq][ngpown][ncouls]) (I_epsA_array_vla);
+    std::complex<double> *I_epsA_array = new std::complex<double>[nFreq * ngpown * ncouls];
     mem_alloc += (nFreq * ngpown * ncouls * sizeof(std::complex<double>));
 
-
+    std::complex<double> *schDt_matrix = new std::complex<double>[number_bands * nFreq];
+    mem_alloc += (nFreq * number_bands * sizeof(std::complex<double>));
 
     std::complex<double> *ssxDi = new std::complex<double>[nfreqeval];
     std::complex<double> *schDi = new std::complex<double>[nfreqeval];
@@ -104,11 +93,6 @@ int main(int argc, char** argv)
     mem_alloc += (nfreqeval * 10 * sizeof(std::complex<double>));
     mem_alloc += (nFreq * sizeof(std::complex<double>)) ;
 
-//    std::complex<double> schDt_matrix[number_bands][nFreq];
-    std::complex<double> *schDt_matrix_arr = new std::complex<double>[number_bands * nFreq];
-    std::complex<double> (*schDt_matrix)[number_bands][nFreq];
-    schDt_matrix = (std::complex<double>(*)[number_bands][nFreq]) (schDt_matrix_arr);
-    mem_alloc += (nFreq * number_bands * sizeof(std::complex<double>));
 
 
     //Variables used : 
@@ -131,12 +115,12 @@ int main(int argc, char** argv)
 
         for(int j=0; j<ncouls; ++j)
         {
-            (*aqsmtemp)[i][j] = expr;
-            (*aqsntemp)[i][j] = expr;
+            aqsmtemp[i*ncouls+j] = expr;
+            aqsntemp[i*ncouls+j] = expr;
         }
 
         for(int j=0; j<nFreq; ++j)
-            (*schDt_matrix)[i][j] = expr0;
+            schDt_matrix[i*nFreq + j] = expr0;
     }
 
     for(int i=0; i<ncouls; ++i)
@@ -148,8 +132,8 @@ int main(int argc, char** argv)
         {
             for(int k=0; k<ncouls; ++k)
             {
-                (*I_epsR_array)[i][j][k] = expR;
-                (*I_epsA_array)[i][j][k] = expA;
+                I_epsR_array[i*ngpown*ncouls + j*ncouls + k] = expR;
+                I_epsA_array[i*ngpown*ncouls + j*ncouls + k] = expA;
             }
         }
     }
@@ -190,6 +174,7 @@ int main(int argc, char** argv)
     std::chrono::duration<double> elapsedTime_preloop = std::chrono::high_resolution_clock::now() - startTimer;
 
     cout << "starting loop" << endl;
+
     auto startTimer_firstloop = std::chrono::high_resolution_clock::now();
     auto startTimer_kernel = std::chrono::high_resolution_clock::now();
     for(int n1 = 0; n1 < number_bands; ++n1)
@@ -209,12 +194,14 @@ int main(int argc, char** argv)
                 std::complex<double> schsDtemp = expr0;
 
                 for(int ig = 0; ig < igmax; ++ig)
-                    schsDtemp -= (*aqsntemp)[n1][ig] * std::conj((*aqsmtemp)[n1][igp]) * (*I_epsR_array)[1][my_igp][ig];
+                    schsDtemp -= aqsntemp[n1*ncouls+ig] * std::conj(aqsmtemp[n1*ncouls+igp]) * I_epsR_array[1*ngpown*ncouls + my_igp*ncouls + ig];
 
 #pragma omp critical
                 achsDtemp += schsDtemp * vcoul[igp] * 0.5;
             }
         }
+
+//        achsDtemp_kernel(number_bands, ngpown, ncouls, aqsntemp, aqsmtemp, I_epsR_
 
         std::complex<double> ssxDit = expr0;
         std::complex<double> ssxDittt = expr0;
@@ -266,10 +253,10 @@ int main(int argc, char** argv)
                         {
                             for(int ig = 0; ig < igmax; ++ig)
                             {
-                                ssxDit = (*I_epsR_array)[ifreq][my_igp][ig] * fact1 + \
-                                                             (*I_epsR_array)[ifreq+1][my_igp][ig] * fact2;
+                                ssxDit = I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] * fact1 + \
+                                                             I_epsR_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] * fact2;
             
-                                ssxDitt += (*aqsntemp)[n1][ig] * std::conj((*aqsmtemp)[n1][igp]) * ssxDit;
+                                ssxDitt += aqsntemp[n1*ncouls+ig] * std::conj(aqsmtemp[n1*ncouls+igp]) * ssxDit;
                             }
 #pragma omp critical
                             ssxDittt += ssxDitt * vcoul[igp];
@@ -295,11 +282,11 @@ int main(int argc, char** argv)
                         {
                             for(int ig = 0; ig < igmax; ++ig)
                             {
-                                ssxDit = (*I_epsA_array)[ifreq][my_igp][ig] * fact1 + \
-                                                             (*I_epsA_array)[ifreq+1][my_igp][ig] * fact2;
+                                ssxDit = I_epsA_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] * fact1 + \
+                                                             I_epsA_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] * fact2;
             
                                 
-                                ssxDitt += (*aqsntemp)[n1][ig] * std::conj((*aqsmtemp)[n1][igp]) * ssxDit;
+                                ssxDitt += aqsntemp[n1*ncouls+ig] * std::conj(aqsmtemp[n1*ncouls+igp]) * ssxDit;
                             }
                         }
 #pragma omp critical 
@@ -334,7 +321,7 @@ int main(int argc, char** argv)
 #pragma omp parallel for default(shared)
         for(int ifreq = 0; ifreq < nFreq; ++ifreq)
         {
-            std::complex<double> schDt = (*schDt_matrix)[n1][ifreq];
+            std::complex<double> schDt = schDt_matrix[n1*nFreq + ifreq];
             double cedifft_zb = dFreqGrid[ifreq];
             double cedifft_zb_right, cedifft_zb_left;
             std::complex<double> schDt_right, schDt_left, schDt_avg, schDt_lin, schDt_lin2, schDt_lin3;
@@ -352,7 +339,7 @@ int main(int argc, char** argv)
                 cedifft_zb_right = cedifft_zb;
                 cedifft_zb_left = dFreqGrid[ifreq-1];
                 schDt_right = schDt;
-                schDt_left = (*schDt_matrix)[n1][ifreq-1];
+                schDt_left = schDt_matrix[n1*nFreq + ifreq-1];
                 schDt_avg = (schDt_right + schDt_left) * 0.5;
                 schDt_lin = schDt_right - schDt_left;
                 schDt_lin2 = schDt_lin / (cedifft_zb_right - cedifft_zb_left);
@@ -429,9 +416,9 @@ int main(int argc, char** argv)
                     {
                         for(int ig = 0; ig < igmax; ++ig)
                         {
-                            std::complex<double> sch2Dt = ((*I_epsR_array)[ifreq][my_igp][ig] - (*I_epsA_array)[ifreq][my_igp][ig]) * fact1 + \
-                                                        ((*I_epsR_array)[ifreq+1][my_igp][ig] - (*I_epsA_array)[ifreq+1][my_igp][ig]) * fact2;
-                            sch2Dtt += (*aqsntemp)[n1][ig] * std::conj((*aqsmtemp)[n1][igp]) * sch2Dt;
+                            std::complex<double> sch2Dt = (I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] - I_epsA_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig]) * fact1 + \
+                                                        (I_epsR_array[(ifreq+1)*ngpown*ncouls+ my_igp*ncouls + ig] - I_epsA_array[(ifreq+1)*ngpown*ncouls+ my_igp*ncouls + ig]) * fact2;
+                            sch2Dtt += aqsntemp[n1*ncouls+ig] * std::conj(aqsmtemp[n1*ncouls+igp]) * sch2Dt;
                         }
                         schDttt += sch2Dtt * vcoul[igp];
                         if(flag_occ){}
@@ -472,9 +459,9 @@ int main(int argc, char** argv)
                     {
                         for(int ig = 0; ig < igmax; ++ig)
                         {
-                            std::complex<double> sch2Dt = -0.5*(((*I_epsR_array)[ifreq][my_igp][ig] - (*I_epsA_array)[ifreq][my_igp][ig]) * fact1 + \
-                                                        ((*I_epsR_array)[ifreq+1][my_igp][ig] - (*I_epsA_array)[ifreq+1][my_igp][ig]) * fact2);
-                            sch2Dtt += (*aqsntemp)[n1][ig] * std::conj((*aqsmtemp)[n1][igp]) * sch2Dt;
+                            std::complex<double> sch2Dt = -0.5*((I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] - I_epsA_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig]) * fact1 + \
+                                                        (I_epsR_array[(ifreq+1)*ngpown*ncouls + my_igp * ncouls + ig] - I_epsA_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig]) * fact2);
+                            sch2Dtt += aqsntemp[n1*ncouls+ig] * std::conj(aqsmtemp[n1*ncouls+igp]) * sch2Dt;
                         }
 #pragma omp critical
                         schDttt_cor += sch2Dtt * vcoul[igp];
@@ -505,10 +492,10 @@ int main(int argc, char** argv)
     cout << "********** Total Time Taken **********= " << elapsedTime.count() << " secs" << endl;
 
 //Free the allocated memory since you are a good programmer :D
-    free(aqsntemp_arr);
-    free(aqsmtemp_arr);
-    free(I_epsA_array_vla);
-    free(I_epsR_array_vla);
+    free(aqsntemp);
+    free(aqsmtemp);
+    free(I_epsA_array);
+    free(I_epsR_array);
     free(inv_igp_index);
     free(indinv);
     free(vcoul);
@@ -526,7 +513,7 @@ int main(int argc, char** argv)
     free(achDtemp_corb);
     free(asxDtemp);
     free(dFreqBrd);
-    free(schDt_matrix_arr);
+    free(schDt_matrix);
 
     return 0;
 }
