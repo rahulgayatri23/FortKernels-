@@ -12,16 +12,19 @@
 #include <chrono>
 
 
-#include <vector_types.h>
-#include <cuda.h>
-#include <cuda_runtime_api.h>
+//#include <vector_types.h>
+//#include <cuda.h>
+//#include <cuda_runtime_api.h>
 
-class GPUComplex : public double2{
+class GPUComplex {
 
+#pragma omp declare target
     private : 
 
 public:
 //    double2 complNum;
+    double x = 0.00;
+    double y = 0.00;
 
 explicit GPUComplex () {
     x = 0.00;
@@ -117,6 +120,8 @@ void set_imag(double val)
     GPUComplex doublePlusGPUComplex(double a, GPUComplex& src) ;
     double GPUComplex_real( const GPUComplex& src) ;
     double GPUComplex_imag( const GPUComplex& src) ;
+
+#pragma omp end declare target
 };
 
 //Inline functions have to be defined in the same file as the declaration
