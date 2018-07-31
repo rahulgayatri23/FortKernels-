@@ -1,9 +1,5 @@
 EXE = gppKer_gpuComplex.ex
 SRC = gppKer_gpuComplex.cpp 
-#EXE = testSummitReduction.ex
-#SRC = testSummitReduction.cpp 
-#EXE = testCase2.ex
-#SRC = testCase2.cpp 
 
 CXX = xlc++_r
 #CXX = CC 
