@@ -8,6 +8,7 @@
 #include <omp.h>
 #include <ctime>
 #include <chrono>
+#include <ittnotify.h>
 
 using namespace std;
 
@@ -264,6 +265,8 @@ int main(int argc, char** argv)
 
     auto start_chrono = std::chrono::high_resolution_clock::now();
 
+    __SSC_MARK(0x111);
+    __itt_resume();
     for(int n1 = 0; n1<number_bands; ++n1) // This for loop at the end cheddam
     {
         flag_occ = n1 < nvband;
@@ -318,6 +321,8 @@ int main(int argc, char** argv)
                {
                    scht = ssxt = expr0;
                    wxt = wx_array[iw];
+//#pragma omp simd
+//#pragma ivdep
                    for(int ig = 0; ig<ncouls; ++ig)
                    { 
                            wdiff = wxt - wtilde_array[my_igp*ncouls+ig];
@@ -328,9 +333,9 @@ int main(int argc, char** argv)
                            delwr = std::real(delw*std::conj(delw));
                            wdiffr = std::real(wdiff*std::conj(wdiff));
 
-                           if ((wdiffr > limittwo) && (delwr < limitone))
+//                           if ((wdiffr > limittwo) && (delwr < limitone))
                                scha[ig] = mygpvar1 * aqsntemp[n1*ncouls+ig] * delw * I_eps_array[my_igp*ncouls+ig];
-                               else 
+//                               else 
                                    scht += expr0;
                    }
 
@@ -354,6 +359,8 @@ int main(int argc, char** argv)
             } //for the if-loop to avoid break inside an openmp pragma statment
         } //ngpown
     } // number-bands
+    __itt_pause();
+    __SSC_MARK(0x222);
 
 #pragma omp simd
     for(int iw=nstart; iw<nend; ++iw)
