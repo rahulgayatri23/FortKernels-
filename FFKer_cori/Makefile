@@ -1,17 +1,20 @@
-EXE = ffKerCpp.ex
-SRC = ffKernel.cpp 
+#EXE = ffKerCpp.ex
+#SRC = ffKernel.cpp 
+EXE = ffCustomComplex.ex
+SRC = ffCustomComplex.cpp 
 
-CXX = xlc++_r
+#CXX = xlc++_r
 #CXX = g++
-#CXX = CC
+CXX = CC
 
 LINK = ${CXX}
 
 ifeq ($(CXX),CC)
-	CXXFLAGS= -g -O3 -qopenmp -qopt-report=5 -std=c++11 -pthread -DLIKWID_PERFMON -DUSE_VTUNE -I${VTUNE_AMPLIFIER_XE_2018_DIR}/include
+	CXXFLAGS= -g -O3 -qopenmp -qopt-report=5 -std=c++11 
 	CXXFLAGS+=-xCORE-AVX2
 	#CXXFLAGS+=-xMIC-AVX512
-	LINKFLAGS=-qopenmp -dynamic -L${VTUNE_AMPLIFIER_XE_2018_DIR}/lib64 -littnotify
+    CXXFLAGS+=-DLIKWID_PERFMON -DUSE_VTUNE -I${VTUNE_AMPLIFIER_XE_2018_DIR}/include
+    LINKFLAGS=-qopenmp -dynamic -L${VTUNE_AMPLIFIER_XE_2018_DIR}/lib64 -littnotify
     LINKFLAGS+=-L /usr/common/software/likwid/4.3.0/lib -llikwid
 endif 
 

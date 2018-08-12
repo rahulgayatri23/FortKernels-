@@ -8,8 +8,8 @@ CXX = ftn
 LINK = ${CXX}
 
 ifeq ($(CXX),ftn)
-	CXXFLAGS = -O3 -qopt-report=5 -g -qopenmp 
-	CXXFLAGS+=-xCORE_AVX2 
+	CXXFLAGS = -O3 -qopt-report=5 -g -qopenmp -fast
+	CXXFLAGS+=-xCORE-AVX2 
 	#CXXFLAGS+=-xMIC-AVX512 
 	LINKFLAGS = -dynamic -O3 -qopenmp
 endif 
