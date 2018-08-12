@@ -185,7 +185,7 @@ inline void compute_schDi(bool flag_occ, int n1, int nfreqeval, int nFreq, doubl
         std::complex<double> cedifft_coh = cedifft_compl - dFreqBrd[ifreq];
 
         if(flag_occ)
-            cedifft_cor = -1 * cedifft_compl - dFreqBrd[ifreq];
+            cedifft_cor = -cedifft_compl - dFreqBrd[ifreq];
             else
                 cedifft_cor = cedifft_compl - dFreqBrd[ifreq];
 
