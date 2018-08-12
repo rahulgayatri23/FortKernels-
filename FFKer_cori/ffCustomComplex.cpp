@@ -374,7 +374,6 @@ int main(int argc, char** argv)
     CustomComplex<double, double> *I_epsA_array = new CustomComplex<double, double>[nFreq * ngpown * ncouls];
     mem_alloc += (nFreq * ngpown * ncouls * sizeof(CustomComplex<double, double>));
 
-    CustomComplex<double, double> *ssxDi = new CustomComplex<double, double>[nfreqeval];
     CustomComplex<double, double> *schDi = new CustomComplex<double, double>[nfreqeval];
     CustomComplex<double, double> *sch2Di = new CustomComplex<double, double>[nfreqeval];
     CustomComplex<double, double> *schDi_cor = new CustomComplex<double, double>[nfreqeval];
@@ -385,7 +384,7 @@ int main(int argc, char** argv)
     CustomComplex<double, double> *achDtemp_corb = new CustomComplex<double, double>[nfreqeval];
     CustomComplex<double, double> *asxDtemp = new CustomComplex<double, double>[nfreqeval];
     CustomComplex<double, double> *dFreqBrd = new CustomComplex<double, double>[nFreq];
-    mem_alloc += (nfreqeval * 10 * sizeof(CustomComplex<double, double>));
+    mem_alloc += (nfreqeval * 9 * sizeof(CustomComplex<double, double>));
     mem_alloc += (nFreq * sizeof(CustomComplex<double, double>)) ;
 
     CustomComplex<double, double> *schDt_matrix = new CustomComplex<double, double>[number_bands * nFreq];
@@ -462,7 +461,6 @@ int main(int argc, char** argv)
 
     for(int i = 0; i < nfreqeval; ++i)
     {
-        ssxDi[i] = expr0;
         schDi[i] = expr0;
         sch2Di[i] = expr0;
         schDi_corb[i] = expr0;
@@ -531,7 +529,6 @@ int main(int argc, char** argv)
     free(ekq);
     free(dFreqGrid);
     free(pref);
-    free(ssxDi);
     free(schDi);
     free(sch2Di);
     free(schDi_cor);
