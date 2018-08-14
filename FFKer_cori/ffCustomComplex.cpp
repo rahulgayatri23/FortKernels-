@@ -80,30 +80,18 @@ static inline void compute_fact(double wx, int nFreq, double *dFreqGrid, double 
 
     }
 }
-//
-static inline void ssxDittt_kernel(int *inv_igp_index, int *indinv, CustomComplex<double, double> *aqsmtemp, CustomComplex<double, double> *aqsntemp, double *vcoul, CustomComplex<double, double> *I_eps_array, CustomComplex<double, double> &ssxDittt, int ngpown, int ncouls, int n1,int ifreq, double fact1, double fact2)
+
+static inline void ssxDittt_kernel(int *inv_igp_index, int *indinv, CustomComplex<double, double> *aqsmtemp, CustomComplex<double, double> *aqsntemp, double *vcoul, CustomComplex<double, double> *I_eps_array, CustomComplex<double, double> &ssxDittt, int ngpown, int ncouls, int n1,int ifreq, double fact1, double fact2, int igp, int my_igp)
 {
-    double ssxDittt_re = 0.00, ssxDittt_im = 0.00;
-#pragma omp parallel for default(shared) reduction(+:ssxDittt_re, ssxDittt_im)
-    for(int my_igp = 0; my_igp < ngpown; ++my_igp)
+    CustomComplex<double, double> ssxDitt(0.00, 0.00);
+    for(int ig = 0; ig < ncouls; ++ig)
     {
-        int indigp = inv_igp_index[my_igp];
-        int igp = indinv[indigp];
-        int tid = omp_get_thread_num();
-        CustomComplex<double, double> ssxDit(0.00, 0.00);
-        CustomComplex<double, double> ssxDitt(0.00, 0.00);
+        CustomComplex<double, double> ssxDit = I_eps_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] * fact1 + \
+                                     I_eps_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] * fact2;
 
-        for(int ig = 0; ig < ncouls; ++ig)
-        {
-            ssxDit = I_eps_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] * fact1 + \
-                                         I_eps_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] * fact2;
-
-            ssxDitt += aqsntemp[n1*ncouls + ig] * CustomComplex_conj(aqsmtemp[n1*ncouls + igp]) * ssxDit * vcoul[igp];
-        }
-        ssxDittt_re += CustomComplex_real(ssxDitt);
-        ssxDittt_im += CustomComplex_imag(ssxDitt);
+        ssxDitt += aqsntemp[n1*ncouls + ig] * CustomComplex_conj(aqsmtemp[n1*ncouls + igp]) * ssxDit * vcoul[igp];
     }
-    ssxDittt = CustomComplex<double, double> (ssxDittt_re, ssxDittt_im);
+    ssxDittt = ssxDitt;
 }
 
 
@@ -132,31 +120,54 @@ void achsDtemp_Kernel(int number_bands, int ngpown, int ncouls, int *inv_igp_ind
 
 }
 //
-static inline void asxDtemp_Kernel(int nvband, int nfreqeval, int ncouls, int ngpown, int numThreads, int nFreq, double freqevalmin, double freqevalstep, double occ, double *ekq, double *dFreqGrid, int *inv_igp_index, int *indinv, CustomComplex<double, double> *aqsmtemp, CustomComplex<double, double> *aqsntemp, double *vcoul, CustomComplex<double, double> *I_epsR_array, CustomComplex<double, double> *I_epsA_array, CustomComplex<double, double> *ssxDittt, CustomComplex<double, double> *asxDtemp)
+static inline void asxDtemp_Kernel(int nvband, int nfreqeval, int ncouls, int ngpown, int nFreq, double freqevalmin, double freqevalstep, double occ, double *ekq, double *dFreqGrid, int *inv_igp_index, int *indinv, CustomComplex<double, double> *aqsmtemp, CustomComplex<double, double> *aqsntemp, double *vcoul, CustomComplex<double, double> *I_epsR_array, CustomComplex<double, double> *I_epsA_array, CustomComplex<double, double> *asxDtemp)
 {
-    CustomComplex<double, double> expr0(0.00, 0.00);
+    double *asxDtemp_re = new double[nfreqeval];
+    double *asxDtemp_im = new double[nfreqeval];
+    for(int iw = 0; iw < nfreqeval; ++iw)
+    {
+        asxDtemp_re[iw] = 0.00;
+        asxDtemp_im[iw] = 0.00;
+    }
+
+#pragma omp parallel for collapse(3) default(shared)
     for(int n1 = 0; n1 < nvband; ++n1)
     {
-        for(int iw = 0; iw < nfreqeval; ++iw)
+        for(int my_igp = 0; my_igp < ngpown; ++my_igp)
         {
-            double wx = freqevalmin - ekq[n1] + freqevalstep;
-            double fact1 = 0.00, fact2 = 0.00;
-            int ifreq = 0;
-            CustomComplex<double, double> ssxDittt = expr0;
+            for(int iw = 0; iw < nfreqeval; ++iw)
+            {
+                double wx = freqevalmin - ekq[n1] + freqevalstep;
+                int indigp = inv_igp_index[my_igp];
+                int igp = indinv[indigp];
+                double fact1 = 0.00, fact2 = 0.00;
+                int ifreq = 0;
+                CustomComplex<double, double> ssxDittt(0.00, 0.00);
 
-            compute_fact(wx, nFreq, dFreqGrid, fact1, fact2, ifreq, 1, 0);
+                compute_fact(wx, nFreq, dFreqGrid, fact1, fact2, ifreq, 1, 0);
 
-//The ssxDittt_kernel is OMP parallelized.
-        if(wx > 0)
-            ssxDittt_kernel(inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsR_array, ssxDittt, ngpown, ncouls, n1, ifreq, fact1, fact2);
-            else
-                ssxDittt_kernel(inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsA_array, ssxDittt, ngpown, ncouls, n1, ifreq, fact1, fact2);
+    //The ssxDittt_kernel is OMP parallelized.
+            if(wx > 0)
+                ssxDittt_kernel(inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsR_array, ssxDittt, ngpown, ncouls, n1, ifreq, fact1, fact2, igp, my_igp);
+                else
+                    ssxDittt_kernel(inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsA_array, ssxDittt, ngpown, ncouls, n1, ifreq, fact1, fact2, igp, my_igp);
 
-            asxDtemp[iw] += ssxDittt * occ;
-        } // iw
+#pragma omp atomic
+                asxDtemp_re[iw] += CustomComplex_real(ssxDittt * occ);
+#pragma omp atomic
+                asxDtemp_im[iw] += CustomComplex_imag(ssxDittt * occ);
+            } // iw
+        }
     }
+
+    for(int iw = 0; iw < nfreqeval; ++iw)
+        asxDtemp[iw] = CustomComplex<double, double>(asxDtemp_re[iw], asxDtemp_im[iw]);
+
+    free(asxDtemp_re);
+    free(asxDtemp_im);
 }
-//
+
+
 void achDtemp_Kernel(int number_bands, int nvband, int nfreqeval, int ncouls, int ngpown, int nFreq, double freqevalmin, double freqevalstep, double *ekq, double pref_zb, double *pref, double *dFreqGrid, CustomComplex<double, double> *dFreqBrd, CustomComplex<double, double> *schDt_matrix, CustomComplex<double, double> *schDi, CustomComplex<double, double> *schDi_cor, CustomComplex<double, double> *sch2Di, CustomComplex<double, double> *achDtemp)
 {
     bool flag_occ;
@@ -214,18 +225,18 @@ void achDtemp_Kernel(int number_bands, int nvband, int nfreqeval, int ncouls, in
 
 }
 
-static inline void achDtemp_cor_Kernel(int number_bands, int nvband, int nfreqeval, int ncouls, int ngpown, int nFreq, double freqevalmin, double freqevalstep, double *ekq, double *dFreqGrid, int *inv_igp_index, int *indinv, CustomComplex<double, double> *aqsmtemp, CustomComplex<double, double> *aqsntemp, double *vcoul, CustomComplex<double, double> *I_epsR_array, CustomComplex<double, double> *I_epsA_array, CustomComplex<double, double> *schDi_cor, CustomComplex<double, double> *schDi_corb, CustomComplex<double, double> *sch2Di, CustomComplex<double, double> *ach2Dtemp, CustomComplex<double, double> *achDtemp_cor, CustomComplex<double, double> *achDtemp_corb)
+static inline void achDtemp_cor_Kernel(int number_bands, int nvband, int nfreqeval, int ncouls, int ngpown, int nFreq, double freqevalmin, double freqevalstep, double *ekq, double *dFreqGrid, int *inv_igp_index, int *indinv, CustomComplex<double, double> *aqsmtemp, CustomComplex<double, double> *aqsntemp, double *vcoul, CustomComplex<double, double> *I_epsR_array, CustomComplex<double, double> *I_epsA_array, CustomComplex<double, double> *ach2Dtemp, CustomComplex<double, double> *achDtemp_cor, CustomComplex<double, double> *achDtemp_corb)
 {
     bool flag_occ;
-    CustomComplex<double, double> expr0(0.00, 0.00);
     for(int n1 = 0; n1 < number_bands; ++n1)
     {
         flag_occ = n1 < nvband;
 
         for(int iw = 0; iw < nfreqeval; ++iw)
         {
-            schDi_corb[iw] = expr0;
-            schDi_cor[iw] = expr0;
+            CustomComplex<double, double> sch2Di(0.00, 0.00);
+            CustomComplex<double, double> schDi_cor(0.00, 0.00);
+            CustomComplex<double, double> schDi_corb(0.00, 0.00);
             double wx = freqevalmin - ekq[n1] + freqevalstep;
 
             double fact1 = 0.00, fact2 = 0.00;
@@ -236,16 +247,16 @@ static inline void achDtemp_cor_Kernel(int number_bands, int nvband, int nfreqev
             if(wx > 0)
             {
                 if(!flag_occ)
-                schDttt_corKernel1(schDi_cor[iw], inv_igp_index, indinv, I_epsR_array, I_epsA_array, aqsmtemp, aqsntemp, sch2Di[iw],vcoul,  ncouls, ifreq, ngpown, n1, fact1, fact2);
+                schDttt_corKernel1(schDi_cor, inv_igp_index, indinv, I_epsR_array, I_epsA_array, aqsmtemp, aqsntemp, sch2Di,vcoul,  ncouls, ifreq, ngpown, n1, fact1, fact2);
             }
             else if(flag_occ)
-                schDttt_corKernel2(schDi_cor[iw], inv_igp_index, indinv, I_epsR_array, I_epsA_array, aqsmtemp, aqsntemp, vcoul,  ncouls, ifreq, ngpown, n1, fact1, fact2);
+                schDttt_corKernel2(schDi_cor, inv_igp_index, indinv, I_epsR_array, I_epsA_array, aqsmtemp, aqsntemp, vcoul,  ncouls, ifreq, ngpown, n1, fact1, fact2);
 
 
 //Summing up at the end of iw loop
-            ach2Dtemp[iw] += sch2Di[iw];
-            achDtemp_cor[iw] += schDi_cor[iw];
-            achDtemp_corb[iw] += schDi_corb[iw];
+            ach2Dtemp[iw] += sch2Di;
+            achDtemp_cor[iw] += schDi_cor;
+            achDtemp_corb[iw] += schDi_corb;
         }// iw
     } //n1
 }
@@ -315,12 +326,18 @@ int main(int argc, char** argv)
     }
 
     auto startTimer = std::chrono::high_resolution_clock::now();
-    int number_bands = atoi(argv[1]);
-    int nvband = atoi(argv[2]);
-    int ncouls = atoi(argv[3]);
-    int ngpown = atoi(argv[4]);
-    int nFreq = atoi(argv[5]);
-    int nfreqeval = atoi(argv[6]);
+    const int number_bands = atoi(argv[1]);
+    const int nvband = atoi(argv[2]);
+    const int ncouls = atoi(argv[3]);
+    const int ngpown = atoi(argv[4]);
+    const int nFreq = atoi(argv[5]);
+    const int nfreqeval = atoi(argv[6]);
+
+    const double freqevalmin = 0.00;
+    const double freqevalstep = 0.50;
+    const double occ = 1.00;
+    const double pref_zb = 0.5 / 3.14;
+    double dw = -10;
 
     if(ngpown > ncouls)
     {
@@ -351,7 +368,6 @@ int main(int argc, char** argv)
     CustomComplex<double, double> expR( 0.5 , 0.5);
     CustomComplex<double, double> expA( 0.5 , -0.5);
     CustomComplex<double, double> exprP1( 0.5 , 0.1);
-    double pref_zb = 0.5 / 3.14;
 
 //Start to allocate the data structures;
     int *inv_igp_index = new int[ngpown];
@@ -391,18 +407,8 @@ int main(int argc, char** argv)
     mem_alloc += (nFreq * number_bands * sizeof(CustomComplex<double, double>));
 
     //Variables used : 
-    CustomComplex<double, double> achsDtemp = expr0;
-    CustomComplex<double, double> *achsDtemp_threadArr = new CustomComplex<double, double>[numThreads];
-    for(int i = 0; i < numThreads; ++i)
-    {
-        achsDtemp_threadArr[i] = expr0;
-    }
+    CustomComplex<double, double> achsDtemp(0.00, 0.00);
 
-
-    double freqevalmin = 0.00;
-    double freqevalstep = 0.50;
-    double dw = -10;
-    double occ = 1.00;
 
     //Initialize the data structures
     for(int ig = 0; ig < ngpown; ++ig)
@@ -471,7 +477,6 @@ int main(int argc, char** argv)
         achDtemp_cor[i] = expr0;
         achDtemp_corb[i] = expr0;
     }
-    CustomComplex<double, double> *ssxDittt = new CustomComplex<double, double>[numThreads];
 
     cout << "Memory Used = " << mem_alloc/(1024 * 1024 * 1024) << " GB" << endl;
     std::chrono::duration<double> elapsedTime_preloop = std::chrono::high_resolution_clock::now() - startTimer;
@@ -488,7 +493,7 @@ int main(int argc, char** argv)
 
     /***********asxDtemp Kernel ****************/
     auto startTimer_asxDtemp = std::chrono::high_resolution_clock::now();
-    asxDtemp_Kernel(nvband, nfreqeval, ncouls, ngpown, numThreads, nFreq, freqevalmin, freqevalstep, occ, ekq, dFreqGrid, inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsR_array, I_epsA_array, ssxDittt, asxDtemp);
+    asxDtemp_Kernel(nvband, nfreqeval, ncouls, ngpown, nFreq, freqevalmin, freqevalstep, occ, ekq, dFreqGrid, inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsR_array, I_epsA_array, asxDtemp);
     std::chrono::duration<double> elapsedTime_asxDtemp = std::chrono::high_resolution_clock::now() - startTimer_asxDtemp;
 
     /***********achDtemp Kernel ****************/
@@ -498,7 +503,7 @@ int main(int argc, char** argv)
 
     /***********achDtemp_cor Kernel ****************/
     auto startTimer_achDtemp_cor = std::chrono::high_resolution_clock::now();
-    achDtemp_cor_Kernel(number_bands, nvband, nfreqeval, ncouls, ngpown, nFreq, freqevalmin, freqevalstep, ekq, dFreqGrid, inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsR_array, I_epsA_array, schDi_cor, schDi_corb, sch2Di, ach2Dtemp, achDtemp_cor, achDtemp_corb);
+    achDtemp_cor_Kernel(number_bands, nvband, nfreqeval, ncouls, ngpown, nFreq, freqevalmin, freqevalstep, ekq, dFreqGrid, inv_igp_index, indinv, aqsmtemp, aqsntemp, vcoul, I_epsR_array, I_epsA_array, ach2Dtemp, achDtemp_cor, achDtemp_corb);
     std::chrono::duration<double> elapsedTime_achDtemp_cor = std::chrono::high_resolution_clock::now() - startTimer_achDtemp_cor;
 
     std::chrono::duration<double> elapsedTime_Kernel = std::chrono::high_resolution_clock::now() - startTime_Kernel;
