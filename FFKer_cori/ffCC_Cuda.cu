@@ -67,15 +67,15 @@ __device__ void d_compute_fact(double wx, int nFreq, double *dFreqGrid, double &
     }
 }
 
-__device__ void d_ssxDittt_kernel(int *inv_igp_index, int *indinv, CustomComplex<double, double> *aqsmtemp, CustomComplex<double, double> *aqsntemp, double *vcoul, CustomComplex<double, double> *I_eps_array, CustomComplex<double, double> &ssxDittt, int ngpown, int ncouls, int n1,int ifreq, double fact1, double fact2)
+__device__ void d_ssxDittt_kernel(int *inv_igp_index, int *indinv, CustomComplex *aqsmtemp, CustomComplex *aqsntemp, double *vcoul, CustomComplex *I_eps_array, CustomComplex &ssxDittt, int ngpown, int ncouls, int n1,int ifreq, double fact1, double fact2)
 {
     double ssxDittt_re = 0.00, ssxDittt_im = 0.00;
     for(int my_igp = 0; my_igp < ngpown; ++my_igp)
     {
         int indigp = inv_igp_index[my_igp];
         int igp = indinv[indigp];
-        CustomComplex<double, double> ssxDit(0.00, 0.00);
-        CustomComplex<double, double> ssxDitt(0.00, 0.00);
+        CustomComplex ssxDit(0.00, 0.00);
+        CustomComplex ssxDitt(0.00, 0.00);
 
         for(int ig = 0; ig < ncouls; ++ig)
         {
@@ -87,10 +87,10 @@ __device__ void d_ssxDittt_kernel(int *inv_igp_index, int *indinv, CustomComplex
         ssxDittt_re += CustomComplex_real(ssxDitt);
         ssxDittt_im += CustomComplex_imag(ssxDitt);
     }
-    ssxDittt = CustomComplex<double, double> (ssxDittt_re, ssxDittt_im);
+    ssxDittt = CustomComplex (ssxDittt_re, ssxDittt_im);
 }
 
-__device__ void d_schDttt_corKernel1(CustomComplex<double, double> &schDttt_cor, int *inv_igp_index, int *indinv, CustomComplex<double, double> *I_epsR_array, CustomComplex<double, double> *I_epsA_array, CustomComplex<double, double> *aqsmtemp, CustomComplex<double, double> *aqsntemp, double *vcoul, int ncouls, int ifreq, int ngpown, int n1, double fact1, double fact2)
+__device__ void d_schDttt_corKernel1(CustomComplex &schDttt_cor, int *inv_igp_index, int *indinv, CustomComplex *I_epsR_array, CustomComplex *I_epsA_array, CustomComplex *aqsmtemp, CustomComplex *aqsntemp, double *vcoul, int ncouls, int ifreq, int ngpown, int n1, double fact1, double fact2)
 {
     int blkSize = 512;
     double schDttt_cor_re = 0.00, schDttt_cor_im = 0.00, \
@@ -103,9 +103,9 @@ __device__ void d_schDttt_corKernel1(CustomComplex<double, double> &schDttt_cor,
             {
                 int indigp = inv_igp_index[my_igp] ;
                 int igp = indinv[indigp];
-                CustomComplex<double, double> sch2Dt = (I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] - I_epsA_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig]) * fact1 + \
+                CustomComplex sch2Dt = (I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] - I_epsA_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig]) * fact1 + \
                                             (I_epsR_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] - I_epsA_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig]) * fact2;
-                CustomComplex<double, double> sch2Dtt = aqsntemp[n1*ncouls + ig] * CustomComplex_conj(aqsmtemp[n1*ncouls + igp]) * sch2Dt * vcoul[igp];
+                CustomComplex sch2Dtt = aqsntemp[n1*ncouls + ig] * CustomComplex_conj(aqsmtemp[n1*ncouls + igp]) * sch2Dt * vcoul[igp];
 
 
                 schDttt_re += CustomComplex_real(sch2Dtt) ;
@@ -115,14 +115,14 @@ __device__ void d_schDttt_corKernel1(CustomComplex<double, double> &schDttt_cor,
             }
         }
     }
-    schDttt_cor = CustomComplex<double, double> (schDttt_cor_re, schDttt_cor_im);
+    schDttt_cor = CustomComplex (schDttt_cor_re, schDttt_cor_im);
     printf("From schDttt_corKernel1, schDttt_cor = \n");
     schDttt_cor.print();
 
 }
 
 
-__device__ void d_schDttt_corKernel2(CustomComplex<double, double> &schDttt_cor, int *inv_igp_index, int *indinv, CustomComplex<double, double> *I_epsR_array, CustomComplex<double, double> *I_epsA_array, CustomComplex<double, double> *aqsmtemp, CustomComplex<double, double> *aqsntemp, double *vcoul, int ncouls, int ifreq, int ngpown, int n1, double fact1, double fact2)
+__device__ void d_schDttt_corKernel2(CustomComplex &schDttt_cor, int *inv_igp_index, int *indinv, CustomComplex *I_epsR_array, CustomComplex *I_epsA_array, CustomComplex *aqsmtemp, CustomComplex *aqsntemp, double *vcoul, int ncouls, int ifreq, int ngpown, int n1, double fact1, double fact2)
 {
     double schDttt_cor_re = 0.00, schDttt_cor_im = 0.00;
     for(int my_igp = 0; my_igp < ngpown; ++my_igp)
@@ -131,17 +131,17 @@ __device__ void d_schDttt_corKernel2(CustomComplex<double, double> &schDttt_cor,
         {
             int indigp = inv_igp_index[my_igp] ;
             int igp = indinv[indigp];
-            CustomComplex<double, double> sch2Dt = ((I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] - I_epsA_array[ifreq*ncouls*ngpown + my_igp*ncouls + ig]) * fact1 + \
+            CustomComplex sch2Dt = ((I_epsR_array[ifreq*ngpown*ncouls + my_igp*ncouls + ig] - I_epsA_array[ifreq*ncouls*ngpown + my_igp*ncouls + ig]) * fact1 + \
                                         (I_epsR_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig] - I_epsA_array[(ifreq+1)*ngpown*ncouls + my_igp*ncouls + ig]) * fact2) * -0.5;
-            CustomComplex<double, double> sch2Dtt = aqsntemp[n1*ncouls + ig] * CustomComplex_conj(aqsmtemp[n1*ncouls + igp]) * sch2Dt * vcoul[igp];
+            CustomComplex sch2Dtt = aqsntemp[n1*ncouls + ig] * CustomComplex_conj(aqsmtemp[n1*ncouls + igp]) * sch2Dt * vcoul[igp];
             schDttt_cor_re += CustomComplex_real(sch2Dtt) ;
             schDttt_cor_im += CustomComplex_imag(sch2Dtt) ;
         }
     }
-    schDttt_cor = CustomComplex<double, double> (schDttt_cor_re, schDttt_cor_im);
+    schDttt_cor = CustomComplex (schDttt_cor_re, schDttt_cor_im);
 }
 
-__global__ void achsDtemp_solver(int number_bands, int ngpown, int ncouls, int *inv_igp_index, int *indinv, CustomComplex<double, double> *aqsntemp, CustomComplex<double, double> *aqsmtemp, CustomComplex<double, double> *I_epsR_array, double *vcoul, double *achsDtemp_re, double *achsDtemp_im, int numThreadsPerBlock)
+__global__ void achsDtemp_solver(int number_bands, int ngpown, int ncouls, int *inv_igp_index, int *indinv, CustomComplex *aqsntemp, CustomComplex *aqsmtemp, CustomComplex *I_epsR_array, double *vcoul, double *achsDtemp_re, double *achsDtemp_im, int numThreadsPerBlock)
 {
     int n1 = blockIdx.x;
     int my_igp = blockIdx.y;
@@ -156,7 +156,7 @@ __global__ void achsDtemp_solver(int number_bands, int ngpown, int ncouls, int *
     {
         int indigp = inv_igp_index[my_igp];
         int igp = indinv[indigp];
-        CustomComplex<double, double> schsDtemp(0.00, 0.00);
+        CustomComplex schsDtemp(0.00, 0.00);
 
         for( int x = 0; x < loopOverncouls && threadIdx.x < numThreadsPerBlock ; ++x)
         { 
@@ -174,9 +174,9 @@ __global__ void achsDtemp_solver(int number_bands, int ngpown, int ncouls, int *
     }
 }
 
-__global__ void asxDtemp_solver(int nvband, int nfreqeval, int ncouls, int ngpown, int nFreq, double freqevalmin, double freqevalstep, double occ, double *ekq, double *dFreqGrid, int *inv_igp_index, int *indinv, CustomComplex<double, double> *aqsmtemp, CustomComplex<double, double> *aqsntemp, double *vcoul, CustomComplex<double, double> *I_epsR_array, CustomComplex<double, double> *I_epsA_array, double *asxDtemp_re, double *asxDtemp_im)
+__global__ void asxDtemp_solver(int nvband, int nfreqeval, int ncouls, int ngpown, int nFreq, double freqevalmin, double freqevalstep, double occ, double *ekq, double *dFreqGrid, int *inv_igp_index, int *indinv, CustomComplex *aqsmtemp, CustomComplex *aqsntemp, double *vcoul, CustomComplex *I_epsR_array, CustomComplex *I_epsA_array, double *asxDtemp_re, double *asxDtemp_im)
 {
-    CustomComplex<double, double> ssxDittt(0.00, 0.00);
+    CustomComplex ssxDittt(0.00, 0.00);
     int n1 = blockIdx.x;
     int iw = blockIdx.y;
     if(n1 < nvband && iw < nfreqeval)
@@ -184,7 +184,7 @@ __global__ void asxDtemp_solver(int nvband, int nfreqeval, int ncouls, int ngpow
         double wx = freqevalmin - ekq[n1] + freqevalstep;
         double fact1 = 0.00, fact2 = 0.00;
         int ifreq = 0;
-        CustomComplex<double, double> ssxDittt(0.00, 0.00);
+        CustomComplex ssxDittt(0.00, 0.00);
 
         d_compute_fact(wx, nFreq, dFreqGrid, fact1, fact2, ifreq, 1, 0);
 
@@ -199,7 +199,7 @@ __global__ void asxDtemp_solver(int nvband, int nfreqeval, int ncouls, int ngpow
 }
 
 
-__global__ void achDtemp_cor_solver(int number_bands, int nvband, int nfreqeval, int ncouls, int ngpown, int nFreq, double freqevalmin, double freqevalstep, double *ekq, double *dFreqGrid, int *inv_igp_index, int *indinv, CustomComplex<double, double> *aqsmtemp, CustomComplex<double, double> *aqsntemp, double *vcoul, CustomComplex<double, double> *I_epsR_array, CustomComplex<double, double> *I_epsA_array, CustomComplex<double, double> *ach2Dtemp, double *achDtemp_cor_re, double *achDtemp_cor_im, CustomComplex<double, double> *achDtemp_corb, int numThreadsPerBlock)
+__global__ void achDtemp_cor_solver(int number_bands, int nvband, int nfreqeval, int ncouls, int ngpown, int nFreq, double freqevalmin, double freqevalstep, double *ekq, double *dFreqGrid, int *inv_igp_index, int *indinv, CustomComplex *aqsmtemp, CustomComplex *aqsntemp, double *vcoul, CustomComplex *I_epsR_array, CustomComplex *I_epsA_array, CustomComplex *ach2Dtemp, double *achDtemp_cor_re, double *achDtemp_cor_im, CustomComplex *achDtemp_corb, int numThreadsPerBlock)
 {
     bool flag_occ;
     int n1 = blockIdx.x;
@@ -209,8 +209,8 @@ __global__ void achDtemp_cor_solver(int number_bands, int nvband, int nfreqeval,
 
         for(int iw = 0; iw < nfreqeval; ++iw)
         {
-            CustomComplex<double, double> schDi_cor(0.00, 0.00);
-            CustomComplex<double, double> schDi_corb(0.00, 0.00);
+            CustomComplex schDi_cor(0.00, 0.00);
+            CustomComplex schDi_corb(0.00, 0.00);
             double wx = freqevalmin - ekq[n1] + freqevalstep;
 
             double fact1 = 0.00, fact2 = 0.00;
@@ -240,7 +240,7 @@ __global__ void achDtemp_cor_solver(int number_bands, int nvband, int nfreqeval,
 }
 
 
-void d_achsDtemp_Kernel(int number_bands, int ngpown, int ncouls, int *inv_igp_index, int *indinv, CustomComplex<double, double> *aqsntemp, CustomComplex<double, double> *aqsmtemp, CustomComplex<double, double> *I_epsR_array, double *vcoul, double *achsDtemp_re, double *achsDtemp_im)
+void d_achsDtemp_Kernel(int number_bands, int ngpown, int ncouls, int *inv_igp_index, int *indinv, CustomComplex *aqsntemp, CustomComplex *aqsmtemp, CustomComplex *I_epsR_array, double *vcoul, double *achsDtemp_re, double *achsDtemp_im)
 {
     dim3 numBlocks(number_bands, ngpown);
     int numThreadsPerBlock=32;
@@ -248,7 +248,7 @@ void d_achsDtemp_Kernel(int number_bands, int ngpown, int ncouls, int *inv_igp_i
     achsDtemp_solver<<<numBlocks, numThreadsPerBlock>>>(number_bands, ngpown, ncouls, inv_igp_index, indinv, aqsntemp, aqsmtemp, I_epsR_array, vcoul, achsDtemp_re, achsDtemp_im, numThreadsPerBlock); 
 }
 
-void d_asxDtemp_Kernel(int nvband, int nfreqeval, int ncouls, int ngpown, int nFreq, double freqevalmin, double freqevalstep, double occ, double *ekq, double *dFreqGrid, int *inv_igp_index, int *indinv, CustomComplex<double, double> *aqsmtemp, CustomComplex<double, double> *aqsntemp, double *vcoul, CustomComplex<double, double> *I_epsR_array, CustomComplex<double, double> *I_epsA_array, double *asxDtemp_re, double *asxDtemp_im)
+void d_asxDtemp_Kernel(int nvband, int nfreqeval, int ncouls, int ngpown, int nFreq, double freqevalmin, double freqevalstep, double occ, double *ekq, double *dFreqGrid, int *inv_igp_index, int *indinv, CustomComplex *aqsmtemp, CustomComplex *aqsntemp, double *vcoul, CustomComplex *I_epsR_array, CustomComplex *I_epsA_array, double *asxDtemp_re, double *asxDtemp_im)
 {
     dim3 numBlocks(nvband, nfreqeval);
     int numThreadsPerBlock=1;
@@ -257,7 +257,7 @@ void d_asxDtemp_Kernel(int nvband, int nfreqeval, int ncouls, int ngpown, int nF
 
 }
 
-void d_achDtemp_cor_Kernel(int number_bands, int nvband, int nfreqeval, int ncouls, int ngpown, int nFreq, double freqevalmin, double freqevalstep, double *ekq, double *dFreqGrid, int *inv_igp_index, int *indinv, CustomComplex<double, double> *aqsmtemp, CustomComplex<double, double> *aqsntemp, double *vcoul, CustomComplex<double, double> *I_epsR_array, CustomComplex<double, double> *I_epsA_array, CustomComplex<double, double> *ach2Dtemp, double *achDtemp_cor_re, double *achDtemp_cor_im, CustomComplex<double, double> *achDtemp_corb)
+void d_achDtemp_cor_Kernel(int number_bands, int nvband, int nfreqeval, int ncouls, int ngpown, int nFreq, double freqevalmin, double freqevalstep, double *ekq, double *dFreqGrid, int *inv_igp_index, int *indinv, CustomComplex *aqsmtemp, CustomComplex *aqsntemp, double *vcoul, CustomComplex *I_epsR_array, CustomComplex *I_epsA_array, CustomComplex *ach2Dtemp, double *achDtemp_cor_re, double *achDtemp_cor_im, CustomComplex *achDtemp_corb)
 {
     dim3 numBlocks = number_bands;;
     int numThreadsPerBlock=1;
