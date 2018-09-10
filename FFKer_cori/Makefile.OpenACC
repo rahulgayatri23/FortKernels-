@@ -1,7 +1,7 @@
-EXE = ffKerCpp_OpenACC.ex
-SRC = ffKernel_OpenACC.cpp 
+EXE = ffCustomComplex_OpenACC.ex
+SRC = ffCustomComplex_OpenACC.cpp 
 
-#CXX = xlc++_r
+#CXX = xlc++
 #CXX = CC 
 #CXX = g++
 #CXX = clang++
@@ -14,11 +14,11 @@ ifeq ($(CXX),g++)
 	LINKFLAGS=-fopenacc
 endif 
 
-ifeq ($(CXX),xlc++_r)
-	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp
-	LINKFLAGS=-qsmp
-#	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp=noauto:omp -qoffload #-Xptxas -v
-#	LINKFLAGS=-qsmp=noauto:omp -qoffload 
+ifeq ($(CXX),xlc++)
+#	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp
+#	LINKFLAGS=-qsmp
+	CXXFLAGS=-O3 -std=gnu++11 -g -qsmp=noauto:omp -qoffload #-Xptxas -v
+	LINKFLAGS=-qsmp=noauto:omp -qoffload 
 endif 
 
 ifeq ($(CXX),clang++)
@@ -34,8 +34,13 @@ ifeq ($(CXX),icc)
 endif 
 
 ifeq ($(CXX),pgc++)
-	CXXFLAGS=-O3 -g -std=c++11 -acc --gnu_extensions -ta=nvidia -mcmodel=medium #-Minfo=accel 
+	CXXFLAGS=-O3 -std=c++11 --gnu_extensions -g -Munroll
+	CXXFLAGS+=-acc -ta=nvidia 
+	#CXXFLAGS+=-Minfo=accel 
 	LINKFLAGS=-acc
+	#LINKFLAGS+=-ta=tesla:cc70
+	LINKFLAGS+=-ta=tesla:cc60
+	LINKFLAGS+=-ta=tesla:managed
 endif 
 
 OBJ = $(SRC:.cpp=.o)
